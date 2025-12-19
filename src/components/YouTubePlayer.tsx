@@ -12,10 +12,11 @@ import { COLORS } from "@constants/colors";
 interface YouTubePlayerProps {
   onMessage: (event: WebViewMessageEvent) => void;
   onNavigationStateChange: (navState: WebViewNavigation) => void;
+  onLoad?: () => void;
 }
 
 const YouTubePlayer = React.forwardRef<WebView, YouTubePlayerProps>(
-  ({ onMessage, onNavigationStateChange }, ref) => {
+  ({ onMessage, onNavigationStateChange, onLoad }, ref) => {
     // Memoize source to prevent re-renders
     const source = useMemo(() => ({ uri: "https://m.youtube.com" }), []);
 
@@ -29,6 +30,7 @@ const YouTubePlayer = React.forwardRef<WebView, YouTubePlayerProps>(
           injectedJavaScript={INJECTED_JAVASCRIPT}
           onMessage={onMessage}
           onNavigationStateChange={onNavigationStateChange}
+          onLoad={onLoad}
           // Fullscreen & Media
           allowsFullscreenVideo={true}
           allowsInlineMediaPlayback={true}

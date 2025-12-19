@@ -219,6 +219,14 @@ const HomeScreen = () => {
     }
   };
 
+  // Sync translated videos when WebView finishes loading
+  const handleWebViewLoad = () => {
+    // Delay a bit to ensure DOM is ready
+    setTimeout(() => {
+      syncTranslatedVideosToWebView();
+    }, 1000);
+  };
+
   const onFullScreenOpen = async () => {
     setIsFullscreen(true);
     await ScreenOrientation.lockAsync(
@@ -376,6 +384,7 @@ const HomeScreen = () => {
         ref={webViewRef}
         onMessage={handleWebViewMessage}
         onNavigationStateChange={handleNavigationStateChange}
+        onLoad={handleWebViewLoad}
       />
 
       <FloatingButton
