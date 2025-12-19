@@ -216,7 +216,6 @@ const HomeScreen = () => {
 
   const handleNavigationStateChange = useCallback(
     (navState: WebViewNavigation) => {
-      const { handleNavigationStateChange: handleNav } = useVideoPlayer();
       // Simple navigation handling
       const isWatchPage =
         navState.url.includes("/watch") || navState.url.includes("/shorts/");
