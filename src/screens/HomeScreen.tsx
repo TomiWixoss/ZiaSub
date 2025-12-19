@@ -367,6 +367,7 @@ const HomeScreen = () => {
         setSrtContent={setSrtContent}
         onLoadSubtitles={handleLoadSubtitles}
         videoUrl={currentUrl}
+        videoTitle={videoTitle}
         videoDuration={videoDuration}
         batchSettings={batchSettings}
         onTranslationStateChange={(translating, progress) => {

@@ -16,6 +16,12 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { COLORS } from "@constants/colors";
 import { queueManager, QueueItem, QueueStatus } from "@services/queueManager";
+import {
+  GeminiConfig,
+  getGeminiConfigs,
+  getActiveGeminiConfig,
+  saveActiveGeminiConfigId,
+} from "@utils/storage";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 const FLOATING_BUTTON_HEIGHT = 80; // Height reserved for floating buttons
@@ -50,15 +56,32 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
   });
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [geminiConfigs, setGeminiConfigs] = useState<GeminiConfig[]>([]);
+  const [selectedConfigId, setSelectedConfigId] = useState<string>("");
+  const [showConfigPicker, setShowConfigPicker] = useState(false);
 
   useEffect(() => {
     queueManager.initialize();
+    loadConfigs();
     const unsubscribe = queueManager.subscribe(() => {
       setCounts(queueManager.getCounts());
       loadItems();
     });
     return () => unsubscribe();
   }, []);
+
+  const loadConfigs = async () => {
+    const configs = await getGeminiConfigs();
+    setGeminiConfigs(configs);
+    const activeConfig = await getActiveGeminiConfig();
+    if (activeConfig) setSelectedConfigId(activeConfig.id);
+  };
+
+  const handleSelectConfig = async (configId: string) => {
+    setSelectedConfigId(configId);
+    setShowConfigPicker(false);
+    await saveActiveGeminiConfigId(configId);
+  };
 
   useEffect(() => {
     loadItems();
@@ -420,19 +443,70 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
             </TouchableOpacity>
           </View>
 
-          {/* Start All Button */}
+          {/* Config Picker & Start All Button */}
           {activeTab === "pending" && pendingCount > 0 && (
-            <TouchableOpacity
-              style={styles.startAllBtn}
-              onPress={handleStartAll}
-            >
-              <MaterialCommunityIcons
-                name="play-circle"
-                size={20}
-                color={COLORS.text}
-              />
-              <Text style={styles.startAllText}>Dịch tự động tất cả</Text>
-            </TouchableOpacity>
+            <View style={styles.actionSection}>
+              {/* Config Picker */}
+              <TouchableOpacity
+                style={styles.configPicker}
+                onPress={() => setShowConfigPicker(!showConfigPicker)}
+              >
+                <View style={styles.configPickerLeft}>
+                  <MaterialCommunityIcons
+                    name="robot"
+                    size={18}
+                    color={COLORS.primary}
+                  />
+                  <Text style={styles.configPickerText} numberOfLines={1}>
+                    {geminiConfigs.find((c) => c.id === selectedConfigId)
+                      ?.name || "Chọn cấu hình"}
+                  </Text>
+                </View>
+                <MaterialCommunityIcons
+                  name={showConfigPicker ? "chevron-up" : "chevron-down"}
+                  size={18}
+                  color={COLORS.textMuted}
+                />
+              </TouchableOpacity>
+
+              {showConfigPicker && (
+                <View style={styles.configDropdown}>
+                  {geminiConfigs.map((config) => (
+                    <TouchableOpacity
+                      key={config.id}
+                      style={[
+                        styles.configOption,
+                        config.id === selectedConfigId &&
+                          styles.configOptionActive,
+                      ]}
+                      onPress={() => handleSelectConfig(config.id)}
+                    >
+                      <Text
+                        style={[
+                          styles.configOptionText,
+                          config.id === selectedConfigId &&
+                            styles.configOptionTextActive,
+                        ]}
+                      >
+                        {config.name}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+
+              <TouchableOpacity
+                style={styles.startAllBtn}
+                onPress={handleStartAll}
+              >
+                <MaterialCommunityIcons
+                  name="play-circle"
+                  size={20}
+                  color={COLORS.text}
+                />
+                <Text style={styles.startAllText}>Dịch tự động tất cả</Text>
+              </TouchableOpacity>
+            </View>
           )}
 
           {/* List */}
@@ -540,13 +614,54 @@ const styles = StyleSheet.create({
   badgeProcessing: { backgroundColor: COLORS.warning },
   badgeCompleted: { backgroundColor: COLORS.success },
   badgeText: { color: COLORS.background, fontSize: 11, fontWeight: "600" },
+  actionSection: {
+    paddingHorizontal: 16,
+    marginBottom: 12,
+  },
+  configPicker: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: COLORS.surface,
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  configPickerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flex: 1,
+  },
+  configPickerText: {
+    color: COLORS.text,
+    fontSize: 13,
+    fontWeight: "500",
+    flex: 1,
+  },
+  configDropdown: {
+    backgroundColor: COLORS.surface,
+    borderRadius: 10,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    overflow: "hidden",
+  },
+  configOption: {
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  configOptionActive: { backgroundColor: COLORS.surfaceElevated },
+  configOptionText: { color: COLORS.text, fontSize: 13 },
+  configOptionTextActive: { color: COLORS.primary, fontWeight: "600" },
   startAllBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: COLORS.primary,
-    marginHorizontal: 16,
-    marginBottom: 12,
     paddingVertical: 12,
     borderRadius: 10,
     gap: 8,

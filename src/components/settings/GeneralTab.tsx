@@ -7,6 +7,7 @@ import {
   TextInput,
   TouchableOpacity,
   Alert,
+  Linking,
 } from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -123,9 +124,18 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* API Keys Section */}
       <Text style={styles.sectionTitle}>API Keys</Text>
-      <Text style={styles.sectionHint}>
-        Thêm nhiều key để tự động xoay vòng khi bị rate limit
-      </Text>
+      <View style={styles.sectionHintRow}>
+        <Text style={styles.sectionHint}>
+          Thêm nhiều key để tự động xoay vòng khi bị rate limit.{" "}
+        </Text>
+        <TouchableOpacity
+          onPress={() =>
+            Linking.openURL("https://aistudio.google.com/app/apikey")
+          }
+        >
+          <Text style={styles.linkText}>Lấy key tại đây</Text>
+        </TouchableOpacity>
+      </View>
 
       <View style={styles.apiKeysContainer}>
         {apiKeys.map((key, index) => (
@@ -245,8 +255,8 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
         <Slider
           style={styles.slider}
           minimumValue={0}
-          maximumValue={200}
-          step={5}
+          maximumValue={500}
+          step={10}
           value={subtitleSettings.portraitBottom ?? 100}
           onValueChange={(value) => {
             const newSettings = { ...subtitleSettings, portraitBottom: value };
@@ -362,7 +372,17 @@ const styles = StyleSheet.create({
   sectionHint: {
     color: COLORS.textMuted,
     fontSize: 12,
+  },
+  sectionHintRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
     marginBottom: 12,
+  },
+  linkText: {
+    color: COLORS.primary,
+    fontSize: 12,
+    textDecorationLine: "underline",
   },
   apiKeysContainer: {
     backgroundColor: COLORS.surfaceLight,

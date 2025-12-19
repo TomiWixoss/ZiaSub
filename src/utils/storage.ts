@@ -250,6 +250,28 @@ export const deleteTranslation = async (
   }
 };
 
+// Get all video URLs that have translations
+export const getAllTranslatedVideoUrls = async (): Promise<string[]> => {
+  try {
+    const allKeys = await AsyncStorage.getAllKeys();
+    const translationKeys = allKeys.filter((k) =>
+      k.startsWith(TRANSLATION_STORAGE_KEY_PREFIX)
+    );
+    return translationKeys.map((k) =>
+      k.replace(TRANSLATION_STORAGE_KEY_PREFIX, "")
+    );
+  } catch (error) {
+    console.error("Error getting all translated videos:", error);
+    return [];
+  }
+};
+
+// Check if video has any translation
+export const hasTranslation = async (videoUrl: string): Promise<boolean> => {
+  const data = await getVideoTranslations(videoUrl);
+  return data !== null && data.translations.length > 0;
+};
+
 export const getActiveTranslation = async (
   videoUrl: string
 ): Promise<SavedTranslation | null> => {
