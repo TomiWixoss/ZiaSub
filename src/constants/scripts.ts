@@ -61,8 +61,13 @@ export const INJECTED_JAVASCRIPT = `
     }
 
     function getVideo() {
-      if (cachedVideo && document.contains(cachedVideo)) return cachedVideo;
-      cachedVideo = document.querySelector('video');
+      const currentVideo = document.querySelector('video');
+      // If video element changed (quality change, etc.), reset lastTime to force resync
+      if (currentVideo && cachedVideo !== currentVideo) {
+        cachedVideo = currentVideo;
+        lastTime = -1; // Force resync subtitle
+        lastDurationSent = 0; // Force resend duration
+      }
       return cachedVideo;
     }
 

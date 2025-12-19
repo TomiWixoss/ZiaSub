@@ -35,6 +35,7 @@ import {
 } from "@utils/storage";
 import { keyManager } from "@services/keyManager";
 import { queueManager, QueueItem } from "@services/queueManager";
+import { translationManager } from "@services/translationManager";
 import YouTubePlayer from "@components/YouTubePlayer";
 import SubtitleInputModal from "@components/SubtitleInputModal";
 import SettingsModal from "@components/SettingsModal";
@@ -77,6 +78,7 @@ const HomeScreen = () => {
 
   const webViewRef = useRef<WebView>(null);
   const currentUrlRef = useRef<string>("");
+  const lastSentSubtitleRef = useRef<string>("");
   const insets = useSafeAreaInsets();
 
   // Extract video ID from URL
@@ -173,31 +175,69 @@ const HomeScreen = () => {
     }
   }, [isVideoPlaying, subtitleSettings]);
 
-  useEffect(() => {
-    const loadSavedSRT = async () => {
+  // Load saved SRT for current video
+  const loadSavedSRT = async (url: string) => {
+    if (!url) {
       setSrtContent("");
       setSubtitles([]);
       setCurrentSubtitle("");
-
       if (webViewRef.current) {
         webViewRef.current.postMessage(
           JSON.stringify({ type: "setSubtitle", payload: "" })
         );
       }
+      return;
+    }
 
-      if (!currentUrl) return;
+    const savedSRT = await getSRT(url);
+    if (savedSRT) {
+      setSrtContent(savedSRT);
+      const { fixedData } = fixSRT(savedSRT);
+      const parsed = parseSRT(fixedData);
+      setSubtitles(parsed);
+    } else {
+      setSrtContent("");
+      setSubtitles([]);
+      setCurrentSubtitle("");
+      if (webViewRef.current) {
+        webViewRef.current.postMessage(
+          JSON.stringify({ type: "setSubtitle", payload: "" })
+        );
+      }
+    }
+  };
 
-      const savedSRT = await getSRT(currentUrl);
-      if (savedSRT) {
-        setSrtContent(savedSRT);
-        const { fixedData } = fixSRT(savedSRT);
+  useEffect(() => {
+    loadSavedSRT(currentUrl);
+  }, [currentUrl]);
+
+  // Subscribe to translation manager to auto-apply translations when completed
+  useEffect(() => {
+    const unsubscribe = translationManager.subscribe((job) => {
+      // Auto-apply translation when completed for current video
+      // Compare by video ID to handle URL variations
+      const jobVideoId = extractVideoId(job.videoUrl);
+      const currentVideoId = extractVideoId(currentUrlRef.current);
+
+      if (
+        jobVideoId &&
+        currentVideoId &&
+        jobVideoId === currentVideoId &&
+        job.status === "completed" &&
+        job.result
+      ) {
+        setSrtContent(job.result);
+        const { fixedData } = fixSRT(job.result);
         const parsed = parseSRT(fixedData);
         setSubtitles(parsed);
+        // Reset lastSentSubtitle to force resync
+        lastSentSubtitleRef.current = "";
+        // Sync translated videos to WebView
+        syncTranslatedVideosToWebView();
       }
-    };
-
-    loadSavedSRT();
-  }, [currentUrl]);
+    });
+    return () => unsubscribe();
+  }, []);
 
   const handleWebViewMessage = async (event: WebViewMessageEvent) => {
     try {
@@ -305,8 +345,15 @@ const HomeScreen = () => {
     );
     const text = sub ? sub.text : "";
 
-    if (text !== currentSubtitle) {
+    // Always send subtitle if it changed OR if we have subtitles but haven't sent any yet
+    // This handles the case when video quality changes and WebView resets
+    const shouldSend =
+      text !== currentSubtitle ||
+      (subtitles.length > 0 && text && lastSentSubtitleRef.current !== text);
+
+    if (shouldSend) {
       setCurrentSubtitle(text);
+      lastSentSubtitleRef.current = text;
       if (webViewRef.current) {
         webViewRef.current.postMessage(
           JSON.stringify({ type: "setSubtitle", payload: text })

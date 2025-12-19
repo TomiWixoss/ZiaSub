@@ -124,7 +124,10 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
           // Sync to queue - mark as completed (only if in queue)
           queueManager.markVideoCompleted(job.videoUrl, job.configName);
           translationManager.clearCompletedJob(videoUrl);
-          alert("Thành công", "Đã dịch xong! Phụ đề đã được áp dụng.");
+          // Only show alert if modal is visible (user is watching the translation)
+          if (visible) {
+            alert("Thành công", "Đã dịch xong! Phụ đề đã được áp dụng.");
+          }
         }
 
         if (job.status === "error") {
