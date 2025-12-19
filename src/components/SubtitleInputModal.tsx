@@ -21,6 +21,7 @@ import { readAsStringAsync } from "expo-file-system/legacy";
 import { COLORS } from "@constants/colors";
 import {
   GeminiConfig,
+  BatchSettings,
   getGeminiConfigs,
   getActiveGeminiConfig,
   saveActiveGeminiConfigId,
@@ -52,6 +53,7 @@ interface SubtitleInputModalProps {
   onLoadSubtitles: () => void;
   videoUrl?: string;
   videoDuration?: number;
+  batchSettings?: BatchSettings;
   onTranslationStateChange?: (
     isTranslating: boolean,
     progress: { completed: number; total: number } | null
@@ -66,6 +68,7 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
   onLoadSubtitles,
   videoUrl,
   videoDuration,
+  batchSettings,
   onTranslationStateChange,
 }) => {
   const insets = useSafeAreaInsets();
@@ -294,7 +297,12 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
       await saveActiveGeminiConfigId(selectedConfigId);
 
       // Start translation via manager (runs in background)
-      translationManager.startTranslation(videoUrl, config, videoDuration);
+      translationManager.startTranslation(
+        videoUrl,
+        config,
+        videoDuration,
+        batchSettings
+      );
 
       // Close modal - translation continues in background
       handleClose();

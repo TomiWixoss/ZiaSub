@@ -1,14 +1,27 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const SRT_STORAGE_KEY_PREFIX = "srt_";
-const SUBTITLE_SETTINGS_KEY = "subtitle_settings";
+const APP_SETTINGS_KEY = "app_settings";
 const GEMINI_CONFIGS_KEY = "gemini_configs";
 const ACTIVE_GEMINI_CONFIG_KEY = "active_gemini_config";
 
+// Subtitle display settings
 export interface SubtitleSettings {
   fontSize: number;
   fontWeight: "normal" | "bold";
   fontStyle: "normal" | "italic";
+}
+
+// Batch translation settings (shared across all Gemini profiles)
+export interface BatchSettings {
+  maxVideoDuration: number; // Max duration per batch in seconds (default: 600 = 10 minutes)
+  maxConcurrentBatches: number; // Max concurrent API calls (default: 2)
+}
+
+// Combined app settings
+export interface AppSettings {
+  subtitle: SubtitleSettings;
+  batch: BatchSettings;
 }
 
 export const DEFAULT_SUBTITLE_SETTINGS: SubtitleSettings = {
@@ -17,27 +30,67 @@ export const DEFAULT_SUBTITLE_SETTINGS: SubtitleSettings = {
   fontStyle: "normal",
 };
 
-export const saveSubtitleSettings = async (
-  settings: SubtitleSettings
-): Promise<void> => {
+export const DEFAULT_BATCH_SETTINGS: BatchSettings = {
+  maxVideoDuration: 600, // 10 minutes
+  maxConcurrentBatches: 2,
+};
+
+export const DEFAULT_APP_SETTINGS: AppSettings = {
+  subtitle: DEFAULT_SUBTITLE_SETTINGS,
+  batch: DEFAULT_BATCH_SETTINGS,
+};
+
+export const saveAppSettings = async (settings: AppSettings): Promise<void> => {
   try {
-    await AsyncStorage.setItem(SUBTITLE_SETTINGS_KEY, JSON.stringify(settings));
+    await AsyncStorage.setItem(APP_SETTINGS_KEY, JSON.stringify(settings));
   } catch (error) {
-    console.error("Error saving subtitle settings:", error);
+    console.error("Error saving app settings:", error);
   }
 };
 
-export const getSubtitleSettings = async (): Promise<SubtitleSettings> => {
+export const getAppSettings = async (): Promise<AppSettings> => {
   try {
-    const data = await AsyncStorage.getItem(SUBTITLE_SETTINGS_KEY);
+    const data = await AsyncStorage.getItem(APP_SETTINGS_KEY);
     if (data) {
-      return JSON.parse(data);
+      const parsed = JSON.parse(data);
+      // Merge with defaults to handle missing fields
+      return {
+        subtitle: { ...DEFAULT_SUBTITLE_SETTINGS, ...parsed.subtitle },
+        batch: { ...DEFAULT_BATCH_SETTINGS, ...parsed.batch },
+      };
     }
-    return DEFAULT_SUBTITLE_SETTINGS;
+    return DEFAULT_APP_SETTINGS;
   } catch (error) {
-    console.error("Error getting subtitle settings:", error);
-    return DEFAULT_SUBTITLE_SETTINGS;
+    console.error("Error getting app settings:", error);
+    return DEFAULT_APP_SETTINGS;
   }
+};
+
+// Legacy compatibility
+export const saveSubtitleSettings = async (
+  settings: SubtitleSettings
+): Promise<void> => {
+  const appSettings = await getAppSettings();
+  appSettings.subtitle = settings;
+  await saveAppSettings(appSettings);
+};
+
+export const getSubtitleSettings = async (): Promise<SubtitleSettings> => {
+  const appSettings = await getAppSettings();
+  return appSettings.subtitle;
+};
+
+export const saveBatchSettings = async (
+  settings: BatchSettings
+): Promise<void> => {
+  const appSettings = await getAppSettings();
+  appSettings.batch = settings;
+  await saveAppSettings(appSettings);
+};
+
+export const getBatchSettings = async (): Promise<BatchSettings> => {
+  const appSettings = await getAppSettings();
+  return appSettings.batch;
 };
 
 export const saveSRT = async (
@@ -79,8 +132,6 @@ export interface GeminiConfig {
   model: string;
   temperature: number;
   systemPrompt: string;
-  maxVideoDuration: number; // Max duration per batch in seconds (default: 600 = 10 minutes)
-  maxConcurrentBatches: number; // Max concurrent API calls (default: 2)
 }
 
 export const DEFAULT_SYSTEM_PROMPT = `Act as an expert translator and subtitler specializing in Japanese RPGs and anime. You must process all Japanese content—both spoken dialogue and on-screen text—and create a Vietnamese SRT subtitle file that preserves the original Japanese honorifics.
@@ -99,8 +150,6 @@ export const createDefaultGeminiConfig = (): GeminiConfig => ({
   model: "gemini-3-flash-preview",
   temperature: 0.7,
   systemPrompt: DEFAULT_SYSTEM_PROMPT,
-  maxVideoDuration: 600, // 10 minutes default
-  maxConcurrentBatches: 2, // 2 concurrent batches default
 });
 
 // Save all Gemini configs

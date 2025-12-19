@@ -23,9 +23,13 @@ import {
   getSRT,
   removeSRT,
   SubtitleSettings,
+  BatchSettings,
   DEFAULT_SUBTITLE_SETTINGS,
+  DEFAULT_BATCH_SETTINGS,
   getSubtitleSettings,
   saveSubtitleSettings,
+  getBatchSettings,
+  saveBatchSettings,
 } from "@utils/storage";
 import YouTubePlayer from "@components/YouTubePlayer";
 import SubtitleInputModal from "@components/SubtitleInputModal";
@@ -47,6 +51,9 @@ const HomeScreen = () => {
   const [subtitleSettings, setSubtitleSettings] = useState<SubtitleSettings>(
     DEFAULT_SUBTITLE_SETTINGS
   );
+  const [batchSettings, setBatchSettings] = useState<BatchSettings>(
+    DEFAULT_BATCH_SETTINGS
+  );
   const [isTranslating, setIsTranslating] = useState(false);
   const [translationProgress, setTranslationProgress] = useState<{
     completed: number;
@@ -61,8 +68,12 @@ const HomeScreen = () => {
 
   useEffect(() => {
     const loadSettings = async () => {
-      const settings = await getSubtitleSettings();
-      setSubtitleSettings(settings);
+      const [subtitleS, batchS] = await Promise.all([
+        getSubtitleSettings(),
+        getBatchSettings(),
+      ]);
+      setSubtitleSettings(subtitleS);
+      setBatchSettings(batchS);
     };
     loadSettings();
   }, []);
@@ -172,6 +183,12 @@ const HomeScreen = () => {
   const handleSubtitleSettingsChange = (newSettings: SubtitleSettings) => {
     setSubtitleSettings(newSettings);
     applySubtitleStyle(newSettings);
+    saveSubtitleSettings(newSettings);
+  };
+
+  const handleBatchSettingsChange = (newSettings: BatchSettings) => {
+    setBatchSettings(newSettings);
+    saveBatchSettings(newSettings);
   };
 
   const findSubtitle = (seconds: number) => {
@@ -278,6 +295,7 @@ const HomeScreen = () => {
         onLoadSubtitles={handleLoadSubtitles}
         videoUrl={currentUrl}
         videoDuration={videoDuration}
+        batchSettings={batchSettings}
         onTranslationStateChange={(translating, progress) => {
           setIsTranslating(translating);
           setTranslationProgress(progress);
@@ -289,6 +307,8 @@ const HomeScreen = () => {
         onClose={() => setSettingsVisible(false)}
         subtitleSettings={subtitleSettings}
         onSubtitleSettingsChange={handleSubtitleSettingsChange}
+        batchSettings={batchSettings}
+        onBatchSettingsChange={handleBatchSettingsChange}
       />
     </View>
   );

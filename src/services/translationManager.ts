@@ -1,4 +1,4 @@
-import { GeminiConfig } from "@utils/storage";
+import { GeminiConfig, BatchSettings } from "@utils/storage";
 import { translateVideoWithGemini, BatchProgress } from "./geminiService";
 
 export interface TranslationJob {
@@ -68,7 +68,8 @@ class TranslationManager {
   async startTranslation(
     videoUrl: string,
     config: GeminiConfig,
-    videoDuration?: number
+    videoDuration?: number,
+    batchSettings?: BatchSettings
   ): Promise<string> {
     // Check if already translating this URL
     if (this.isTranslatingUrl(videoUrl)) {
@@ -96,6 +97,7 @@ class TranslationManager {
         undefined,
         {
           videoDuration,
+          batchSettings,
           onBatchProgress: (progress: BatchProgress) => {
             if (this.currentJob && this.currentJob.id === jobId) {
               this.currentJob = {

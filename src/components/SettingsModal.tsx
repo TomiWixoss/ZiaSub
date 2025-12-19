@@ -4,40 +4,36 @@ import {
   Modal,
   StyleSheet,
   TouchableOpacity,
-  Text as RNText,
-  TextInput as RNTextInput,
   Animated,
   Dimensions,
-  ScrollView,
   Alert,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import Slider from "@react-native-community/slider";
 import { COLORS } from "@constants/colors";
 import {
   SubtitleSettings,
+  BatchSettings,
   GeminiConfig,
-  getSubtitleSettings,
-  saveSubtitleSettings,
   getGeminiConfigs,
   saveGeminiConfigs,
   createDefaultGeminiConfig,
-  DEFAULT_SUBTITLE_SETTINGS,
 } from "@utils/storage";
-import Button3D from "./Button3D";
+import { GeneralTab, GeminiList, GeminiEdit } from "./settings";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 const SHEET_HEIGHT = SCREEN_HEIGHT * 0.85;
 
-type TabType = "subtitle" | "gemini";
+type TabType = "general" | "gemini";
 
 interface SettingsModalProps {
   visible: boolean;
   onClose: () => void;
   subtitleSettings: SubtitleSettings;
   onSubtitleSettingsChange: (settings: SubtitleSettings) => void;
+  batchSettings: BatchSettings;
+  onBatchSettingsChange: (settings: BatchSettings) => void;
 }
 
 const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -45,15 +41,16 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   onClose,
   subtitleSettings,
   onSubtitleSettingsChange,
+  batchSettings,
+  onBatchSettingsChange,
 }) => {
   const insets = useSafeAreaInsets();
   const slideAnim = useRef(new Animated.Value(SHEET_HEIGHT)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
-  const [activeTab, setActiveTab] = useState<TabType>("subtitle");
+  const [activeTab, setActiveTab] = useState<TabType>("general");
   const [geminiConfigs, setGeminiConfigs] = useState<GeminiConfig[]>([]);
   const [editingConfig, setEditingConfig] = useState<GeminiConfig | null>(null);
-  const [showApiKey, setShowApiKey] = useState(false);
 
   useEffect(() => {
     if (visible) {
@@ -98,40 +95,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     ]).start(() => onClose());
   };
 
-  // Subtitle handlers
-  const handleFontSizeChange = (value: number) => {
-    const newSettings = { ...subtitleSettings, fontSize: Math.round(value) };
-    onSubtitleSettingsChange(newSettings);
-    saveSubtitleSettings(newSettings);
-  };
-
-  const toggleBold = () => {
-    const newSettings = {
-      ...subtitleSettings,
-      fontWeight: subtitleSettings.fontWeight === "bold" ? "normal" : "bold",
-    } as SubtitleSettings;
-    onSubtitleSettingsChange(newSettings);
-    saveSubtitleSettings(newSettings);
-  };
-
-  const toggleItalic = () => {
-    const newSettings = {
-      ...subtitleSettings,
-      fontStyle: subtitleSettings.fontStyle === "italic" ? "normal" : "italic",
-    } as SubtitleSettings;
-    onSubtitleSettingsChange(newSettings);
-    saveSubtitleSettings(newSettings);
-  };
-
-  // Gemini handlers
   const handleAddConfig = () => {
     const newConfig = createDefaultGeminiConfig();
     newConfig.name = `Cấu hình ${geminiConfigs.length + 1}`;
     setEditingConfig(newConfig);
-  };
-
-  const handleEditConfig = (config: GeminiConfig) => {
-    setEditingConfig({ ...config });
   };
 
   const handleDeleteConfig = (id: string) => {
@@ -155,302 +122,55 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
   const handleSaveConfig = async () => {
     if (!editingConfig) return;
-
     const exists = geminiConfigs.find((c) => c.id === editingConfig.id);
-    let newConfigs: GeminiConfig[];
-
-    if (exists) {
-      newConfigs = geminiConfigs.map((c) =>
-        c.id === editingConfig.id ? editingConfig : c
-      );
-    } else {
-      newConfigs = [...geminiConfigs, editingConfig];
-    }
-
+    const newConfigs = exists
+      ? geminiConfigs.map((c) =>
+          c.id === editingConfig.id ? editingConfig : c
+        )
+      : [...geminiConfigs, editingConfig];
     setGeminiConfigs(newConfigs);
     await saveGeminiConfigs(newConfigs);
     setEditingConfig(null);
   };
 
-  const renderSubtitleTab = () => (
-    <View style={styles.tabContent}>
-      {/* Preview */}
-      <View style={styles.previewContainer}>
-        <RNText
-          style={[
-            styles.previewText,
-            {
-              fontSize: subtitleSettings.fontSize,
-              fontWeight:
-                subtitleSettings.fontWeight === "bold" ? "700" : "400",
-              fontStyle: subtitleSettings.fontStyle,
-            },
-          ]}
-        >
-          Xem trước phụ đề
-        </RNText>
-      </View>
-
-      {/* Font Size */}
-      <View style={styles.settingRow}>
-        <Text style={styles.settingLabel}>
-          Cỡ chữ: {subtitleSettings.fontSize}px
-        </Text>
-        <Slider
-          style={styles.slider}
-          minimumValue={10}
-          maximumValue={28}
-          value={subtitleSettings.fontSize}
-          onValueChange={handleFontSizeChange}
-          minimumTrackTintColor={COLORS.primary}
-          maximumTrackTintColor={COLORS.border}
-          thumbTintColor={COLORS.primary}
+  const renderContent = () => {
+    if (editingConfig) {
+      return (
+        <GeminiEdit
+          config={editingConfig}
+          onChange={setEditingConfig}
+          onSave={handleSaveConfig}
+          onCancel={() => setEditingConfig(null)}
         />
-      </View>
-
-      {/* Font Style Buttons */}
-      <View style={styles.styleButtonsRow}>
-        <Button3D
-          onPress={toggleBold}
-          icon="format-bold"
-          title="Đậm"
-          variant="secondary"
-          active={subtitleSettings.fontWeight === "bold"}
-          style={styles.styleButton}
+      );
+    }
+    if (activeTab === "general") {
+      return (
+        <GeneralTab
+          subtitleSettings={subtitleSettings}
+          onSubtitleChange={onSubtitleSettingsChange}
+          batchSettings={batchSettings}
+          onBatchChange={onBatchSettingsChange}
         />
-        <Button3D
-          onPress={toggleItalic}
-          icon="format-italic"
-          title="Nghiêng"
-          variant="secondary"
-          active={subtitleSettings.fontStyle === "italic"}
-          style={styles.styleButton}
-        />
-      </View>
-    </View>
-  );
-
-  const renderGeminiList = () => (
-    <View style={styles.tabContent}>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {geminiConfigs.map((config) => (
-          <TouchableOpacity
-            key={config.id}
-            style={styles.configItem}
-            onPress={() => handleEditConfig(config)}
-          >
-            <View style={styles.configInfo}>
-              <Text style={styles.configName}>{config.name}</Text>
-              <Text style={styles.configModel}>{config.model}</Text>
-            </View>
-            <View style={styles.configActions}>
-              <TouchableOpacity
-                style={styles.configActionBtn}
-                onPress={() => handleDeleteConfig(config.id)}
-              >
-                <MaterialCommunityIcons
-                  name="delete-outline"
-                  size={20}
-                  color={COLORS.textMuted}
-                />
-              </TouchableOpacity>
-              <MaterialCommunityIcons
-                name="chevron-right"
-                size={20}
-                color={COLORS.textMuted}
-              />
-            </View>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-
-      <Button3D
-        onPress={handleAddConfig}
-        icon="plus"
-        title="Thêm cấu hình"
-        variant="outline"
-        style={{ marginTop: 16 }}
-      />
-    </View>
-  );
-
-  const renderGeminiEdit = () => {
-    if (!editingConfig) return null;
-
+      );
+    }
     return (
-      <ScrollView
-        style={styles.tabContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Name */}
-        <View style={styles.settingGroup}>
-          <Text style={styles.settingLabel}>Tên cấu hình</Text>
-          <RNTextInput
-            style={styles.input}
-            value={editingConfig.name}
-            onChangeText={(text) =>
-              setEditingConfig({ ...editingConfig, name: text })
-            }
-            placeholder="Tên cấu hình..."
-            placeholderTextColor={COLORS.textMuted}
-          />
-        </View>
-
-        {/* API Key */}
-        <View style={styles.settingGroup}>
-          <Text style={styles.settingLabel}>API Key</Text>
-          <View style={styles.apiKeyContainer}>
-            <RNTextInput
-              style={styles.apiKeyInput}
-              value={editingConfig.apiKey}
-              onChangeText={(text) =>
-                setEditingConfig({ ...editingConfig, apiKey: text })
-              }
-              placeholder="Nhập Gemini API Key..."
-              placeholderTextColor={COLORS.textMuted}
-              secureTextEntry={!showApiKey}
-              autoCapitalize="none"
-            />
-            <TouchableOpacity
-              style={styles.eyeButton}
-              onPress={() => setShowApiKey(!showApiKey)}
-            >
-              <MaterialCommunityIcons
-                name={showApiKey ? "eye-off" : "eye"}
-                size={20}
-                color={COLORS.textSecondary}
-              />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Model */}
-        <View style={styles.settingGroup}>
-          <Text style={styles.settingLabel}>Model</Text>
-          <RNTextInput
-            style={styles.input}
-            value={editingConfig.model}
-            onChangeText={(text) =>
-              setEditingConfig({ ...editingConfig, model: text })
-            }
-            placeholder="gemini-3-flash-preview"
-            placeholderTextColor={COLORS.textMuted}
-            autoCapitalize="none"
-          />
-        </View>
-
-        {/* Temperature */}
-        <View style={styles.settingGroup}>
-          <Text style={styles.settingLabel}>
-            Temperature: {editingConfig.temperature.toFixed(1)}
-          </Text>
-          <Slider
-            style={styles.slider}
-            minimumValue={0}
-            maximumValue={2}
-            step={0.1}
-            value={editingConfig.temperature}
-            onValueChange={(value) =>
-              setEditingConfig({ ...editingConfig, temperature: value })
-            }
-            minimumTrackTintColor={COLORS.primary}
-            maximumTrackTintColor={COLORS.border}
-            thumbTintColor={COLORS.primary}
-          />
-        </View>
-
-        {/* Max Video Duration */}
-        <View style={styles.settingGroup}>
-          <Text style={styles.settingLabel}>
-            Thời lượng tối đa mỗi batch:{" "}
-            {Math.floor((editingConfig.maxVideoDuration || 600) / 60)} phút
-          </Text>
-          <Text style={styles.settingHint}>
-            Video dài hơn sẽ được chia thành nhiều phần và dịch song song
-          </Text>
-          <Slider
-            style={styles.slider}
-            minimumValue={300}
-            maximumValue={1800}
-            step={60}
-            value={editingConfig.maxVideoDuration || 600}
-            onValueChange={(value) =>
-              setEditingConfig({ ...editingConfig, maxVideoDuration: value })
-            }
-            minimumTrackTintColor={COLORS.primary}
-            maximumTrackTintColor={COLORS.border}
-            thumbTintColor={COLORS.primary}
-          />
-        </View>
-
-        {/* Max Concurrent Batches */}
-        <View style={styles.settingGroup}>
-          <Text style={styles.settingLabel}>
-            Số batch đồng thời: {editingConfig.maxConcurrentBatches || 2}
-          </Text>
-          <Text style={styles.settingHint}>
-            Số lượng API call chạy song song (cao hơn = nhanh hơn nhưng tốn
-            quota)
-          </Text>
-          <Slider
-            style={styles.slider}
-            minimumValue={1}
-            maximumValue={5}
-            step={1}
-            value={editingConfig.maxConcurrentBatches || 2}
-            onValueChange={(value) =>
-              setEditingConfig({
-                ...editingConfig,
-                maxConcurrentBatches: value,
-              })
-            }
-            minimumTrackTintColor={COLORS.primary}
-            maximumTrackTintColor={COLORS.border}
-            thumbTintColor={COLORS.primary}
-          />
-        </View>
-
-        {/* System Prompt */}
-        <View style={styles.settingGroup}>
-          <Text style={styles.settingLabel}>System Prompt</Text>
-          <RNTextInput
-            style={styles.promptInput}
-            value={editingConfig.systemPrompt}
-            onChangeText={(text) =>
-              setEditingConfig({ ...editingConfig, systemPrompt: text })
-            }
-            placeholder="Nhập system prompt..."
-            placeholderTextColor={COLORS.textMuted}
-            multiline
-            textAlignVertical="top"
-          />
-        </View>
-
-        <View style={styles.buttonRow}>
-          <Button3D
-            onPress={() => setEditingConfig(null)}
-            title="Hủy"
-            variant="outline"
-            style={styles.rowButton}
-          />
-          <Button3D
-            onPress={handleSaveConfig}
-            title="Lưu"
-            variant="primary"
-            style={styles.rowButton}
-          />
-        </View>
-      </ScrollView>
+      <GeminiList
+        configs={geminiConfigs}
+        onEdit={(c) => setEditingConfig({ ...c })}
+        onDelete={handleDeleteConfig}
+        onAdd={handleAddConfig}
+      />
     );
   };
 
   return (
     <Modal
       animationType="none"
-      transparent={true}
+      transparent
       visible={visible}
       onRequestClose={handleClose}
-      statusBarTranslucent={true}
+      statusBarTranslucent
     >
       <View style={styles.modalOverlay}>
         <Animated.View style={[styles.modalBackdrop, { opacity: fadeAnim }]}>
@@ -489,24 +209,24 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
               <TouchableOpacity
                 style={[
                   styles.tab,
-                  activeTab === "subtitle" && styles.tabActive,
+                  activeTab === "general" && styles.tabActive,
                 ]}
-                onPress={() => setActiveTab("subtitle")}
+                onPress={() => setActiveTab("general")}
               >
                 <MaterialCommunityIcons
-                  name="subtitles"
+                  name="cog"
                   size={18}
                   color={
-                    activeTab === "subtitle" ? COLORS.primary : COLORS.textMuted
+                    activeTab === "general" ? COLORS.primary : COLORS.textMuted
                   }
                 />
                 <Text
                   style={[
                     styles.tabText,
-                    activeTab === "subtitle" && styles.tabTextActive,
+                    activeTab === "general" && styles.tabTextActive,
                   ]}
                 >
-                  Phụ đề
+                  Cài đặt chung
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -532,11 +252,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
             </View>
           )}
 
-          {editingConfig
-            ? renderGeminiEdit()
-            : activeTab === "subtitle"
-            ? renderSubtitleTab()
-            : renderGeminiList()}
+          {renderContent()}
         </Animated.View>
       </View>
     </Modal>
@@ -544,10 +260,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 };
 
 const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    justifyContent: "flex-end",
-  },
+  modalOverlay: { flex: 1, justifyContent: "flex-end" },
   modalBackdrop: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: COLORS.overlay,
@@ -574,17 +287,8 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     backgroundColor: COLORS.borderLight,
   },
-  title: {
-    color: COLORS.text,
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  closeButton: {
-    position: "absolute",
-    right: 0,
-    top: 12,
-    padding: 8,
-  },
+  title: { color: COLORS.text, fontSize: 16, fontWeight: "600" },
+  closeButton: { position: "absolute", right: 0, top: 12, padding: 8 },
   tabBar: {
     flexDirection: "row",
     backgroundColor: COLORS.surfaceLight,
@@ -601,140 +305,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     gap: 6,
   },
-  tabActive: {
-    backgroundColor: COLORS.surfaceElevated,
-  },
-  tabText: {
-    color: COLORS.textMuted,
-    fontSize: 13,
-    fontWeight: "500",
-  },
-  tabTextActive: {
-    color: COLORS.text,
-  },
-  tabContent: {
-    flex: 1,
-  },
-  previewContainer: {
-    backgroundColor: COLORS.background,
-    borderRadius: 12,
-    padding: 20,
-    alignItems: "center",
-    marginBottom: 20,
-    minHeight: 80,
-    justifyContent: "center",
-  },
-  previewText: {
-    color: COLORS.text,
-    textShadowColor: "rgba(0,0,0,0.9)",
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 3,
-  },
-  settingRow: {
-    marginBottom: 20,
-  },
-  settingGroup: {
-    marginBottom: 16,
-  },
-  settingLabel: {
-    color: COLORS.text,
-    fontSize: 14,
-    fontWeight: "500",
-    marginBottom: 8,
-  },
-  settingHint: {
-    color: COLORS.textMuted,
-    fontSize: 12,
-    marginBottom: 8,
-  },
-  slider: {
-    width: "100%",
-    height: 40,
-  },
-  styleButtonsRow: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  styleButton: {
-    flex: 1,
-  },
-  configItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: COLORS.surfaceLight,
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  configInfo: {
-    flex: 1,
-  },
-  configName: {
-    color: COLORS.text,
-    fontSize: 15,
-    fontWeight: "600",
-  },
-  configModel: {
-    color: COLORS.textMuted,
-    fontSize: 12,
-    marginTop: 2,
-  },
-  configActions: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  configActionBtn: {
-    padding: 4,
-  },
-  input: {
-    backgroundColor: COLORS.surfaceLight,
-    borderRadius: 12,
-    padding: 14,
-    color: COLORS.text,
-    fontSize: 14,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  apiKeyContainer: {
-    position: "relative",
-  },
-  apiKeyInput: {
-    backgroundColor: COLORS.surfaceLight,
-    borderRadius: 12,
-    padding: 14,
-    paddingRight: 44,
-    color: COLORS.text,
-    fontSize: 14,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  eyeButton: {
-    position: "absolute",
-    right: 12,
-    top: 14,
-  },
-  promptInput: {
-    backgroundColor: COLORS.surfaceLight,
-    borderRadius: 12,
-    padding: 14,
-    color: COLORS.text,
-    fontSize: 13,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    height: 120,
-  },
-  buttonRow: {
-    flexDirection: "row",
-    gap: 12,
-    marginTop: 8,
-    marginBottom: 20,
-  },
-  rowButton: {
-    flex: 1,
-  },
+  tabActive: { backgroundColor: COLORS.surfaceElevated },
+  tabText: { color: COLORS.textMuted, fontSize: 13, fontWeight: "500" },
+  tabTextActive: { color: COLORS.text },
 });
 
 export default SettingsModal;

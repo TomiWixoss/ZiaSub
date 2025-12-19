@@ -1,5 +1,9 @@
 import { GoogleGenAI, ThinkingLevel, MediaResolution } from "@google/genai";
-import { GeminiConfig } from "@utils/storage";
+import {
+  GeminiConfig,
+  BatchSettings,
+  DEFAULT_BATCH_SETTINGS,
+} from "@utils/storage";
 
 // Parse SRT timestamp to seconds
 const srtTimeToSeconds = (time: string): number => {
@@ -240,6 +244,7 @@ export interface VideoTranslateOptions {
   startOffset?: string; // e.g., "60s" or "1250s"
   endOffset?: string; // e.g., "120s" or "1570s"
   videoDuration?: number; // Total video duration in seconds (for batch splitting)
+  batchSettings?: BatchSettings; // Batch translation settings
   onBatchProgress?: (progress: BatchProgress) => void; // Callback for batch progress
 }
 
@@ -347,8 +352,9 @@ export const translateVideoWithGemini = async (
   }
 
   const normalizedUrl = normalizeYouTubeUrl(videoUrl);
-  const maxDuration = config.maxVideoDuration || 600;
-  const maxConcurrent = config.maxConcurrentBatches || 2;
+  const batchSettings = options?.batchSettings || DEFAULT_BATCH_SETTINGS;
+  const maxDuration = batchSettings.maxVideoDuration;
+  const maxConcurrent = batchSettings.maxConcurrentBatches;
   const videoDuration = options?.videoDuration;
 
   console.log("[Gemini] Starting video translation...");
