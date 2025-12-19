@@ -43,7 +43,7 @@ export interface VideoTranslateOptions {
   onKeyStatus?: KeyStatusCallback;
 }
 
-// Run promises with concurrency limit
+// Run promises with concurrency limit - continues on error, collects partial results
 const runWithConcurrency = async <T>(
   tasks: (() => Promise<T>)[],
   maxConcurrent: number,
@@ -52,12 +52,18 @@ const runWithConcurrency = async <T>(
     total: number,
     statuses: Array<"pending" | "processing" | "completed" | "error">
   ) => void
-): Promise<T[]> => {
-  const results: T[] = new Array(tasks.length);
+): Promise<{
+  results: (T | null)[];
+  hasErrors: boolean;
+  errorMessage?: string;
+}> => {
+  const results: (T | null)[] = new Array(tasks.length).fill(null);
   const statuses: Array<"pending" | "processing" | "completed" | "error"> =
     new Array(tasks.length).fill("pending");
   let currentIndex = 0;
   let completedCount = 0;
+  let hasErrors = false;
+  let lastError: string | undefined;
 
   const runNext = async (): Promise<void> => {
     const index = currentIndex++;
@@ -67,12 +73,20 @@ const runWithConcurrency = async <T>(
     onProgress?.(completedCount, tasks.length, [...statuses]);
 
     try {
+      // Each batch task uses keyManager.executeWithRetry internally
+      // which handles retry + key rotation for that specific batch
       results[index] = await tasks[index]();
       statuses[index] = "completed";
       completedCount++;
-    } catch (error) {
+    } catch (error: any) {
+      // Only reaches here after all retries exhausted (executeWithRetry handles retries)
       statuses[index] = "error";
-      throw error;
+      hasErrors = true;
+      lastError = error.message || "Lỗi không xác định";
+      console.error(
+        `[Gemini] Batch ${index + 1} failed after all retries:`,
+        error.message
+      );
     }
 
     onProgress?.(completedCount, tasks.length, [...statuses]);
@@ -84,7 +98,7 @@ const runWithConcurrency = async <T>(
     .map(() => runNext());
 
   await Promise.all(workers);
-  return results;
+  return { results, hasErrors, errorMessage: lastError };
 };
 
 // Translate a single video batch with automatic key rotation
@@ -205,7 +219,7 @@ export const translateVideoWithGemini = async (
         );
       }
 
-      const results = await runWithConcurrency(
+      const { results, hasErrors, errorMessage } = await runWithConcurrency(
         batchTasks,
         maxConcurrent,
         (completed, total, statuses) => {
@@ -222,16 +236,43 @@ export const translateVideoWithGemini = async (
         }
       );
 
-      console.log("[Gemini] All batches completed, merging SRT...");
-      options?.onBatchProgress?.({
-        totalBatches: numBatches,
-        completedBatches: numBatches,
-        currentBatch: numBatches,
-        status: "completed",
-        batchStatuses: new Array(numBatches).fill("completed"),
-      });
+      // Filter out failed batches (null results)
+      const successfulResults = results.filter(
+        (r): r is { content: string; offsetSeconds: number } => r !== null
+      );
 
-      const mergedSrt = mergeSrtContents(results);
+      if (successfulResults.length === 0) {
+        // All batches failed
+        throw new Error(errorMessage || "Tất cả batch đều thất bại");
+      }
+
+      const finalStatuses = results.map((r) =>
+        r !== null ? "completed" : "error"
+      ) as Array<"completed" | "error">;
+
+      if (hasErrors) {
+        console.log(
+          `[Gemini] ${successfulResults.length}/${numBatches} batches completed, merging partial SRT...`
+        );
+        options?.onBatchProgress?.({
+          totalBatches: numBatches,
+          completedBatches: successfulResults.length,
+          currentBatch: numBatches,
+          status: "completed",
+          batchStatuses: finalStatuses,
+        });
+      } else {
+        console.log("[Gemini] All batches completed, merging SRT...");
+        options?.onBatchProgress?.({
+          totalBatches: numBatches,
+          completedBatches: numBatches,
+          currentBatch: numBatches,
+          status: "completed",
+          batchStatuses: new Array(numBatches).fill("completed"),
+        });
+      }
+
+      const mergedSrt = mergeSrtContents(successfulResults);
       onChunk?.(mergedSrt);
       return mergedSrt;
     }
