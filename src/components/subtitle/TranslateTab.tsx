@@ -31,6 +31,7 @@ interface TranslateTabProps {
   batchSettings?: BatchSettings;
   isTranslating: boolean;
   translateStatus: string;
+  keyStatus: string | null;
   batchProgress: BatchProgress | null;
   onClose: () => void;
   onSelectTranslation: (srtContent: string) => void;
@@ -42,6 +43,7 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
   batchSettings,
   isTranslating,
   translateStatus,
+  keyStatus,
   batchProgress,
   onClose,
   onSelectTranslation,
@@ -249,7 +251,10 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
       {isTranslating && (
         <View style={styles.statusContainer}>
           <ActivityIndicator size="small" color={COLORS.primary} />
-          <Text style={styles.statusText}>{translateStatus}</Text>
+          <View style={styles.statusTextContainer}>
+            <Text style={styles.statusText}>{translateStatus}</Text>
+            {keyStatus && <Text style={styles.keyStatusText}>{keyStatus}</Text>}
+          </View>
         </View>
       )}
 
@@ -373,7 +378,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     gap: 10,
   },
+  statusTextContainer: { alignItems: "center" },
   statusText: { color: COLORS.textSecondary, fontSize: 14 },
+  keyStatusText: { color: COLORS.textMuted, fontSize: 12, marginTop: 2 },
   translateButtonContainer: { marginTop: "auto", marginBottom: 8 },
   batchProgressContainer: {
     backgroundColor: COLORS.surfaceLight,

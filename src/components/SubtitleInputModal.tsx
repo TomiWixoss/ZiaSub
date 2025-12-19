@@ -68,6 +68,7 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
   const [activeTab, setActiveTab] = useState<TabType>("srt");
   const [isTranslating, setIsTranslating] = useState(false);
   const [translateStatus, setTranslateStatus] = useState("");
+  const [keyStatus, setKeyStatus] = useState<string | null>(null);
   const [batchProgress, setBatchProgress] = useState<BatchProgress | null>(
     null
   );
@@ -84,6 +85,7 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
       if (job.videoUrl === videoUrl) {
         setIsTranslating(job.status === "processing");
         setBatchProgress(job.progress);
+        setKeyStatus(job.keyStatus);
 
         if (job.progress) {
           setTranslateStatus(
@@ -105,12 +107,14 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
 
         if (job.status === "completed" && job.result) {
           setTranslateStatus("Hoàn tất!");
+          setKeyStatus(null);
           translationManager.clearCompletedJob(videoUrl);
           Alert.alert("Thành công", "Đã dịch xong! Bản dịch đã được lưu.");
         }
 
         if (job.status === "error") {
           setTranslateStatus("");
+          setKeyStatus(null);
           translationManager.clearCompletedJob(videoUrl);
           Alert.alert("Lỗi dịch", job.error || "Không thể dịch video.");
         }
@@ -296,6 +300,7 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
                 batchSettings={batchSettings}
                 isTranslating={isTranslating}
                 translateStatus={translateStatus}
+                keyStatus={keyStatus}
                 batchProgress={batchProgress}
                 onClose={handleClose}
                 onSelectTranslation={(srt) => {

@@ -1,5 +1,6 @@
 import { GeminiConfig, BatchSettings, saveTranslation } from "@utils/storage";
 import { translateVideoWithGemini, BatchProgress } from "./geminiService";
+import { KeyStatusCallback } from "./keyManager";
 
 export interface TranslationJob {
   id: string;
@@ -7,6 +8,7 @@ export interface TranslationJob {
   configName: string;
   status: "pending" | "processing" | "completed" | "error";
   progress: BatchProgress | null;
+  keyStatus: string | null;
   result: string | null;
   error: string | null;
   startedAt: number;
@@ -85,12 +87,24 @@ class TranslationManager {
       configName: config.name,
       status: "processing",
       progress: null,
+      keyStatus: null,
       result: null,
       error: null,
       startedAt: Date.now(),
       completedAt: null,
     };
     this.notify();
+
+    // Key status callback
+    const onKeyStatus: KeyStatusCallback = (status) => {
+      if (this.currentJob && this.currentJob.id === jobId) {
+        this.currentJob = {
+          ...this.currentJob,
+          keyStatus: status.message,
+        };
+        this.notify();
+      }
+    };
 
     try {
       const result = await translateVideoWithGemini(
@@ -109,6 +123,7 @@ class TranslationManager {
               this.notify();
             }
           },
+          onKeyStatus,
         }
       );
 
@@ -121,6 +136,7 @@ class TranslationManager {
           ...this.currentJob,
           status: "completed",
           result,
+          keyStatus: null,
           completedAt: Date.now(),
         };
         this.notify();

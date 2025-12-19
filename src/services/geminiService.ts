@@ -5,10 +5,7 @@ import {
   DEFAULT_BATCH_SETTINGS,
 } from "@utils/storage";
 import { mergeSrtContents } from "@utils/srtParser";
-import { keyManager, isRateLimitError, isRetryableError } from "./keyManager";
-
-const MAX_RETRIES = 3;
-const RETRY_DELAY_MS = 2000;
+import { keyManager, KeyStatusCallback } from "./keyManager";
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -45,6 +42,7 @@ export interface VideoTranslateOptions {
   videoDuration?: number;
   batchSettings?: BatchSettings;
   onBatchProgress?: (progress: BatchProgress) => void;
+  onKeyStatus?: KeyStatusCallback;
 }
 
 // Run promises with concurrency limit
@@ -91,98 +89,47 @@ const runWithConcurrency = async <T>(
   return results;
 };
 
-// Translate a single video batch with retry and key rotation
+// Translate a single video batch with automatic key rotation
 const translateVideoBatch = async (
   videoUrl: string,
   config: GeminiConfig,
   startOffset?: string,
   endOffset?: string
 ): Promise<string> => {
-  let lastError: any = null;
-  let skipDelay = false;
+  return keyManager.executeWithRetry(async (ai) => {
+    const videoPart: any = {
+      fileData: { fileUri: videoUrl, mimeType: "video/*" },
+    };
 
-  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-    if (attempt > 0 && !skipDelay) {
-      const delayMs = RETRY_DELAY_MS * Math.pow(2, attempt - 1);
-      console.log(
-        `[Gemini] Retry ${attempt}/${MAX_RETRIES} sau ${delayMs}ms...`
-      );
-      await sleep(delayMs);
-    }
-    skipDelay = false;
-
-    const ai = keyManager.getCurrentAI();
-    if (!ai) {
-      throw new Error("Vui lòng thêm API Key trong cài đặt");
+    if (startOffset || endOffset) {
+      videoPart.videoMetadata = {};
+      if (startOffset) videoPart.videoMetadata.startOffset = startOffset;
+      if (endOffset) videoPart.videoMetadata.endOffset = endOffset;
     }
 
-    try {
-      const videoPart: any = {
-        fileData: { fileUri: videoUrl, mimeType: "video/*" },
-      };
+    const contents = [
+      {
+        role: "user" as const,
+        parts: [
+          videoPart,
+          { text: "Hãy tạo phụ đề SRT tiếng Việt cho video này." },
+        ],
+      },
+    ];
 
-      if (startOffset || endOffset) {
-        videoPart.videoMetadata = {};
-        if (startOffset) videoPart.videoMetadata.startOffset = startOffset;
-        if (endOffset) videoPart.videoMetadata.endOffset = endOffset;
-      }
+    const response = await ai.models.generateContent({
+      model: config.model,
+      contents,
+      config: {
+        temperature: 0.7,
+        systemInstruction: config.systemPrompt,
+        thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
+        mediaResolution: MediaResolution.MEDIA_RESOLUTION_HIGH,
+      },
+    });
 
-      const contents = [
-        {
-          role: "user" as const,
-          parts: [
-            videoPart,
-            { text: "Hãy tạo phụ đề SRT tiếng Việt cho video này." },
-          ],
-        },
-      ];
-
-      const response = await ai.models.generateContent({
-        model: config.model,
-        contents,
-        config: {
-          temperature: 0.7,
-          systemInstruction: config.systemPrompt,
-          thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
-          mediaResolution: MediaResolution.MEDIA_RESOLUTION_HIGH,
-        },
-      });
-
-      if (attempt > 0) {
-        console.log(`[Gemini] ✅ Retry thành công sau ${attempt} lần thử`);
-      }
-
-      return response.text || "";
-    } catch (error: any) {
-      lastError = error;
-
-      // Handle rate limit (429) - rotate key and retry immediately
-      if (isRateLimitError(error)) {
-        const rotated = keyManager.handleRateLimitError();
-        if (rotated && attempt < MAX_RETRIES) {
-          console.log(
-            `[Gemini] ⚠️ Rate limit, chuyển sang key #${keyManager.getCurrentKeyIndex()}/${keyManager.getTotalKeys()}`
-          );
-          skipDelay = true;
-          continue;
-        }
-      }
-
-      // Handle retryable errors (503, etc.) - retry with delay
-      if (isRetryableError(error) && attempt < MAX_RETRIES) {
-        console.log(
-          `[Gemini] ⚠️ Lỗi ${
-            error.status || error.code
-          }: Model overloaded, sẽ retry...`
-        );
-        continue;
-      }
-
-      break;
-    }
-  }
-
-  throw lastError;
+    return response.text || "";
+  });
 };
 
 // Translate video directly from YouTube URL
@@ -194,6 +141,11 @@ export const translateVideoWithGemini = async (
 ): Promise<string> => {
   if (!keyManager.hasAvailableKey()) {
     throw new Error("Vui lòng thêm API Key trong cài đặt");
+  }
+
+  // Set key status callback
+  if (options?.onKeyStatus) {
+    keyManager.setStatusCallback(options.onKeyStatus);
   }
 
   const normalizedUrl = normalizeYouTubeUrl(videoUrl);
@@ -317,5 +269,8 @@ export const translateVideoWithGemini = async (
       batchStatuses: ["error"],
     });
     throw error;
+  } finally {
+    // Clear callback when done
+    keyManager.setStatusCallback(undefined);
   }
 };

@@ -1,24 +1,20 @@
 /**
  * Gemini API Key Manager - Quản lý và xoay vòng API keys
- * Hỗ trợ nhiều key, tự động chuyển khi gặp lỗi 429 (rate limit)
+ * Thử tất cả keys lần lượt cho đến khi thành công
  */
 import { GoogleGenAI } from "@google/genai";
 
-// Thời gian block theo loại rate limit
-const RATE_LIMIT_MINUTE_MS = 120000; // 2 phút cho RPM
-const RATE_LIMIT_DAY_MS = 86400000; // 24 giờ cho RPD
-
-interface RateLimitInfo {
-  blockedUntil: number;
-  retryCount: number;
-}
+export type KeyStatusCallback = (status: {
+  currentKey: number;
+  totalKeys: number;
+  message: string;
+}) => void;
 
 class GeminiKeyManager {
   private keys: string[] = [];
   private currentKeyIndex = 0;
   private aiInstances: Map<number, GoogleGenAI> = new Map();
-  private rateLimitedKeys: Map<number, RateLimitInfo> = new Map();
-  private onKeysChangeCallback?: () => void;
+  private statusCallback?: KeyStatusCallback;
 
   /**
    * Khởi tạo với danh sách keys
@@ -27,7 +23,6 @@ class GeminiKeyManager {
     this.keys = apiKeys.filter((k) => k && k.trim());
     this.currentKeyIndex = 0;
     this.aiInstances.clear();
-    this.rateLimitedKeys.clear();
 
     if (this.keys.length > 0) {
       this.getOrCreateInstance(0);
@@ -37,25 +32,21 @@ class GeminiKeyManager {
   }
 
   /**
-   * Set callback khi keys thay đổi (để UI update)
+   * Set callback để UI nhận status updates
    */
-  setOnKeysChange(callback: () => void): void {
-    this.onKeysChangeCallback = callback;
+  setStatusCallback(callback?: KeyStatusCallback): void {
+    this.statusCallback = callback;
   }
 
   /**
-   * Check và unblock keys đã hết thời gian chờ
+   * Notify status change
    */
-  private checkBlockedKeys(): void {
-    const now = Date.now();
-    for (const [keyIndex, data] of this.rateLimitedKeys) {
-      if (now >= data.blockedUntil) {
-        this.rateLimitedKeys.delete(keyIndex);
-        console.log(
-          `[KeyManager] Key #${keyIndex + 1} unblocked (rate limit expired)`
-        );
-      }
-    }
+  private notifyStatus(message: string): void {
+    this.statusCallback?.({
+      currentKey: this.currentKeyIndex + 1,
+      totalKeys: this.keys.length,
+      message,
+    });
   }
 
   /**
@@ -77,6 +68,14 @@ class GeminiKeyManager {
   getCurrentAI(): GoogleGenAI | null {
     if (this.keys.length === 0) return null;
     return this.getOrCreateInstance(this.currentKeyIndex);
+  }
+
+  /**
+   * Lấy AI instance theo index
+   */
+  getAIByIndex(index: number): GoogleGenAI | null {
+    if (index < 0 || index >= this.keys.length) return null;
+    return this.getOrCreateInstance(index);
   }
 
   /**
@@ -107,146 +106,140 @@ class GeminiKeyManager {
    * Kiểm tra có key khả dụng không
    */
   hasAvailableKey(): boolean {
-    if (this.keys.length === 0) return false;
-    this.checkBlockedKeys();
-
-    const now = Date.now();
-    for (let i = 0; i < this.keys.length; i++) {
-      const data = this.rateLimitedKeys.get(i);
-      if (!data || now >= data.blockedUntil) {
-        return true;
-      }
-    }
-    return false;
+    return this.keys.length > 0;
   }
 
   /**
-   * Đánh dấu key hiện tại bị rate limit
-   */
-  private markCurrentKeyRateLimited(): { duration: number; isDaily: boolean } {
-    const existing = this.rateLimitedKeys.get(this.currentKeyIndex);
-    const retryCount = (existing?.retryCount || 0) + 1;
-
-    // Lần đầu: block 2 phút, lần 2+: block 24h
-    const isDaily = retryCount > 1;
-    const duration = isDaily ? RATE_LIMIT_DAY_MS : RATE_LIMIT_MINUTE_MS;
-    const blockedUntil = Date.now() + duration;
-
-    this.rateLimitedKeys.set(this.currentKeyIndex, {
-      blockedUntil,
-      retryCount,
-    });
-
-    const durationText = isDaily ? "24h (daily limit)" : "2 phút";
-    console.log(
-      `[KeyManager] Key #${
-        this.currentKeyIndex + 1
-      } blocked for ${durationText}`
-    );
-
-    return { duration, isDaily };
-  }
-
-  /**
-   * Chuyển sang key tiếp theo (không bị rate limit)
+   * Chuyển sang key tiếp theo
    */
   rotateToNextKey(): boolean {
-    this.checkBlockedKeys();
-
     if (this.keys.length <= 1) {
       return false;
     }
 
-    const startIndex = this.currentKeyIndex;
-    const now = Date.now();
-
-    do {
-      this.currentKeyIndex = (this.currentKeyIndex + 1) % this.keys.length;
-
-      const data = this.rateLimitedKeys.get(this.currentKeyIndex);
-      if (!data || now >= data.blockedUntil) {
-        if (data && now >= data.blockedUntil) {
-          this.rateLimitedKeys.delete(this.currentKeyIndex);
-        }
-        console.log(
-          `[KeyManager] Rotated to key #${this.currentKeyIndex + 1}/${
-            this.keys.length
-          }`
-        );
-        this.onKeysChangeCallback?.();
-        return true;
-      }
-    } while (this.currentKeyIndex !== startIndex);
-
-    return false;
+    this.currentKeyIndex = (this.currentKeyIndex + 1) % this.keys.length;
+    console.log(
+      `[KeyManager] Rotated to key #${this.currentKeyIndex + 1}/${
+        this.keys.length
+      }`
+    );
+    this.notifyStatus(`Đang thử key #${this.currentKeyIndex + 1}...`);
+    return true;
   }
 
   /**
-   * Xử lý lỗi 429 (rate limit)
+   * Set key index trực tiếp
    */
-  handleRateLimitError(): boolean {
-    this.markCurrentKeyRateLimited();
+  setKeyIndex(index: number): void {
+    if (index >= 0 && index < this.keys.length) {
+      this.currentKeyIndex = index;
+    }
+  }
 
-    if (this.rotateToNextKey()) {
-      return true;
+  /**
+   * Thực thi với retry qua tất cả keys
+   * Thử từng key lần lượt cho đến khi thành công hoặc hết keys
+   */
+  async executeWithRetry<T>(
+    operation: (ai: GoogleGenAI, keyIndex: number) => Promise<T>
+  ): Promise<T> {
+    if (this.keys.length === 0) {
+      throw new Error("Vui lòng thêm API Key trong cài đặt");
     }
 
-    console.log(`[KeyManager] All ${this.keys.length} keys are rate limited`);
-    return false;
+    const startIndex = this.currentKeyIndex;
+    let lastError: any = null;
+    let triedKeys = 0;
+
+    // Thử tất cả keys bắt đầu từ key hiện tại
+    while (triedKeys < this.keys.length) {
+      const ai = this.getOrCreateInstance(this.currentKeyIndex);
+      if (!ai) {
+        this.rotateToNextKey();
+        triedKeys++;
+        continue;
+      }
+
+      try {
+        this.notifyStatus(
+          triedKeys === 0
+            ? `Đang dịch với key #${this.currentKeyIndex + 1}...`
+            : `Đang thử key #${this.currentKeyIndex + 1}/${this.keys.length}...`
+        );
+
+        const result = await operation(ai, this.currentKeyIndex);
+
+        // Thành công
+        if (triedKeys > 0) {
+          console.log(
+            `[KeyManager] ✅ Thành công với key #${
+              this.currentKeyIndex + 1
+            } sau ${triedKeys + 1} lần thử`
+          );
+          this.notifyStatus(`✅ Key #${this.currentKeyIndex + 1} hoạt động`);
+        }
+
+        return result;
+      } catch (error: any) {
+        lastError = error;
+        const errorCode = error?.status || error?.code;
+        const errorMsg = error?.message || "Unknown error";
+
+        console.log(
+          `[KeyManager] ❌ Key #${
+            this.currentKeyIndex + 1
+          } lỗi: ${errorCode} - ${errorMsg}`
+        );
+
+        // Nếu là lỗi có thể retry (429, 500, 503), thử key tiếp theo
+        if (isRetryableError(error)) {
+          triedKeys++;
+
+          if (triedKeys < this.keys.length) {
+            this.rotateToNextKey();
+            // Delay nhẹ trước khi thử key tiếp
+            await sleep(1000);
+            continue;
+          }
+        }
+
+        // Lỗi không thể retry (400, 401, etc.) hoặc đã thử hết keys
+        break;
+      }
+    }
+
+    // Đã thử hết tất cả keys
+    if (triedKeys >= this.keys.length) {
+      this.notifyStatus(`❌ Đã thử hết ${this.keys.length} keys`);
+      throw new Error(
+        `Đã thử hết ${this.keys.length} API keys. Lỗi cuối: ${
+          lastError?.message || "Unknown"
+        }`
+      );
+    }
+
+    throw lastError;
   }
 
   /**
-   * Lấy thông tin status của tất cả keys
-   */
-  getStatus(): Array<{
-    index: number;
-    masked: string;
-    available: boolean;
-    blockedUntil?: Date;
-  }> {
-    const now = Date.now();
-    return this.keys.map((key, index) => {
-      const data = this.rateLimitedKeys.get(index);
-      return {
-        index: index + 1,
-        masked:
-          key.length >= 12
-            ? `${key.substring(0, 8)}...${key.substring(key.length - 4)}`
-            : "***",
-        available: !data || now >= data.blockedUntil,
-        blockedUntil:
-          data && now < data.blockedUntil
-            ? new Date(data.blockedUntil)
-            : undefined,
-      };
-    });
-  }
-
-  /**
-   * Reset tất cả trạng thái
+   * Reset về key đầu tiên
    */
   reset(): void {
     this.currentKeyIndex = 0;
-    this.rateLimitedKeys.clear();
-    console.log("[KeyManager] Reset all states");
+    console.log("[KeyManager] Reset to first key");
   }
 }
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // Singleton instance
 export const keyManager = new GeminiKeyManager();
 
 /**
- * Check if error is a rate limit error (429)
- */
-export function isRateLimitError(error: any): boolean {
-  const status = error?.status || error?.code;
-  return status === 429;
-}
-
-/**
- * Check if error is retryable (503, etc.)
+ * Check if error is retryable (rate limit, overload, etc.)
  */
 export function isRetryableError(error: any): boolean {
   const status = error?.status || error?.code;
-  return [503, 500].includes(status);
+  // 429: Rate limit, 500: Server error, 503: Overloaded
+  return [429, 500, 503].includes(status);
 }
