@@ -16,6 +16,7 @@ interface ChatInputProps {
   configName: string;
   onOpenConfig: () => void;
   onStop?: () => void;
+  disabled?: boolean;
 }
 
 const ChatInput: React.FC<ChatInputProps> = ({
@@ -30,6 +31,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
   configName,
   onOpenConfig,
   onStop,
+  disabled,
 }) => {
   return (
     <View style={styles.inputArea}>
@@ -56,13 +58,16 @@ const ChatInput: React.FC<ChatInputProps> = ({
 
         {/* TextArea */}
         <TextInput
-          style={styles.input}
+          style={[styles.input, disabled && styles.inputDisabled]}
           value={inputText}
           onChangeText={onChangeText}
-          placeholder="Hỏi Zia"
+          placeholder={
+            disabled ? "Thêm API key trong Cài đặt để bắt đầu" : "Hỏi Zia"
+          }
           placeholderTextColor={COLORS.textMuted}
           multiline
           maxLength={4000}
+          editable={!disabled}
         />
 
         {/* Bottom row */}
@@ -97,15 +102,17 @@ const ChatInput: React.FC<ChatInputProps> = ({
             <TouchableOpacity
               style={[
                 styles.sendBtn,
-                !inputText.trim() && styles.sendBtnDisabled,
+                (!inputText.trim() || disabled) && styles.sendBtnDisabled,
               ]}
               onPress={onSend}
-              disabled={!inputText.trim()}
+              disabled={!inputText.trim() || disabled}
             >
               <MaterialCommunityIcons
                 name="arrow-up"
                 size={20}
-                color={inputText.trim() ? COLORS.text : COLORS.textMuted}
+                color={
+                  inputText.trim() && !disabled ? COLORS.text : COLORS.textMuted
+                }
               />
             </TouchableOpacity>
           )}
@@ -160,6 +167,9 @@ const styles = StyleSheet.create({
     maxHeight: 120,
     padding: 0,
     marginBottom: 8,
+  },
+  inputDisabled: {
+    opacity: 0.5,
   },
   inputBottomRow: {
     flexDirection: "row",

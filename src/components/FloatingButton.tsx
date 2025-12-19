@@ -15,6 +15,7 @@ interface FloatingButtonProps {
   translationProgress?: { completed: number; total: number } | null;
   queueCount?: number;
   isInQueue?: boolean;
+  isChatLoading?: boolean;
 }
 
 const SHADOW_HEIGHT = 4;
@@ -92,6 +93,72 @@ const Fab3D: React.FC<Fab3DProps> = ({
         </Pressable>
       </Animated.View>
     </View>
+  );
+};
+
+interface ChatFabProps {
+  onPress: () => void;
+  isLoading: boolean;
+}
+
+const ChatFab: React.FC<ChatFabProps> = ({ onPress, isLoading }) => {
+  const pulseAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (isLoading) {
+      const pulse = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 800,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: false,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 0,
+            duration: 800,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: false,
+          }),
+        ])
+      );
+      pulse.start();
+      return () => pulse.stop();
+    } else {
+      pulseAnim.setValue(0);
+    }
+  }, [isLoading]);
+
+  const glowOpacity = pulseAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.3, 0.7],
+  });
+
+  const glowScale = pulseAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 1.2],
+  });
+
+  if (!isLoading) {
+    return (
+      <Fab3D onPress={onPress} icon="robot-outline" size={40} iconSize={20} />
+    );
+  }
+
+  return (
+    <Pressable onPress={onPress}>
+      <View style={styles.chatLoadingContainer}>
+        <Animated.View
+          style={[
+            styles.chatGlowEffect,
+            { opacity: glowOpacity, transform: [{ scale: glowScale }] },
+          ]}
+        />
+        <View style={styles.chatLoadingFab}>
+          <MaterialCommunityIcons name="robot" size={20} color={COLORS.text} />
+        </View>
+      </View>
+    </Pressable>
   );
 };
 
@@ -196,6 +263,7 @@ const FloatingButton: React.FC<FloatingButtonProps> = ({
   translationProgress = null,
   queueCount = 0,
   isInQueue = false,
+  isChatLoading = false,
 }) => {
   // Higher position when on list page to avoid YouTube nav bar
   const bottomPosition = isVideoPage ? 20 : 80;
@@ -236,12 +304,7 @@ const FloatingButton: React.FC<FloatingButtonProps> = ({
 
       {/* Right column: AI (aligned with bottom row when no video, or above Sub when video) */}
       <View style={[styles.fabColumnRight, { bottom: bottomPosition }]}>
-        <Fab3D
-          onPress={onChatPress}
-          icon="robot-outline"
-          size={40}
-          iconSize={20}
-        />
+        <ChatFab onPress={onChatPress} isLoading={isChatLoading} />
         {isVideoPage &&
           (isTranslating ? (
             <TranslatingFab onPress={onPress} progress={translationProgress} />
@@ -338,6 +401,29 @@ const styles = StyleSheet.create({
     color: COLORS.background,
     fontSize: 9,
     fontWeight: "700",
+  },
+  chatLoadingContainer: {
+    width: 44,
+    height: 48,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  chatGlowEffect: {
+    position: "absolute",
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: COLORS.primary,
+  },
+  chatLoadingFab: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: COLORS.primary,
+    borderWidth: 2,
+    borderColor: COLORS.primaryDark,
+    justifyContent: "center",
+    alignItems: "center",
   },
 });
 

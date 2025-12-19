@@ -22,6 +22,7 @@ import {
   getGeminiConfigs,
   getActiveGeminiConfig,
   saveActiveGeminiConfigId,
+  getApiKeys,
 } from "@utils/storage";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -60,6 +61,7 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
   const [geminiConfigs, setGeminiConfigs] = useState<GeminiConfig[]>([]);
   const [selectedConfigId, setSelectedConfigId] = useState<string>("");
   const [showConfigPicker, setShowConfigPicker] = useState(false);
+  const [hasApiKey, setHasApiKey] = useState(true);
 
   // Use ref to track current tab for subscription callback
   const activeTabRef = useRef<TabType>(activeTab);
@@ -85,9 +87,13 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
   }, []);
 
   const loadConfigs = async () => {
-    const configs = await getGeminiConfigs();
+    const [configs, activeConfig, apiKeys] = await Promise.all([
+      getGeminiConfigs(),
+      getActiveGeminiConfig(),
+      getApiKeys(),
+    ]);
     setGeminiConfigs(configs);
-    const activeConfig = await getActiveGeminiConfig();
+    setHasApiKey(apiKeys.length > 0);
     if (activeConfig) setSelectedConfigId(activeConfig.id);
   };
 
@@ -280,13 +286,14 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
       <View style={styles.itemActions}>
         {(item.status === "pending" || item.status === "error") && (
           <TouchableOpacity
-            style={styles.actionBtn}
+            style={[styles.actionBtn, !hasApiKey && styles.actionBtnDisabled]}
             onPress={() => handleStartTranslation(item)}
+            disabled={!hasApiKey}
           >
             <MaterialCommunityIcons
               name="play"
               size={20}
-              color={COLORS.primary}
+              color={hasApiKey ? COLORS.primary : COLORS.textMuted}
             />
           </TouchableOpacity>
         )}
@@ -474,6 +481,20 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
           {/* Config Picker & Start All Button */}
           {activeTab === "pending" && pendingCount > 0 && (
             <View style={styles.actionSection}>
+              {/* API Key Warning */}
+              {!hasApiKey && (
+                <View style={styles.warningContainer}>
+                  <MaterialCommunityIcons
+                    name="alert-circle-outline"
+                    size={18}
+                    color={COLORS.warning}
+                  />
+                  <Text style={styles.warningText}>
+                    Chưa có API key. Thêm trong Cài đặt nhé
+                  </Text>
+                </View>
+              )}
+
               {/* Config Picker */}
               <TouchableOpacity
                 style={styles.configPicker}
@@ -530,6 +551,7 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
                     icon="play-circle"
                     variant="primary"
                     onPress={handleStartAll}
+                    disabled={!hasApiKey}
                   />
                 </View>
                 <TouchableOpacity
@@ -787,6 +809,23 @@ const styles = StyleSheet.create({
   dateText: { color: COLORS.textMuted, fontSize: 11 },
   itemActions: { justifyContent: "center", paddingRight: 8, gap: 4 },
   actionBtn: { padding: 6 },
+  actionBtnDisabled: { opacity: 0.5 },
+  warningContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255,183,77,0.15)",
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 8,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: COLORS.warning,
+  },
+  warningText: {
+    color: COLORS.warning,
+    fontSize: 12,
+    flex: 1,
+  },
   emptyContainer: {
     flex: 1,
     justifyContent: "center",

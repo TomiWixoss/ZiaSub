@@ -27,7 +27,6 @@ import { COLORS } from "@constants/colors";
 import {
   GeminiConfig,
   getGeminiConfigs,
-  getActiveGeminiConfig,
   saveActiveGeminiConfigId,
   getChatSessions,
   getActiveChatSession,
@@ -37,6 +36,8 @@ import {
   setActiveChatSessionId,
   ChatSession,
   StoredChatMessage,
+  DEFAULT_CHAT_CONFIG_ID,
+  getApiKeys,
 } from "@utils/storage";
 import { ChatMessage, sendChatMessage } from "@services/chatService";
 import ConfigSelector from "@components/chat/ConfigSelector";
@@ -49,6 +50,7 @@ interface ChatModalProps {
   onClose: () => void;
   videoUrl?: string;
   videoTitle?: string;
+  onLoadingChange?: (isLoading: boolean) => void;
 }
 
 // Quick actions
@@ -64,6 +66,7 @@ const ChatModal: React.FC<ChatModalProps> = ({
   onClose,
   videoUrl,
   videoTitle,
+  onLoadingChange,
 }) => {
   const insets = useSafeAreaInsets();
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
@@ -83,6 +86,7 @@ const ChatModal: React.FC<ChatModalProps> = ({
   );
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [isFromHistory, setIsFromHistory] = useState(false);
+  const [hasApiKey, setHasApiKey] = useState(true);
   const flatListRef = useRef<FlatList>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -147,6 +151,11 @@ const ChatModal: React.FC<ChatModalProps> = ({
     }
   }, [messages, activeConfig]);
 
+  // Notify parent about loading state changes
+  useEffect(() => {
+    onLoadingChange?.(isLoading);
+  }, [isLoading, onLoadingChange]);
+
   const toggleDrawer = () => {
     const opening = !drawerOpen;
     setDrawerOpen(opening);
@@ -158,14 +167,21 @@ const ChatModal: React.FC<ChatModalProps> = ({
   };
 
   const loadData = async () => {
-    const [allConfigs, active, allSessions, activeSession] = await Promise.all([
-      getGeminiConfigs(),
-      getActiveGeminiConfig(),
-      getChatSessions(),
-      getActiveChatSession(),
-    ]);
+    const [allConfigs, allSessions, activeSession, apiKeys] = await Promise.all(
+      [
+        getGeminiConfigs(),
+        getChatSessions(),
+        getActiveChatSession(),
+        getApiKeys(),
+      ]
+    );
     setConfigs(allConfigs);
-    setActiveConfig(active);
+    setHasApiKey(apiKeys.length > 0);
+
+    // Default to chat config
+    const chatConfig = allConfigs.find((c) => c.id === DEFAULT_CHAT_CONFIG_ID);
+    setActiveConfig(chatConfig || allConfigs[0] || null);
+
     setSessions(allSessions);
     if (activeSession) {
       setCurrentSession(activeSession);
@@ -454,14 +470,32 @@ const ChatModal: React.FC<ChatModalProps> = ({
     <View style={styles.emptyContainer}>
       <Text style={styles.greeting}>Xin chào!</Text>
       <Text style={styles.greetingSubtitle}>Tôi có thể giúp gì cho bạn?</Text>
+
+      {/* API Key Warning */}
+      {!hasApiKey && (
+        <View style={styles.warningContainer}>
+          <MaterialCommunityIcons
+            name="alert-circle-outline"
+            size={20}
+            color={COLORS.warning}
+          />
+          <Text style={styles.warningText}>
+            Chưa có API key. Thêm trong Cài đặt nhé
+          </Text>
+        </View>
+      )}
+
       {videoUrl && (
         <View style={styles.quickActionsContainer}>
           {QUICK_ACTIONS.map((action) => (
             <TouchableOpacity
               key={action.id}
-              style={styles.quickActionBtn}
+              style={[
+                styles.quickActionBtn,
+                !hasApiKey && styles.quickActionDisabled,
+              ]}
               onPress={() => handleQuickAction(action.id)}
-              disabled={isLoading}
+              disabled={isLoading || !hasApiKey}
             >
               <MaterialCommunityIcons
                 name={action.icon as any}
@@ -543,6 +577,7 @@ const ChatModal: React.FC<ChatModalProps> = ({
               onToggleVideo={() => setAttachVideo(!attachVideo)}
               configName={activeConfig?.name || "Chọn model"}
               onOpenConfig={() => setShowConfigSelector(true)}
+              disabled={!hasApiKey}
             />
           </KeyboardAvoidingView>
 
@@ -649,6 +684,26 @@ const styles = StyleSheet.create({
   quickActionLabel: {
     color: COLORS.text,
     fontSize: 15,
+  },
+  quickActionDisabled: {
+    opacity: 0.5,
+  },
+  warningContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255,183,77,0.15)",
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 20,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: COLORS.warning,
+    alignSelf: "stretch",
+  },
+  warningText: {
+    color: COLORS.warning,
+    fontSize: 13,
+    flex: 1,
   },
   drawerOverlay: {
     ...StyleSheet.absoluteFillObject,

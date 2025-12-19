@@ -86,6 +86,7 @@ const HomeScreen = () => {
   >();
   const [videoTitle, setVideoTitle] = useState<string>("");
   const [chatModalVisible, setChatModalVisible] = useState(false);
+  const [isChatLoading, setIsChatLoading] = useState(false);
 
   const webViewRef = useRef<WebView>(null);
   const currentUrlRef = useRef<string>("");
@@ -627,6 +628,7 @@ const HomeScreen = () => {
         translationProgress={translationProgress}
         queueCount={queueCount}
         isInQueue={!!currentVideoInQueue}
+        isChatLoading={isChatLoading}
       />
 
       <SubtitleInputModal
@@ -669,6 +671,7 @@ const HomeScreen = () => {
         onClose={() => setChatModalVisible(false)}
         videoUrl={currentUrl}
         videoTitle={videoTitle}
+        onLoadingChange={setIsChatLoading}
       />
     </View>
   );

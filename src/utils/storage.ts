@@ -421,6 +421,17 @@ export const createDefaultGeminiConfig = (): GeminiConfig => ({
   systemPrompt: DEFAULT_SYSTEM_PROMPT,
 });
 
+// Default chat config ID (fixed)
+export const DEFAULT_CHAT_CONFIG_ID = "default-chat-config";
+
+export const createDefaultChatConfig = (): GeminiConfig => ({
+  id: DEFAULT_CHAT_CONFIG_ID,
+  name: "Chat",
+  model: "models/gemini-flash-latest",
+  temperature: 1.0,
+  systemPrompt: "",
+});
+
 // Save all Gemini configs
 export const saveGeminiConfigs = async (
   configs: GeminiConfig[]
@@ -436,16 +447,30 @@ export const saveGeminiConfigs = async (
 export const getGeminiConfigs = async (): Promise<GeminiConfig[]> => {
   try {
     const data = await AsyncStorage.getItem(GEMINI_CONFIGS_KEY);
-    if (data) {
-      return JSON.parse(data);
+    let configs: GeminiConfig[] = data ? JSON.parse(data) : [];
+
+    // Ensure default chat config exists
+    const hasChatConfig = configs.some((c) => c.id === DEFAULT_CHAT_CONFIG_ID);
+    if (!hasChatConfig) {
+      const chatConfig = createDefaultChatConfig();
+      configs = [chatConfig, ...configs];
+      await saveGeminiConfigs(configs);
     }
-    // Return default config if none exists
-    const defaultConfig = createDefaultGeminiConfig();
-    await saveGeminiConfigs([defaultConfig]);
-    return [defaultConfig];
+
+    // Ensure at least one translation config exists
+    const hasTranslationConfig = configs.some(
+      (c) => c.id !== DEFAULT_CHAT_CONFIG_ID
+    );
+    if (!hasTranslationConfig) {
+      const defaultConfig = createDefaultGeminiConfig();
+      configs.push(defaultConfig);
+      await saveGeminiConfigs(configs);
+    }
+
+    return configs;
   } catch (error) {
     console.error("Error getting Gemini configs:", error);
-    return [createDefaultGeminiConfig()];
+    return [createDefaultChatConfig(), createDefaultGeminiConfig()];
   }
 };
 
