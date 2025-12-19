@@ -20,13 +20,12 @@ export const DEFAULT_TTS_SETTINGS: TTSSettings = {
   autoRate: true,
 };
 
-type TTSStatusCallback = (isSpeaking: boolean) => void;
 type TTSSpeakingCallback = (isSpeaking: boolean) => void;
 
 // Estimate speaking duration based on text length and rate
-// Vietnamese: ~4-5 characters per second at rate 1.0
+// Vietnamese TTS: ~3 characters per second at rate 1.0 (conservative estimate)
 const estimateSpeakingDuration = (text: string, rate: number): number => {
-  const charsPerSecond = 5 * rate;
+  const charsPerSecond = 3 * rate;
   return text.length / charsPerSecond;
 };
 
@@ -38,29 +37,25 @@ const calculateOptimalRate = (
 ): number => {
   if (availableDuration <= 0) return baseRate;
 
+  // Leave 0.3s buffer for natural pause
+  const effectiveDuration = Math.max(0.5, availableDuration - 0.3);
   const estimatedDuration = estimateSpeakingDuration(text, baseRate);
 
-  if (estimatedDuration <= availableDuration) {
-    // Text fits within time, use base rate
+  if (estimatedDuration <= effectiveDuration) {
     return baseRate;
   }
 
-  // Need to speed up - calculate required rate
-  // rate = baseRate * (estimatedDuration / availableDuration)
-  const requiredRate = baseRate * (estimatedDuration / availableDuration);
-
-  // Clamp between 0.8 and 2.0 (don't go too slow or too fast)
-  return Math.min(2.0, Math.max(0.8, requiredRate));
+  // Need to speed up - but cap at 1.3x for comprehension
+  const requiredRate = baseRate * (estimatedDuration / effectiveDuration);
+  return Math.min(1.3, Math.max(0.8, requiredRate));
 };
 
 class TTSService {
   private static instance: TTSService;
   private settings: TTSSettings = DEFAULT_TTS_SETTINGS;
-  private lastSpokenText: string = "";
-  private currentSubtitleId: string = ""; // Track current subtitle to avoid re-speaking
-  private statusCallback: TTSStatusCallback | null = null;
+  private currentSubtitleId: string = "";
   private speakingCallback: TTSSpeakingCallback | null = null;
-  private isSpeaking: boolean = false;
+  private isSpeakingNow: boolean = false;
 
   private constructor() {}
 
@@ -79,76 +74,99 @@ class TTSService {
     return this.settings;
   }
 
-  setStatusCallback(callback: TTSStatusCallback | null) {
-    this.statusCallback = callback;
-  }
-
-  // Callback for when TTS starts/stops speaking (for video ducking)
   setSpeakingCallback(callback: TTSSpeakingCallback | null) {
     this.speakingCallback = callback;
   }
 
-  private updateStatus(speaking: boolean) {
-    this.isSpeaking = speaking;
-    this.statusCallback?.(speaking);
-    // Notify for video ducking
-    if (this.settings.duckVideo) {
-      this.speakingCallback?.(speaking);
-    }
+  private notifySpeaking(speaking: boolean) {
+    if (this.isSpeakingNow === speaking) return;
+    this.isSpeakingNow = speaking;
+    console.log("[TTS] Speaking:", speaking);
+    this.speakingCallback?.(speaking);
   }
 
-  // Speak with subtitle timing info for auto rate adjustment
-  async speakSubtitle(
+  speakSubtitle(
     text: string,
-    subtitleId: string, // Unique ID for this subtitle (e.g., startTime-endTime)
-    availableDuration?: number // Time available before next subtitle (seconds)
-  ): Promise<void> {
+    subtitleId: string,
+    availableDuration?: number
+  ): void {
     if (!this.settings.enabled || !text.trim()) {
       return;
     }
 
-    // Skip if same subtitle (using ID instead of text to handle repeated text)
+    // Skip if same subtitle ID - check SYNCHRONOUSLY before any async
     if (subtitleId === this.currentSubtitleId) {
       return;
     }
 
-    // Stop current speech before starting new one
-    await this.stop();
-
+    // Set ID IMMEDIATELY to prevent duplicate calls (race condition fix)
     this.currentSubtitleId = subtitleId;
-    this.lastSpokenText = text;
-    this.updateStatus(true);
+
+    console.log(
+      "[TTS] New subtitle:",
+      subtitleId,
+      "text:",
+      text.substring(0, 30)
+    );
+
+    // Do the actual speaking asynchronously
+    this.doSpeak(text, subtitleId, availableDuration);
+  }
+
+  private async doSpeak(
+    text: string,
+    subtitleId: string,
+    availableDuration?: number
+  ): Promise<void> {
+    // Stop current speech
+    const wasSpeaking = await Speech.isSpeakingAsync();
+    if (wasSpeaking) {
+      await Speech.stop();
+    }
+
+    // Check if subtitle changed while we were stopping
+    if (this.currentSubtitleId !== subtitleId) {
+      return;
+    }
 
     // Calculate rate
     let rate = this.settings.rate;
     if (this.settings.autoRate && availableDuration && availableDuration > 0) {
       rate = calculateOptimalRate(text, availableDuration, this.settings.rate);
+      console.log(
+        "[TTS] Auto rate:",
+        rate.toFixed(2),
+        "for duration:",
+        availableDuration.toFixed(1)
+      );
     }
 
-    return new Promise((resolve) => {
-      Speech.speak(text, {
-        language: this.settings.language,
-        rate: rate,
-        pitch: this.settings.pitch,
-        onDone: () => {
-          this.updateStatus(false);
-          resolve();
-        },
-        onError: () => {
-          this.updateStatus(false);
-          resolve();
-        },
-        onStopped: () => {
-          this.updateStatus(false);
-          resolve();
-        },
-      });
-    });
-  }
+    // Notify speaking started
+    if (this.settings.duckVideo) {
+      this.notifySpeaking(true);
+    }
 
-  // Legacy speak method (without timing)
-  async speak(text: string): Promise<void> {
-    return this.speakSubtitle(text, text);
+    Speech.speak(text, {
+      language: this.settings.language,
+      rate: rate,
+      pitch: this.settings.pitch,
+      onDone: () => {
+        console.log("[TTS] Done speaking");
+        if (this.settings.duckVideo) {
+          this.notifySpeaking(false);
+        }
+      },
+      onError: (error) => {
+        console.log("[TTS] Error:", error);
+        if (this.settings.duckVideo) {
+          this.notifySpeaking(false);
+        }
+      },
+      onStopped: () => {
+        console.log("[TTS] Stopped (interrupted)");
+        // Don't restore volume - new speech will handle it
+      },
+    });
   }
 
   async stop(): Promise<void> {
@@ -156,7 +174,9 @@ class TTSService {
     if (speaking) {
       await Speech.stop();
     }
-    this.updateStatus(false);
+    if (this.settings.duckVideo) {
+      this.notifySpeaking(false);
+    }
   }
 
   async isSpeakingAsync(): Promise<boolean> {
@@ -164,11 +184,9 @@ class TTSService {
   }
 
   resetLastSpoken() {
-    this.lastSpokenText = "";
     this.currentSubtitleId = "";
   }
 
-  // Get available voices for language selection
   async getAvailableVoices() {
     return Speech.getAvailableVoicesAsync();
   }

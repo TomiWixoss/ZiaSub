@@ -159,8 +159,10 @@ const HomeScreen = () => {
 
     // Set up TTS speaking callback for video ducking
     ttsService.setSpeakingCallback((isSpeaking) => {
-      if (webViewRef.current) {
-        const volume = isSpeaking ? ttsService.getSettings().duckLevel : 1.0;
+      const settings = ttsService.getSettings();
+      if (webViewRef.current && settings.duckVideo) {
+        const volume = isSpeaking ? settings.duckLevel : 1.0;
+        console.log("[HomeScreen] Setting video volume:", volume);
         webViewRef.current.postMessage(
           JSON.stringify({ type: "setVideoVolume", payload: volume })
         );
