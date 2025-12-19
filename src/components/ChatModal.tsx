@@ -99,6 +99,7 @@ const ChatModal: React.FC<ChatModalProps> = ({
           command: msg.content,
           result: hasResult ? nextMsg.content : undefined,
           hasVideo: msg.hasVideo,
+          videoTitle: msg.videoTitle,
           timestamp: msg.timestamp,
           status: hasResult
             ? nextMsg.content.startsWith("Lỗi:")
@@ -194,6 +195,7 @@ const ChatModal: React.FC<ChatModalProps> = ({
       content: messageText,
       timestamp: Date.now(),
       hasVideo: shouldAttachVideo && !!videoUrl,
+      videoTitle: shouldAttachVideo && !!videoUrl ? videoTitle : undefined,
     };
 
     if (!currentSession) {
@@ -338,12 +340,114 @@ const ChatModal: React.FC<ChatModalProps> = ({
     ]).start(() => onClose());
   };
 
+  const handleCopyResult = (text: string) => {
+    // Optional: show toast or feedback
+  };
+
+  const handleRegenerateTask = (task: TaskItem) => {
+    if (isLoading || !activeConfig) return;
+
+    // Tìm index của task trong messages (user message)
+    const taskIndex = messages.findIndex((m) => m.id === task.id);
+    if (taskIndex === -1) return;
+
+    // Luôn xóa task cũ (cả user message và response nếu có)
+    const hasResponse = messages[taskIndex + 1]?.role === "model";
+    const removeCount = hasResponse ? 2 : 1;
+    const newMessages = [
+      ...messages.slice(0, taskIndex),
+      ...messages.slice(taskIndex + removeCount),
+    ];
+
+    // Lưu command, hasVideo và videoTitle trước khi xóa
+    const command = task.command;
+    const hasVideo = task.hasVideo;
+    const taskVideoTitle = task.videoTitle;
+
+    // Tạo task mới với ID mới
+    const userMessage: ChatMessage = {
+      id: Date.now().toString(),
+      role: "user",
+      content: command,
+      timestamp: Date.now(),
+      hasVideo: hasVideo,
+      videoTitle: taskVideoTitle,
+    };
+
+    const updatedMessages = [...newMessages, userMessage];
+    setMessages(updatedMessages);
+    setIsLoading(true);
+    setIsFromHistory(false);
+    scrollToBottom();
+
+    // Create abort controller for this request
+    abortControllerRef.current = new AbortController();
+    const currentAbort = abortControllerRef.current;
+
+    sendChatMessage(
+      updatedMessages,
+      activeConfig,
+      {
+        onChunk: () => scrollToBottom(),
+        onComplete: (fullText) => {
+          if (currentAbort.signal.aborted) return;
+          const aiMessage: ChatMessage = {
+            id: (Date.now() + 1).toString(),
+            role: "model",
+            content: fullText,
+            timestamp: Date.now(),
+          };
+          setMessages((prev) => [...prev, aiMessage]);
+          setIsLoading(false);
+          abortControllerRef.current = null;
+          scrollToBottom();
+        },
+        onError: (error) => {
+          if (currentAbort.signal.aborted) return;
+          const errorMessage: ChatMessage = {
+            id: (Date.now() + 1).toString(),
+            role: "model",
+            content: `Lỗi: ${error.message}`,
+            timestamp: Date.now(),
+          };
+          setMessages((prev) => [...prev, errorMessage]);
+          setIsLoading(false);
+          abortControllerRef.current = null;
+        },
+      },
+      hasVideo ? videoUrl : undefined
+    );
+  };
+
+  const handleDeleteTask = (taskId: string) => {
+    // Tìm index của task trong messages
+    const taskIndex = messages.findIndex((m) => m.id === taskId);
+    if (taskIndex === -1) return;
+
+    // Xóa cả user message và response (nếu có)
+    const hasResponse = messages[taskIndex + 1]?.role === "model";
+    const removeCount = hasResponse ? 2 : 1;
+    const newMessages = [
+      ...messages.slice(0, taskIndex),
+      ...messages.slice(taskIndex + removeCount),
+    ];
+    setMessages(newMessages);
+  };
+
   const renderTask = ({ item, index }: { item: TaskItem; index: number }) => {
     // Mặc định mở task cuối cùng (đang pending hoặc mới nhất), đóng các task cũ khi load từ history
     const isLastTask = index === tasks.length - 1;
     const shouldExpand =
       isLastTask && (!isFromHistory || item.status === "pending");
-    return <TaskCard task={item} defaultExpanded={shouldExpand} />;
+    return (
+      <TaskCard
+        task={item}
+        defaultExpanded={shouldExpand}
+        onCopy={handleCopyResult}
+        onRegenerate={handleRegenerateTask}
+        onDelete={handleDeleteTask}
+      />
+    );
   };
 
   const renderEmptyState = () => (

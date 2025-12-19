@@ -10,13 +10,16 @@ import {
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Markdown from "react-native-markdown-display";
+import * as Clipboard from "expo-clipboard";
 import { COLORS } from "@constants/colors";
+import { confirmDestructive } from "@components/CustomAlert";
 
 export interface TaskItem {
   id: string;
   command: string;
   result?: string;
   hasVideo?: boolean;
+  videoTitle?: string;
   timestamp: number;
   status: "pending" | "done" | "error";
 }
@@ -24,13 +27,20 @@ export interface TaskItem {
 interface TaskCardProps {
   task: TaskItem;
   defaultExpanded?: boolean;
+  onCopy?: (text: string) => void;
+  onRegenerate?: (task: TaskItem) => void;
+  onDelete?: (taskId: string) => void;
 }
 
 const TaskCard: React.FC<TaskCardProps> = ({
   task,
   defaultExpanded = false,
+  onCopy,
+  onRegenerate,
+  onDelete,
 }) => {
   const [expanded, setExpanded] = useState(defaultExpanded);
+  const [copied, setCopied] = useState(false);
   // 1 = expanded (chevron-up pointing up), 0 = collapsed (chevron-up rotated to point down)
   const rotateAnim = useRef(
     new Animated.Value(defaultExpanded ? 1 : 0)
@@ -99,7 +109,9 @@ const TaskCard: React.FC<TaskCardProps> = ({
                     size={10}
                     color={COLORS.error}
                   />
-                  <Text style={styles.videoTagText}>Video</Text>
+                  <Text style={styles.videoTagText} numberOfLines={1}>
+                    {task.videoTitle || "Video"}
+                  </Text>
                 </View>
               )}
             </View>
@@ -119,6 +131,64 @@ const TaskCard: React.FC<TaskCardProps> = ({
       {expanded && task.result && (
         <View style={styles.taskResult}>
           <Markdown style={markdownStyles}>{task.result}</Markdown>
+
+          {/* Action buttons */}
+          <View style={styles.actionButtons}>
+            <TouchableOpacity
+              style={styles.actionBtn}
+              onPress={async () => {
+                if (task.result) {
+                  await Clipboard.setStringAsync(task.result);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                  onCopy?.(task.result);
+                }
+              }}
+            >
+              <MaterialCommunityIcons
+                name={copied ? "check" : "content-copy"}
+                size={16}
+                color={copied ? COLORS.success : COLORS.textMuted}
+              />
+              <Text
+                style={[styles.actionText, copied && styles.actionTextSuccess]}
+              >
+                {copied ? "Đã copy" : "Copy"}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.actionBtn}
+              onPress={() => onRegenerate?.(task)}
+            >
+              <MaterialCommunityIcons
+                name="refresh"
+                size={16}
+                color={COLORS.textMuted}
+              />
+              <Text style={styles.actionText}>Tạo lại</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.actionBtn}
+              onPress={() => {
+                confirmDestructive(
+                  "Xóa task",
+                  "Bạn có chắc muốn xóa task này?",
+                  () => onDelete?.(task.id)
+                );
+              }}
+            >
+              <MaterialCommunityIcons
+                name="delete-outline"
+                size={16}
+                color={COLORS.error}
+              />
+              <Text style={[styles.actionText, styles.actionTextDelete]}>
+                Xóa
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       )}
 
@@ -179,10 +249,12 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     backgroundColor: COLORS.surface,
     borderRadius: 10,
+    maxWidth: 150,
   },
   videoTagText: {
     color: COLORS.textMuted,
     fontSize: 11,
+    flexShrink: 1,
   },
   taskResult: {
     padding: 14,
@@ -201,6 +273,32 @@ const styles = StyleSheet.create({
   loadingText: {
     color: COLORS.textMuted,
     fontSize: 14,
+  },
+  actionButtons: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
+  actionBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  actionText: {
+    color: COLORS.textMuted,
+    fontSize: 13,
+  },
+  actionTextSuccess: {
+    color: COLORS.success,
+  },
+  actionTextDelete: {
+    color: COLORS.error,
   },
 });
 

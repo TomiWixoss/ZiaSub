@@ -8,6 +8,7 @@ export interface ChatMessage {
   content: string;
   timestamp: number;
   hasVideo?: boolean; // Flag nếu tin nhắn có kèm video
+  videoTitle?: string; // Tên video đính kèm
 }
 
 export interface StreamCallbacks {

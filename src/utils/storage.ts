@@ -498,6 +498,7 @@ export interface StoredChatMessage {
   timestamp: number;
   hasVideo?: boolean;
   videoUrl?: string; // Video URL đính kèm cho message này
+  videoTitle?: string; // Tên video đính kèm
 }
 
 export interface ChatSession {
