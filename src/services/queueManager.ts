@@ -99,18 +99,21 @@ class QueueManager {
     return url;
   }
 
-  // Add video to queue
+  // Add video to queue - returns result with status info
   async addToQueue(
     videoUrl: string,
     title?: string,
     duration?: number
-  ): Promise<QueueItem | null> {
+  ): Promise<{ item: QueueItem; isExisting: boolean; pendingCount: number }> {
     const videoId = this.extractVideoId(videoUrl);
 
     // Check if already exists
     const existing = this.items.find((i) => i.videoId === videoId);
     if (existing) {
-      return existing;
+      const pendingCount = this.items.filter(
+        (i) => i.status === "pending"
+      ).length;
+      return { item: existing, isExisting: true, pendingCount };
     }
 
     const item: QueueItem = {
@@ -127,7 +130,11 @@ class QueueManager {
     this.items.unshift(item);
     await this.save();
     this.notify();
-    return item;
+
+    const pendingCount = this.items.filter(
+      (i) => i.status === "pending"
+    ).length;
+    return { item, isExisting: false, pendingCount };
   }
 
   // Move item to translating and start

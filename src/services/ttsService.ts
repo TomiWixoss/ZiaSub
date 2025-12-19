@@ -22,6 +22,19 @@ export const DEFAULT_TTS_SETTINGS: TTSSettings = {
 
 type TTSSpeakingCallback = (isSpeaking: boolean) => void;
 
+// Clean text for TTS - remove special characters, keep only letters, numbers, spaces and basic punctuation
+const cleanTextForTTS = (text: string): string => {
+  return (
+    text
+      // Remove all special characters except letters, numbers, spaces, and basic punctuation (. , ? !)
+      .replace(/[^\p{L}\p{N}\s.,?!]/gu, "")
+      // Remove multiple spaces
+      .replace(/\s+/g, " ")
+      // Trim
+      .trim()
+  );
+};
+
 // Estimate speaking duration based on text length and rate
 // Vietnamese TTS: ~3 characters per second at rate 1.0 (conservative estimate)
 const estimateSpeakingDuration = (text: string, rate: number): number => {
@@ -118,6 +131,12 @@ class TTSService {
     subtitleId: string,
     availableDuration?: number
   ): Promise<void> {
+    // Clean text for TTS
+    const cleanedText = cleanTextForTTS(text);
+    if (!cleanedText) {
+      return;
+    }
+
     // Stop current speech
     const wasSpeaking = await Speech.isSpeakingAsync();
     if (wasSpeaking) {
@@ -132,7 +151,11 @@ class TTSService {
     // Calculate rate
     let rate = this.settings.rate;
     if (this.settings.autoRate && availableDuration && availableDuration > 0) {
-      rate = calculateOptimalRate(text, availableDuration, this.settings.rate);
+      rate = calculateOptimalRate(
+        cleanedText,
+        availableDuration,
+        this.settings.rate
+      );
       console.log(
         "[TTS] Auto rate:",
         rate.toFixed(2),
@@ -146,7 +169,7 @@ class TTSService {
       this.notifySpeaking(true);
     }
 
-    Speech.speak(text, {
+    Speech.speak(cleanedText, {
       language: this.settings.language,
       rate: rate,
       pitch: this.settings.pitch,

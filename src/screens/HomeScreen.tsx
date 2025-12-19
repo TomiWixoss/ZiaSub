@@ -37,6 +37,7 @@ import {
   getApiKeys,
   getAllTranslatedVideoUrls,
   getActiveTranslation,
+  hasTranslation,
 } from "@utils/storage";
 import { ttsService } from "@services/ttsService";
 import { keyManager } from "@services/keyManager";
@@ -298,10 +299,36 @@ const HomeScreen = () => {
       } else if (data.type === "addToQueue") {
         // Handle add to queue from thumbnail button
         const { videoUrl, title } = data.payload;
-        const existing = queueManager.isInQueue(videoUrl);
-        if (!existing) {
-          await queueManager.addToQueue(videoUrl, title);
-          syncQueuedVideosToWebView();
+
+        // Check if video already has translation in storage
+        const alreadyTranslated = await hasTranslation(videoUrl);
+        if (alreadyTranslated) {
+          alert("Thông báo", "Video này đã có bản dịch rồi.");
+          return;
+        }
+
+        const result = await queueManager.addToQueue(videoUrl, title);
+        syncQueuedVideosToWebView();
+
+        // Show notification based on video status
+        if (result.isExisting) {
+          const statusText =
+            result.item.status === "translating"
+              ? "Video này đang được dịch."
+              : `Video này đã có trong danh sách chờ. Còn ${result.pendingCount} video đang chờ.`;
+          alert("Thông báo", statusText);
+        } else {
+          const pendingText =
+            result.pendingCount > 1
+              ? `Còn ${result.pendingCount} video đang chờ dịch.`
+              : "Video sẽ được dịch ngay.";
+          showAlert("Đã thêm", `Đã thêm video vào danh sách. ${pendingText}`, [
+            { text: "OK" },
+            {
+              text: "Xem danh sách",
+              onPress: () => setQueueModalVisible(true),
+            },
+          ]);
         }
       }
     } catch (e) {}
@@ -462,22 +489,35 @@ const HomeScreen = () => {
   const handleAddToQueue = async () => {
     if (!currentUrl) return;
 
-    const existing = queueManager.isInQueue(currentUrl);
-    if (existing) {
-      alert("Thông báo", "Video này đã có trong danh sách rồi.");
+    // Check if video already has translation in storage
+    const alreadyTranslated = await hasTranslation(currentUrl);
+    if (alreadyTranslated) {
+      alert("Thông báo", "Video này đã có bản dịch rồi.");
       return;
     }
 
     const title = videoTitle || "Video YouTube";
-    const item = await queueManager.addToQueue(
+    const result = await queueManager.addToQueue(
       currentUrl,
       title,
       videoDuration
     );
 
-    if (item) {
-      setCurrentVideoInQueue(item);
-      showAlert("Đã thêm", "Đã thêm video vào danh sách chờ dịch.", [
+    setCurrentVideoInQueue(result.item);
+
+    // Show notification based on video status
+    if (result.isExisting) {
+      const statusText =
+        result.item.status === "translating"
+          ? "Video này đang được dịch."
+          : `Video này đã có trong danh sách chờ. Còn ${result.pendingCount} video đang chờ.`;
+      alert("Thông báo", statusText);
+    } else {
+      const pendingText =
+        result.pendingCount > 1
+          ? `Còn ${result.pendingCount} video đang chờ dịch.`
+          : "Video sẽ được dịch ngay.";
+      showAlert("Đã thêm", `Đã thêm video vào danh sách. ${pendingText}`, [
         { text: "OK" },
         { text: "Xem danh sách", onPress: () => setQueueModalVisible(true) },
       ]);
