@@ -372,6 +372,7 @@ const ChatModal: React.FC<ChatModalProps> = ({
     </View>
   );
 
+  const topPadding = Math.max(insets.top, 24);
   const bottomPadding = Math.max(insets.bottom, 10);
 
   return (
@@ -383,24 +384,11 @@ const ChatModal: React.FC<ChatModalProps> = ({
       statusBarTranslucent
     >
       <View style={styles.modalOverlay}>
-        {/* Backdrop - only covers top area */}
-        <Animated.View
-          style={[
-            styles.modalBackdrop,
-            { height: insets.top, opacity: fadeAnim },
-          ]}
-        >
-          <TouchableOpacity
-            style={StyleSheet.absoluteFill}
-            activeOpacity={1}
-            onPress={handleClose}
-          />
-        </Animated.View>
-
         <Animated.View
           style={[
             styles.container,
             {
+              paddingTop: topPadding,
               paddingBottom: bottomPadding,
               transform: [{ translateY: slideAnim }],
             },
@@ -432,7 +420,6 @@ const ChatModal: React.FC<ChatModalProps> = ({
             renderItem={renderTask}
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.taskList}
-            onContentSizeChange={scrollToBottom}
             ListEmptyComponent={renderEmptyState}
           />
 
@@ -469,7 +456,7 @@ const ChatModal: React.FC<ChatModalProps> = ({
             sessions={sessions}
             currentSession={currentSession}
             drawerAnim={drawerAnim}
-            paddingTop={insets.top + 12}
+            paddingTop={topPadding + 20}
             onNewChat={handleNewChat}
             onSelectSession={handleSelectSession}
             onDeleteSession={handleDeleteSession}
@@ -492,16 +479,11 @@ const ChatModal: React.FC<ChatModalProps> = ({
 
 const styles = StyleSheet.create({
   modalOverlay: { flex: 1 },
-  modalBackdrop: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: COLORS.overlay,
-  },
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     overflow: "hidden",
   },
   header: {

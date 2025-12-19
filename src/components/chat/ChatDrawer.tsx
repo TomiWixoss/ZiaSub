@@ -78,7 +78,11 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({
     <Animated.View
       style={[
         styles.drawer,
-        { paddingTop, transform: [{ translateX: drawerAnim }] },
+        {
+          top: 0,
+          paddingTop,
+          transform: [{ translateX: drawerAnim }],
+        },
       ]}
     >
       {/* Brand */}
@@ -216,7 +220,6 @@ const styles = StyleSheet.create({
   drawer: {
     position: "absolute",
     left: 0,
-    top: 0,
     bottom: 0,
     width: "82%",
     backgroundColor: COLORS.surface,

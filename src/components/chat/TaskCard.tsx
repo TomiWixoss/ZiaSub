@@ -31,7 +31,10 @@ const TaskCard: React.FC<TaskCardProps> = ({
   defaultExpanded = false,
 }) => {
   const [expanded, setExpanded] = useState(defaultExpanded);
-  const rotateAnim = useRef(new Animated.Value(1)).current;
+  // 1 = expanded (chevron-up pointing up), 0 = collapsed (chevron-up rotated to point down)
+  const rotateAnim = useRef(
+    new Animated.Value(defaultExpanded ? 1 : 0)
+  ).current;
 
   const toggleExpand = () => {
     if (!task.result) return;
@@ -45,7 +48,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
 
   const rotation = rotateAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: ["0deg", "180deg"],
+    outputRange: ["90deg", "180deg"],
   });
 
   const time = new Date(task.timestamp).toLocaleTimeString("vi-VN", {
