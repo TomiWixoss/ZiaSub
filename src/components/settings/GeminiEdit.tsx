@@ -13,6 +13,14 @@ import { COLORS } from "@constants/colors";
 import { GeminiConfig } from "@utils/storage";
 import Button3D from "../Button3D";
 
+const AVAILABLE_MODELS = [
+  { id: "models/gemini-3-flash-preview", name: "Gemini 3 Flash (Preview)" },
+  { id: "models/gemini-3-pro-preview", name: "Gemini 3 Pro (Preview)" },
+  { id: "models/gemini-2.5-pro", name: "Gemini 2.5 Pro" },
+  { id: "models/gemini-flash-latest", name: "Gemini Flash (Latest)" },
+  { id: "models/gemini-flash-lite-latest", name: "Gemini Flash Lite (Latest)" },
+];
+
 interface GeminiEditProps {
   config: GeminiConfig;
   onChange: (config: GeminiConfig) => void;
@@ -27,6 +35,10 @@ const GeminiEdit: React.FC<GeminiEditProps> = ({
   onCancel,
 }) => {
   const [showApiKey, setShowApiKey] = useState(false);
+  const [showModelPicker, setShowModelPicker] = useState(false);
+
+  const selectedModel = AVAILABLE_MODELS.find((m) => m.id === config.model);
+  const modelDisplayName = selectedModel?.name || config.model;
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
@@ -68,14 +80,44 @@ const GeminiEdit: React.FC<GeminiEditProps> = ({
 
       <View style={styles.settingGroup}>
         <Text style={styles.settingLabel}>Model</Text>
-        <RNTextInput
-          style={styles.input}
-          value={config.model}
-          onChangeText={(text) => onChange({ ...config, model: text })}
-          placeholder="gemini-3-flash-preview"
-          placeholderTextColor={COLORS.textMuted}
-          autoCapitalize="none"
-        />
+        <TouchableOpacity
+          style={styles.modelPicker}
+          onPress={() => setShowModelPicker(!showModelPicker)}
+        >
+          <Text style={styles.modelPickerText}>{modelDisplayName}</Text>
+          <MaterialCommunityIcons
+            name={showModelPicker ? "chevron-up" : "chevron-down"}
+            size={20}
+            color={COLORS.textMuted}
+          />
+        </TouchableOpacity>
+        {showModelPicker && (
+          <View style={styles.modelDropdown}>
+            {AVAILABLE_MODELS.map((model) => (
+              <TouchableOpacity
+                key={model.id}
+                style={[
+                  styles.modelOption,
+                  config.model === model.id && styles.modelOptionActive,
+                ]}
+                onPress={() => {
+                  onChange({ ...config, model: model.id });
+                  setShowModelPicker(false);
+                }}
+              >
+                <Text
+                  style={[
+                    styles.modelOptionText,
+                    config.model === model.id && styles.modelOptionTextActive,
+                  ]}
+                >
+                  {model.name}
+                </Text>
+                <Text style={styles.modelOptionId}>{model.id}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
       </View>
 
       <View style={styles.settingGroup}>
@@ -178,6 +220,34 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   rowButton: { flex: 1 },
+  modelPicker: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: COLORS.surfaceLight,
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  modelPickerText: { color: COLORS.text, fontSize: 14 },
+  modelDropdown: {
+    backgroundColor: COLORS.surfaceLight,
+    borderRadius: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    overflow: "hidden",
+  },
+  modelOption: {
+    padding: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  modelOptionActive: { backgroundColor: COLORS.surfaceElevated },
+  modelOptionText: { color: COLORS.text, fontSize: 14 },
+  modelOptionTextActive: { color: COLORS.primary, fontWeight: "600" },
+  modelOptionId: { color: COLORS.textMuted, fontSize: 11, marginTop: 2 },
 });
 
 export default GeminiEdit;

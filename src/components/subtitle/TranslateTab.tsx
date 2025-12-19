@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  ScrollView,
 } from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -12,9 +13,13 @@ import { COLORS } from "@constants/colors";
 import {
   GeminiConfig,
   BatchSettings,
+  SavedTranslation,
   getGeminiConfigs,
   getActiveGeminiConfig,
   saveActiveGeminiConfigId,
+  getVideoTranslations,
+  setActiveTranslation,
+  deleteTranslation,
 } from "@utils/storage";
 import { BatchProgress } from "@services/geminiService";
 import { translationManager } from "@services/translationManager";
@@ -28,6 +33,7 @@ interface TranslateTabProps {
   translateStatus: string;
   batchProgress: BatchProgress | null;
   onClose: () => void;
+  onSelectTranslation: (srtContent: string) => void;
 }
 
 export const TranslateTab: React.FC<TranslateTabProps> = ({
@@ -38,41 +44,53 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
   translateStatus,
   batchProgress,
   onClose,
+  onSelectTranslation,
 }) => {
   const [geminiConfigs, setGeminiConfigs] = useState<GeminiConfig[]>([]);
   const [selectedConfigId, setSelectedConfigId] = useState<string>("");
   const [showConfigPicker, setShowConfigPicker] = useState(false);
+  const [savedTranslations, setSavedTranslations] = useState<
+    SavedTranslation[]
+  >([]);
+  const [activeTranslationId, setActiveTranslationId] = useState<string | null>(
+    null
+  );
 
   useEffect(() => {
     loadConfigs();
   }, []);
 
+  useEffect(() => {
+    if (videoUrl) loadTranslations();
+  }, [videoUrl]);
+
   const loadConfigs = async () => {
     const configs = await getGeminiConfigs();
     setGeminiConfigs(configs);
     const activeConfig = await getActiveGeminiConfig();
-    if (activeConfig) {
-      setSelectedConfigId(activeConfig.id);
+    if (activeConfig) setSelectedConfigId(activeConfig.id);
+  };
+
+  const loadTranslations = async () => {
+    if (!videoUrl) return;
+    const data = await getVideoTranslations(videoUrl);
+    if (data) {
+      setSavedTranslations(data.translations);
+      setActiveTranslationId(data.activeTranslationId);
+    } else {
+      setSavedTranslations([]);
+      setActiveTranslationId(null);
     }
   };
 
   const handleTranslate = async () => {
     const config = geminiConfigs.find((c) => c.id === selectedConfigId);
-    if (!config) {
-      Alert.alert("Lỗi", "Vui lòng chọn cấu hình Gemini.");
-      return;
-    }
-    if (!config.apiKey) {
-      Alert.alert("Lỗi", "Cấu hình này chưa có API Key. Vui lòng cài đặt.");
-      return;
-    }
-    if (!videoUrl) {
-      Alert.alert("Lỗi", "Không tìm thấy URL video.");
-      return;
-    }
+    if (!config) return Alert.alert("Lỗi", "Vui lòng chọn cấu hình Gemini.");
+    if (!config.apiKey)
+      return Alert.alert("Lỗi", "Cấu hình này chưa có API Key.");
+    if (!videoUrl) return Alert.alert("Lỗi", "Không tìm thấy URL video.");
     if (translationManager.isTranslatingUrl(videoUrl)) {
-      Alert.alert("Thông báo", "Video này đang được dịch.");
-      return;
+      return Alert.alert("Thông báo", "Video này đang được dịch.");
     }
 
     try {
@@ -83,16 +101,103 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
         videoDuration,
         batchSettings
       );
-      onClose();
     } catch (error: any) {
       Alert.alert("Lỗi", error.message || "Không thể bắt đầu dịch.");
     }
+  };
+
+  const handleSelectTranslation = async (translation: SavedTranslation) => {
+    if (!videoUrl) return;
+    await setActiveTranslation(videoUrl, translation.id);
+    setActiveTranslationId(translation.id);
+    onSelectTranslation(translation.srtContent);
+    onClose();
+  };
+
+  const handleDeleteTranslation = (translation: SavedTranslation) => {
+    Alert.alert("Xác nhận", "Bạn có chắc muốn xóa bản dịch này?", [
+      { text: "Hủy", style: "cancel" },
+      {
+        text: "Xóa",
+        style: "destructive",
+        onPress: async () => {
+          if (!videoUrl) return;
+          await deleteTranslation(videoUrl, translation.id);
+          loadTranslations();
+        },
+      },
+    ]);
+  };
+
+  const formatDate = (timestamp: number) => {
+    const date = new Date(timestamp);
+    return `${date.getDate()}/${date.getMonth() + 1} ${date.getHours()}:${date
+      .getMinutes()
+      .toString()
+      .padStart(2, "0")}`;
   };
 
   const selectedConfig = geminiConfigs.find((c) => c.id === selectedConfigId);
 
   return (
     <View style={styles.tabContent}>
+      {/* Saved Translations List */}
+      {savedTranslations.length > 0 && (
+        <View style={styles.translationsSection}>
+          <Text style={styles.sectionTitle}>Bản dịch đã lưu</Text>
+          <ScrollView
+            style={styles.translationsList}
+            showsVerticalScrollIndicator={false}
+          >
+            {savedTranslations.map((t) => (
+              <View
+                key={t.id}
+                style={[
+                  styles.translationItem,
+                  t.id === activeTranslationId && styles.translationItemActive,
+                ]}
+              >
+                <TouchableOpacity
+                  style={styles.translationInfo}
+                  onPress={() => handleSelectTranslation(t)}
+                >
+                  <View style={styles.translationHeader}>
+                    <MaterialCommunityIcons
+                      name={
+                        t.id === activeTranslationId
+                          ? "check-circle"
+                          : "file-document-outline"
+                      }
+                      size={16}
+                      color={
+                        t.id === activeTranslationId
+                          ? COLORS.success
+                          : COLORS.textMuted
+                      }
+                    />
+                    <Text style={styles.translationConfig}>{t.configName}</Text>
+                  </View>
+                  <Text style={styles.translationDate}>
+                    {formatDate(t.createdAt)}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.deleteBtn}
+                  onPress={() => handleDeleteTranslation(t)}
+                >
+                  <MaterialCommunityIcons
+                    name="delete-outline"
+                    size={18}
+                    color={COLORS.error}
+                  />
+                </TouchableOpacity>
+              </View>
+            ))}
+          </ScrollView>
+        </View>
+      )}
+
+      {/* Config Picker */}
       <TouchableOpacity
         style={styles.configPicker}
         onPress={() => setShowConfigPicker(!showConfigPicker)}
@@ -145,17 +250,7 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
         </View>
       )}
 
-      <View style={styles.videoInfo}>
-        <MaterialCommunityIcons
-          name="youtube"
-          size={20}
-          color={COLORS.textMuted}
-        />
-        <Text style={styles.videoUrlText} numberOfLines={1}>
-          {videoUrl || "Chưa có video"}
-        </Text>
-      </View>
-
+      {/* Status */}
       {isTranslating && (
         <View style={styles.statusContainer}>
           <ActivityIndicator size="small" color={COLORS.primary} />
@@ -163,6 +258,7 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
         </View>
       )}
 
+      {/* Batch Progress */}
       {batchProgress && batchProgress.totalBatches > 1 && (
         <View style={styles.batchProgressContainer}>
           <View style={styles.batchProgressHeader}>
@@ -184,11 +280,7 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
               >
                 <Text style={styles.batchItemText}>{index + 1}</Text>
                 {status === "processing" && (
-                  <ActivityIndicator
-                    size={10}
-                    color={COLORS.text}
-                    style={styles.batchSpinner}
-                  />
+                  <ActivityIndicator size={10} color={COLORS.text} />
                 )}
                 {status === "completed" && (
                   <MaterialCommunityIcons
@@ -210,26 +302,45 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
         </View>
       )}
 
+      {/* Translate Button */}
       <View style={styles.translateButtonContainer}>
         <Button3D
           onPress={handleTranslate}
           icon="translate"
-          title={isTranslating ? "Đang dịch..." : "Bắt đầu dịch"}
+          title={isTranslating ? "Đang dịch..." : "Dịch mới"}
           variant="primary"
           disabled={isTranslating || !videoUrl}
         />
       </View>
-
-      <Text style={styles.noteText}>
-        Gemini AI sẽ phân tích video và tạo phụ đề SRT tự động.
-        {"\n"}Kết quả sẽ được đưa vào tab "Nhập SRT".
-      </Text>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   tabContent: { flex: 1 },
+  translationsSection: { marginBottom: 16 },
+  sectionTitle: {
+    color: COLORS.text,
+    fontSize: 13,
+    fontWeight: "600",
+    marginBottom: 8,
+  },
+  translationsList: { maxHeight: 140 },
+  translationItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: COLORS.surfaceLight,
+    borderRadius: 10,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  translationItemActive: { borderColor: COLORS.success },
+  translationInfo: { flex: 1, padding: 12 },
+  translationHeader: { flexDirection: "row", alignItems: "center", gap: 6 },
+  translationConfig: { color: COLORS.text, fontSize: 13, fontWeight: "500" },
+  translationDate: { color: COLORS.textMuted, fontSize: 11, marginTop: 2 },
+  deleteBtn: { padding: 12 },
   configPicker: {
     flexDirection: "row",
     alignItems: "center",
@@ -260,38 +371,20 @@ const styles = StyleSheet.create({
   configOptionText: { color: COLORS.text, fontSize: 14 },
   configOptionTextActive: { color: COLORS.primary, fontWeight: "600" },
   configNoKey: { color: COLORS.textMuted, fontSize: 11, marginTop: 2 },
-  videoInfo: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: COLORS.surfaceLight,
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 16,
-    gap: 10,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  videoUrlText: { flex: 1, color: COLORS.textMuted, fontSize: 12 },
   statusContainer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 16,
+    paddingVertical: 12,
     gap: 10,
   },
   statusText: { color: COLORS.textSecondary, fontSize: 14 },
-  translateButtonContainer: { marginTop: "auto", marginBottom: 16 },
-  noteText: {
-    color: COLORS.textMuted,
-    fontSize: 12,
-    textAlign: "center",
-    lineHeight: 18,
-  },
+  translateButtonContainer: { marginTop: "auto", marginBottom: 8 },
   batchProgressContainer: {
     backgroundColor: COLORS.surfaceLight,
     borderRadius: 12,
     padding: 14,
-    marginBottom: 16,
+    marginBottom: 12,
     borderWidth: 1,
     borderColor: COLORS.border,
   },
@@ -322,5 +415,4 @@ const styles = StyleSheet.create({
   batchProcessing: { backgroundColor: COLORS.primary },
   batchError: { backgroundColor: COLORS.error },
   batchItemText: { color: COLORS.text, fontSize: 12, fontWeight: "600" },
-  batchSpinner: { marginLeft: 2 },
 });

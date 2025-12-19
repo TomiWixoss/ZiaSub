@@ -73,15 +73,10 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
   );
 
   const onTranslationStateChangeRef = useRef(onTranslationStateChange);
-  const setSrtContentRef = useRef(setSrtContent);
 
   useEffect(() => {
     onTranslationStateChangeRef.current = onTranslationStateChange;
   }, [onTranslationStateChange]);
-
-  useEffect(() => {
-    setSrtContentRef.current = setSrtContent;
-  }, [setSrtContent]);
 
   // Subscribe to translation manager
   useEffect(() => {
@@ -109,14 +104,9 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
         );
 
         if (job.status === "completed" && job.result) {
-          setSrtContentRef.current(job.result);
           setTranslateStatus("Hoàn tất!");
-          setActiveTab("srt");
           translationManager.clearCompletedJob(videoUrl);
-          Alert.alert(
-            "Thành công",
-            "Đã dịch xong! Kiểm tra tab Nhập SRT để xem kết quả."
-          );
+          Alert.alert("Thành công", "Đã dịch xong! Bản dịch đã được lưu.");
         }
 
         if (job.status === "error") {
@@ -308,6 +298,10 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
                 translateStatus={translateStatus}
                 batchProgress={batchProgress}
                 onClose={handleClose}
+                onSelectTranslation={(srt) => {
+                  setSrtContent(srt);
+                  onLoadSubtitles();
+                }}
               />
             )}
           </Animated.View>

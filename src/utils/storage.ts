@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const SRT_STORAGE_KEY_PREFIX = "srt_";
+const TRANSLATION_STORAGE_KEY_PREFIX = "translation_";
 const APP_SETTINGS_KEY = "app_settings";
 const GEMINI_CONFIGS_KEY = "gemini_configs";
 const ACTIVE_GEMINI_CONFIG_KEY = "active_gemini_config";
@@ -124,6 +125,117 @@ export const removeSRT = async (url: string): Promise<void> => {
   }
 };
 
+// Translation storage (Gemini translations saved per video URL)
+export interface SavedTranslation {
+  id: string;
+  srtContent: string;
+  createdAt: number;
+  configName: string;
+}
+
+export interface VideoTranslations {
+  videoUrl: string;
+  translations: SavedTranslation[];
+  activeTranslationId: string | null;
+}
+
+export const saveTranslation = async (
+  videoUrl: string,
+  srtContent: string,
+  configName: string
+): Promise<SavedTranslation> => {
+  try {
+    const key = `${TRANSLATION_STORAGE_KEY_PREFIX}${videoUrl}`;
+    const existing = await AsyncStorage.getItem(key);
+    const data: VideoTranslations = existing
+      ? JSON.parse(existing)
+      : { videoUrl, translations: [], activeTranslationId: null };
+
+    const newTranslation: SavedTranslation = {
+      id: Date.now().toString(),
+      srtContent,
+      createdAt: Date.now(),
+      configName,
+    };
+
+    data.translations.push(newTranslation);
+    data.activeTranslationId = newTranslation.id;
+
+    await AsyncStorage.setItem(key, JSON.stringify(data));
+    return newTranslation;
+  } catch (error) {
+    console.error("Error saving translation:", error);
+    throw error;
+  }
+};
+
+export const getVideoTranslations = async (
+  videoUrl: string
+): Promise<VideoTranslations | null> => {
+  try {
+    const key = `${TRANSLATION_STORAGE_KEY_PREFIX}${videoUrl}`;
+    const data = await AsyncStorage.getItem(key);
+    return data ? JSON.parse(data) : null;
+  } catch (error) {
+    console.error("Error getting translations:", error);
+    return null;
+  }
+};
+
+export const setActiveTranslation = async (
+  videoUrl: string,
+  translationId: string
+): Promise<void> => {
+  try {
+    const key = `${TRANSLATION_STORAGE_KEY_PREFIX}${videoUrl}`;
+    const existing = await AsyncStorage.getItem(key);
+    if (existing) {
+      const data: VideoTranslations = JSON.parse(existing);
+      data.activeTranslationId = translationId;
+      await AsyncStorage.setItem(key, JSON.stringify(data));
+    }
+  } catch (error) {
+    console.error("Error setting active translation:", error);
+  }
+};
+
+export const deleteTranslation = async (
+  videoUrl: string,
+  translationId: string
+): Promise<void> => {
+  try {
+    const key = `${TRANSLATION_STORAGE_KEY_PREFIX}${videoUrl}`;
+    const existing = await AsyncStorage.getItem(key);
+    if (existing) {
+      const data: VideoTranslations = JSON.parse(existing);
+      data.translations = data.translations.filter(
+        (t) => t.id !== translationId
+      );
+      if (data.activeTranslationId === translationId) {
+        data.activeTranslationId = data.translations[0]?.id || null;
+      }
+      await AsyncStorage.setItem(key, JSON.stringify(data));
+    }
+  } catch (error) {
+    console.error("Error deleting translation:", error);
+  }
+};
+
+export const getActiveTranslation = async (
+  videoUrl: string
+): Promise<SavedTranslation | null> => {
+  try {
+    const data = await getVideoTranslations(videoUrl);
+    if (!data || !data.activeTranslationId) return null;
+    return (
+      data.translations.find((t) => t.id === data.activeTranslationId) || null
+    );
+  } catch (error) {
+    console.error("Error getting active translation:", error);
+    return null;
+  }
+};
+
 // Gemini Config with multiple profiles
 export interface GeminiConfig {
   id: string;
@@ -147,7 +259,7 @@ export const createDefaultGeminiConfig = (): GeminiConfig => ({
   id: Date.now().toString(),
   name: "Mặc định",
   apiKey: "",
-  model: "gemini-3-flash-preview",
+  model: "models/gemini-3-flash-preview",
   temperature: 0.7,
   systemPrompt: DEFAULT_SYSTEM_PROMPT,
 });

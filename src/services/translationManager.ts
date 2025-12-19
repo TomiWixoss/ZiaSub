@@ -1,9 +1,10 @@
-import { GeminiConfig, BatchSettings } from "@utils/storage";
+import { GeminiConfig, BatchSettings, saveTranslation } from "@utils/storage";
 import { translateVideoWithGemini, BatchProgress } from "./geminiService";
 
 export interface TranslationJob {
   id: string;
   videoUrl: string;
+  configName: string;
   status: "pending" | "processing" | "completed" | "error";
   progress: BatchProgress | null;
   result: string | null;
@@ -77,10 +78,11 @@ class TranslationManager {
     }
 
     // Create new job
-    const jobId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const jobId = `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
     this.currentJob = {
       id: jobId,
       videoUrl,
+      configName: config.name,
       status: "processing",
       progress: null,
       result: null,
@@ -109,6 +111,9 @@ class TranslationManager {
           },
         }
       );
+
+      // Save translation to storage
+      await saveTranslation(videoUrl, result, config.name);
 
       // Update job with result
       if (this.currentJob && this.currentJob.id === jobId) {

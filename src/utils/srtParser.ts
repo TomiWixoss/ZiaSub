@@ -168,7 +168,7 @@ const validateTimeFormat = (timeStr: string): boolean => {
 /**
  * Converts SRT timestamp (00:00:00,000) to seconds.
  */
-const timeToSeconds = (timeString: string): number => {
+export const timeToSeconds = (timeString: string): number => {
   const parts = timeString.split(":");
   const secondsParts = parts[2].split(",");
 
@@ -178,4 +178,149 @@ const timeToSeconds = (timeString: string): number => {
   const milliseconds = parseInt(secondsParts[1], 10);
 
   return hours * 3600 + minutes * 60 + seconds + milliseconds / 1000;
+};
+
+/**
+ * Converts seconds to SRT timestamp (00:00:00,000).
+ */
+export const secondsToSrtTime = (seconds: number): string => {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.floor(seconds % 60);
+  const ms = Math.round((seconds % 1) * 1000);
+  return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s
+    .toString()
+    .padStart(2, "0")},${ms.toString().padStart(3, "0")}`;
+};
+
+/**
+ * Parse SRT content into raw subtitle entries (for merging).
+ */
+export const parseSrtRaw = (
+  content: string
+): Array<{ start: number; end: number; text: string }> => {
+  const subtitles: Array<{ start: number; end: number; text: string }> = [];
+  if (!content) return subtitles;
+
+  const lines = content.trim().split("\n");
+  let i = 0;
+
+  while (i < lines.length) {
+    if (!lines[i]?.trim()) {
+      i++;
+      continue;
+    }
+
+    if (/^\d+$/.test(lines[i].trim())) {
+      const timestampLine = lines[i + 1];
+      if (!timestampLine) {
+        i++;
+        continue;
+      }
+
+      const timestampMatch = timestampLine.match(
+        /(\d{2}:\d{2}:\d{2},\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2},\d{3})/
+      );
+
+      if (timestampMatch) {
+        const start = timeToSeconds(timestampMatch[1]);
+        const end = timeToSeconds(timestampMatch[2]);
+
+        const textLines: string[] = [];
+        i += 2;
+        while (
+          i < lines.length &&
+          lines[i]?.trim() &&
+          !/^\d+$/.test(lines[i].trim())
+        ) {
+          textLines.push(lines[i]);
+          i++;
+        }
+
+        subtitles.push({ start, end, text: textLines.join("\n") });
+      } else {
+        i++;
+      }
+    } else {
+      i++;
+    }
+  }
+
+  return subtitles;
+};
+
+/**
+ * Detect if SRT timestamps are relative (starting from 0) or absolute.
+ */
+export const detectTimestampMode = (
+  subtitles: Array<{ start: number; end: number; text: string }>,
+  expectedOffset: number
+): "relative" | "absolute" => {
+  if (subtitles.length === 0) return "relative";
+
+  const firstStart = subtitles[0].start;
+  const tolerance = 30;
+
+  if (firstStart < tolerance) return "relative";
+  if (Math.abs(firstStart - expectedOffset) < tolerance) return "absolute";
+
+  return "relative";
+};
+
+/**
+ * Merge multiple SRT contents with smart time offset adjustment.
+ */
+export const mergeSrtContents = (
+  srtParts: { content: string; offsetSeconds: number }[]
+): string => {
+  const allSubtitles: Array<{ start: number; end: number; text: string }> = [];
+
+  for (const part of srtParts) {
+    const subtitles = parseSrtRaw(part.content);
+    const mode = detectTimestampMode(subtitles, part.offsetSeconds);
+
+    console.log(
+      `[Merge] Part offset=${part.offsetSeconds}s, mode=${mode}, subtitles=${subtitles.length}`
+    );
+
+    for (const sub of subtitles) {
+      if (mode === "relative") {
+        allSubtitles.push({
+          start: sub.start + part.offsetSeconds,
+          end: sub.end + part.offsetSeconds,
+          text: sub.text,
+        });
+      } else {
+        allSubtitles.push(sub);
+      }
+    }
+  }
+
+  allSubtitles.sort((a, b) => a.start - b.start);
+
+  // Remove duplicates
+  const uniqueSubtitles: typeof allSubtitles = [];
+  for (const sub of allSubtitles) {
+    const isDuplicate = uniqueSubtitles.some(
+      (existing) =>
+        Math.abs(existing.start - sub.start) < 0.5 &&
+        existing.text.trim() === sub.text.trim()
+    );
+    if (!isDuplicate) {
+      uniqueSubtitles.push(sub);
+    }
+  }
+
+  // Build final SRT
+  const lines: string[] = [];
+  uniqueSubtitles.forEach((sub, index) => {
+    lines.push((index + 1).toString());
+    lines.push(
+      `${secondsToSrtTime(sub.start)} --> ${secondsToSrtTime(sub.end)}`
+    );
+    lines.push(sub.text);
+    lines.push("");
+  });
+
+  return lines.join("\n");
 };
