@@ -30,7 +30,8 @@ import type {
 } from "@src/types";
 import {
   getGeminiConfigs,
-  saveActiveGeminiConfigId,
+  saveActiveChatConfigId,
+  getActiveChatConfig,
   getChatSessions,
   getActiveChatSession,
   createChatSession,
@@ -102,23 +103,36 @@ const ChatModal: React.FC<ChatModalProps> = ({
       if (msg.role === "user") {
         const nextMsg = messages[i + 1];
         const hasResult = nextMsg && nextMsg.role === "model";
+        const isLastMessage = i === messages.length - 1;
+
+        let status: "done" | "error" | "pending";
+        if (hasResult) {
+          status = nextMsg.content.startsWith("Lỗi:") ? "error" : "done";
+        } else if (isLastMessage && isLoading) {
+          // Currently processing
+          status = "pending";
+        } else {
+          // No response and not loading = interrupted/error
+          status = "error";
+        }
+
         result.push({
           id: msg.id,
           command: msg.content,
-          result: hasResult ? nextMsg.content : undefined,
+          result: hasResult
+            ? nextMsg.content
+            : status === "error"
+            ? "Lỗi: Bị gián đoạn"
+            : undefined,
           hasVideo: msg.hasVideo,
           videoTitle: msg.videoTitle,
           timestamp: msg.timestamp,
-          status: hasResult
-            ? nextMsg.content.startsWith("Lỗi:")
-              ? "error"
-              : "done"
-            : "pending",
+          status,
         });
       }
     }
     return result;
-  }, [messages]);
+  }, [messages, isLoading]);
 
   useEffect(() => {
     if (visible) {
@@ -170,18 +184,25 @@ const ChatModal: React.FC<ChatModalProps> = ({
   };
 
   const loadData = async () => {
-    const [allConfigs, allSessions, activeSession, apiKeys] = await Promise.all(
-      [
+    const [allConfigs, allSessions, activeSession, activeChatConfig, apiKeys] =
+      await Promise.all([
         getGeminiConfigs(),
         getChatSessions(),
         getActiveChatSession(),
+        getActiveChatConfig(),
         getApiKeys(),
-      ]
-    );
+      ]);
     setConfigs(allConfigs);
     setHasApiKey(apiKeys.length > 0);
-    const chatConfig = allConfigs.find((c) => c.id === DEFAULT_CHAT_CONFIG_ID);
-    setActiveConfig(chatConfig || allConfigs[0] || null);
+    // Use saved chat config or default chat config
+    if (activeChatConfig) {
+      setActiveConfig(activeChatConfig);
+    } else {
+      const chatConfig = allConfigs.find(
+        (c) => c.id === DEFAULT_CHAT_CONFIG_ID
+      );
+      setActiveConfig(chatConfig || allConfigs[0] || null);
+    }
     setSessions(allSessions);
     if (activeSession) {
       setCurrentSession(activeSession);
@@ -191,7 +212,7 @@ const ChatModal: React.FC<ChatModalProps> = ({
 
   const handleSelectConfig = async (config: GeminiConfig) => {
     setActiveConfig(config);
-    await saveActiveGeminiConfigId(config.id);
+    await saveActiveChatConfigId(config.id);
     setShowConfigSelector(false);
   };
   const scrollToBottom = useCallback(() => {

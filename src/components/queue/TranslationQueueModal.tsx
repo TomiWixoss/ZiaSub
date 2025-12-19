@@ -20,8 +20,8 @@ import type { GeminiConfig, QueueItem, QueueStatus } from "@src/types";
 import { queueManager } from "@services/queueManager";
 import {
   getGeminiConfigs,
-  getActiveGeminiConfig,
-  saveActiveGeminiConfigId,
+  getActiveTranslationConfig,
+  saveActiveTranslationConfigId,
   getApiKeys,
 } from "@utils/storage";
 import QueueItemCard from "./QueueItemCard";
@@ -97,18 +97,26 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
   const loadConfigs = async () => {
     const [configs, activeConfig, apiKeys] = await Promise.all([
       getGeminiConfigs(),
-      getActiveGeminiConfig(),
+      getActiveTranslationConfig(),
       getApiKeys(),
     ]);
-    setGeminiConfigs(configs);
+    // Filter out chat config for translation picker
+    const translationConfigs = configs.filter(
+      (c) => c.id !== "default-chat-config"
+    );
+    setGeminiConfigs(translationConfigs);
     setHasApiKey(apiKeys.length > 0);
-    if (activeConfig) setSelectedConfigId(activeConfig.id);
+    if (activeConfig) {
+      setSelectedConfigId(activeConfig.id);
+    } else if (translationConfigs.length > 0) {
+      setSelectedConfigId(translationConfigs[0].id);
+    }
   };
 
   const handleSelectConfig = async (configId: string) => {
     setSelectedConfigId(configId);
     setShowConfigPicker(false);
-    await saveActiveGeminiConfigId(configId);
+    await saveActiveTranslationConfigId(configId);
   };
 
   useEffect(() => {

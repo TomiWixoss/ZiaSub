@@ -14,8 +14,8 @@ import type {
 } from "@src/types";
 import {
   getGeminiConfigs,
-  getActiveGeminiConfig,
-  saveActiveGeminiConfigId,
+  getActiveTranslationConfig,
+  saveActiveTranslationConfigId,
   getVideoTranslations,
   setActiveTranslation,
   deleteTranslation,
@@ -96,9 +96,17 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
 
   const loadConfigs = async () => {
     const configs = await getGeminiConfigs();
-    setGeminiConfigs(configs);
-    const activeConfig = await getActiveGeminiConfig();
-    if (activeConfig) setSelectedConfigId(activeConfig.id);
+    // Filter out chat config for translation picker
+    const translationConfigs = configs.filter(
+      (c) => c.id !== "default-chat-config"
+    );
+    setGeminiConfigs(translationConfigs);
+    const activeConfig = await getActiveTranslationConfig();
+    if (activeConfig) {
+      setSelectedConfigId(activeConfig.id);
+    } else if (translationConfigs.length > 0) {
+      setSelectedConfigId(translationConfigs[0].id);
+    }
   };
   const checkApiKeys = async () => {
     const keys = await getApiKeys();
@@ -178,7 +186,7 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
       rangeEnd = clampedEnd;
     }
     try {
-      await saveActiveGeminiConfigId(selectedConfigId);
+      await saveActiveTranslationConfigId(selectedConfigId);
       translationManager.startTranslation(
         videoUrl,
         config,

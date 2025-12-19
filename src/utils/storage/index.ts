@@ -38,6 +38,15 @@ export {
   createDefaultChatConfig,
   saveGeminiConfigs,
   getGeminiConfigs,
+  // Translation config
+  saveActiveTranslationConfigId,
+  getActiveTranslationConfigId,
+  getActiveTranslationConfig,
+  // Chat config
+  saveActiveChatConfigId,
+  getActiveChatConfigId,
+  getActiveChatConfig,
+  // Legacy aliases
   saveActiveGeminiConfigId,
   getActiveGeminiConfigId,
   getActiveGeminiConfig,
