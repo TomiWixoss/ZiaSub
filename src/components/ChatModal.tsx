@@ -9,10 +9,14 @@ import {
   Platform,
   ActivityIndicator,
   Modal,
+  Animated,
+  Dimensions,
 } from "react-native";
 import { Text } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+
+const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 import Markdown from "react-native-markdown-display";
 import { COLORS } from "@constants/colors";
 import {
@@ -40,6 +44,9 @@ const ChatModal: React.FC<ChatModalProps> = ({
   videoUrl,
 }) => {
   const insets = useSafeAreaInsets();
+  const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -53,6 +60,22 @@ const ChatModal: React.FC<ChatModalProps> = ({
   useEffect(() => {
     if (visible) {
       loadData();
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.spring(slideAnim, {
+          toValue: 0,
+          tension: 65,
+          friction: 11,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      slideAnim.setValue(SCREEN_HEIGHT);
+      fadeAnim.setValue(0);
     }
   }, [visible]);
 
@@ -229,162 +252,210 @@ const ChatModal: React.FC<ChatModalProps> = ({
 
   const canAttachVideo = videoUrl && messages.length === 0 && !attachedVideoUrl;
 
+  const handleClose = () => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: SCREEN_HEIGHT,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start(() => onClose());
+  };
+
+  const bottomPadding = Math.max(insets.bottom, 10);
+
   return (
-    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <View
-        style={[
-          styles.container,
-          { paddingTop: insets.top, paddingBottom: insets.bottom },
-        ]}
-      >
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.headerBtn} onPress={onClose}>
-            <MaterialCommunityIcons
-              name="close"
-              size={22}
-              color={COLORS.text}
-            />
-          </TouchableOpacity>
-
+    <Modal
+      animationType="none"
+      transparent
+      visible={visible}
+      onRequestClose={handleClose}
+      statusBarTranslucent
+    >
+      <View style={styles.modalOverlay}>
+        <Animated.View style={[styles.modalBackdrop, { opacity: fadeAnim }]}>
           <TouchableOpacity
-            style={styles.configButton}
-            onPress={() => setShowConfigSelector(true)}
-          >
-            <MaterialCommunityIcons
-              name="robot"
-              size={18}
-              color={COLORS.primary}
-            />
-            <Text style={styles.configName} numberOfLines={1}>
-              {activeConfig?.name || "Chọn cấu hình"}
-            </Text>
-            <MaterialCommunityIcons
-              name="chevron-down"
-              size={16}
-              color={COLORS.textMuted}
-            />
-          </TouchableOpacity>
+            style={StyleSheet.absoluteFill}
+            activeOpacity={1}
+            onPress={handleClose}
+          />
+        </Animated.View>
 
-          <TouchableOpacity style={styles.headerBtn} onPress={handleClearChat}>
-            <MaterialCommunityIcons
-              name="delete-outline"
-              size={20}
-              color={COLORS.text}
-            />
-          </TouchableOpacity>
-        </View>
-
-        {/* Attached Video Banner */}
-        {attachedVideoUrl && messages.length === 0 && (
-          <View style={styles.attachedBanner}>
-            <MaterialCommunityIcons
-              name="youtube"
-              size={18}
-              color={COLORS.error}
-            />
-            <Text style={styles.attachedText} numberOfLines={1}>
-              Video sẽ được đính kèm
-            </Text>
-            <TouchableOpacity onPress={handleRemoveVideo}>
+        <Animated.View
+          style={[
+            styles.container,
+            {
+              marginTop: insets.top + 10,
+              paddingBottom: bottomPadding,
+              transform: [{ translateY: slideAnim }],
+            },
+          ]}
+        >
+          {/* Header */}
+          <View style={styles.header}>
+            <TouchableOpacity style={styles.headerBtn} onPress={handleClose}>
               <MaterialCommunityIcons
                 name="close"
+                size={22}
+                color={COLORS.text}
+              />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.configButton}
+              onPress={() => setShowConfigSelector(true)}
+            >
+              <MaterialCommunityIcons
+                name="robot"
                 size={18}
+                color={COLORS.primary}
+              />
+              <Text style={styles.configName} numberOfLines={1}>
+                {activeConfig?.name || "Chọn cấu hình"}
+              </Text>
+              <MaterialCommunityIcons
+                name="chevron-down"
+                size={16}
                 color={COLORS.textMuted}
               />
             </TouchableOpacity>
-          </View>
-        )}
 
-        {/* Messages */}
-        <FlatList
-          ref={flatListRef}
-          data={messages}
-          renderItem={renderMessage}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.messageList}
-          ListFooterComponent={renderStreamingMessage}
-          onContentSizeChange={scrollToBottom}
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
+            <TouchableOpacity
+              style={styles.headerBtn}
+              onPress={handleClearChat}
+            >
               <MaterialCommunityIcons
-                name="robot-happy"
-                size={48}
-                color={COLORS.textMuted}
+                name="delete-outline"
+                size={20}
+                color={COLORS.text}
               />
-              <Text style={styles.emptyText}>Bắt đầu cuộc trò chuyện</Text>
-              {videoUrl && !attachedVideoUrl && (
-                <Text style={styles.emptyHint}>
-                  Nhấn nút YouTube để đính kèm video hiện tại
-                </Text>
-              )}
-            </View>
-          }
-        />
+            </TouchableOpacity>
+          </View>
 
-        {/* Input */}
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-        >
-          <View style={styles.inputContainer}>
-            {canAttachVideo && (
-              <TouchableOpacity
-                style={styles.videoButton}
-                onPress={handleAttachVideo}
-              >
+          {/* Attached Video Banner */}
+          {attachedVideoUrl && messages.length === 0 && (
+            <View style={styles.attachedBanner}>
+              <MaterialCommunityIcons
+                name="youtube"
+                size={18}
+                color={COLORS.error}
+              />
+              <Text style={styles.attachedText} numberOfLines={1}>
+                Video sẽ được đính kèm
+              </Text>
+              <TouchableOpacity onPress={handleRemoveVideo}>
                 <MaterialCommunityIcons
-                  name="youtube"
-                  size={22}
-                  color={COLORS.error}
+                  name="close"
+                  size={18}
+                  color={COLORS.textMuted}
                 />
               </TouchableOpacity>
-            )}
-            <TextInput
-              style={styles.input}
-              value={inputText}
-              onChangeText={setInputText}
-              placeholder="Nhập tin nhắn..."
-              placeholderTextColor={COLORS.textMuted}
-              multiline
-              maxLength={4000}
-            />
-            <TouchableOpacity
-              style={[
-                styles.sendButton,
-                (!inputText.trim() || isLoading) && styles.sendButtonDisabled,
-              ]}
-              onPress={handleSend}
-              disabled={!inputText.trim() || isLoading}
-            >
-              {isLoading ? (
-                <ActivityIndicator size="small" color={COLORS.text} />
-              ) : (
-                <MaterialCommunityIcons
-                  name="send"
-                  size={20}
-                  color={COLORS.text}
-                />
-              )}
-            </TouchableOpacity>
-          </View>
-        </KeyboardAvoidingView>
+            </View>
+          )}
 
-        <ConfigSelector
-          visible={showConfigSelector}
-          configs={configs}
-          activeConfig={activeConfig}
-          onSelect={handleSelectConfig}
-          onClose={() => setShowConfigSelector(false)}
-        />
+          {/* Messages */}
+          <FlatList
+            ref={flatListRef}
+            data={messages}
+            renderItem={renderMessage}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.messageList}
+            ListFooterComponent={renderStreamingMessage}
+            onContentSizeChange={scrollToBottom}
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <MaterialCommunityIcons
+                  name="robot-happy"
+                  size={48}
+                  color={COLORS.textMuted}
+                />
+                <Text style={styles.emptyText}>Bắt đầu cuộc trò chuyện</Text>
+                {videoUrl && !attachedVideoUrl && (
+                  <Text style={styles.emptyHint}>
+                    Nhấn nút YouTube để đính kèm video hiện tại
+                  </Text>
+                )}
+              </View>
+            }
+          />
+
+          {/* Input */}
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : undefined}
+          >
+            <View style={styles.inputContainer}>
+              {canAttachVideo && (
+                <TouchableOpacity
+                  style={styles.videoButton}
+                  onPress={handleAttachVideo}
+                >
+                  <MaterialCommunityIcons
+                    name="youtube"
+                    size={22}
+                    color={COLORS.error}
+                  />
+                </TouchableOpacity>
+              )}
+              <TextInput
+                style={styles.input}
+                value={inputText}
+                onChangeText={setInputText}
+                placeholder="Nhập tin nhắn..."
+                placeholderTextColor={COLORS.textMuted}
+                multiline
+                maxLength={4000}
+              />
+              <TouchableOpacity
+                style={[
+                  styles.sendButton,
+                  (!inputText.trim() || isLoading) && styles.sendButtonDisabled,
+                ]}
+                onPress={handleSend}
+                disabled={!inputText.trim() || isLoading}
+              >
+                {isLoading ? (
+                  <ActivityIndicator size="small" color={COLORS.text} />
+                ) : (
+                  <MaterialCommunityIcons
+                    name="send"
+                    size={20}
+                    color={COLORS.text}
+                  />
+                )}
+              </TouchableOpacity>
+            </View>
+          </KeyboardAvoidingView>
+
+          <ConfigSelector
+            visible={showConfigSelector}
+            configs={configs}
+            activeConfig={activeConfig}
+            onSelect={handleSelectConfig}
+            onClose={() => setShowConfigSelector(false)}
+          />
+        </Animated.View>
       </View>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
+  modalOverlay: { flex: 1 },
+  modalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: COLORS.overlay,
+  },
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingTop: 16,
   },
   header: {
     flexDirection: "row",
