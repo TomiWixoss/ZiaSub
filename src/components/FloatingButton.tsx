@@ -8,7 +8,7 @@ interface FloatingButtonProps {
   onSettingsPress: () => void;
   onQueuePress: () => void;
   onAddToQueuePress?: () => void;
-  visible: boolean;
+  isVideoPage: boolean;
   hasSubtitles?: boolean;
   isTranslating?: boolean;
   translationProgress?: { completed: number; total: number } | null;
@@ -188,18 +188,16 @@ const FloatingButton: React.FC<FloatingButtonProps> = ({
   onSettingsPress,
   onQueuePress,
   onAddToQueuePress,
-  visible,
+  isVideoPage,
   hasSubtitles = false,
   isTranslating = false,
   translationProgress = null,
   queueCount = 0,
   isInQueue = false,
 }) => {
-  if (!visible) return null;
-
   return (
     <>
-      {/* Left side: Settings & Queue */}
+      {/* Left side: Settings & Queue - always visible */}
       <View style={styles.fabContainerLeft}>
         <Fab3D onPress={onSettingsPress} icon="cog" size={40} iconSize={20} />
         <View style={styles.queueBtnWrapper}>
@@ -219,29 +217,31 @@ const FloatingButton: React.FC<FloatingButtonProps> = ({
         </View>
       </View>
 
-      {/* Right side: Add to queue & Subtitle/Translate */}
-      <View style={styles.fabContainerRight}>
-        {onAddToQueuePress && (
-          <Fab3D
-            onPress={onAddToQueuePress}
-            icon={isInQueue ? "playlist-check" : "playlist-plus"}
-            size={40}
-            iconSize={20}
-            active={isInQueue}
-          />
-        )}
-        {isTranslating ? (
-          <TranslatingFab onPress={onPress} progress={translationProgress} />
-        ) : (
-          <Fab3D
-            onPress={onPress}
-            icon={hasSubtitles ? "subtitles" : "subtitles-outline"}
-            size={52}
-            iconSize={26}
-            active={hasSubtitles}
-          />
-        )}
-      </View>
+      {/* Right side: Add to queue & Subtitle/Translate - only on video page */}
+      {isVideoPage && (
+        <View style={styles.fabContainerRight}>
+          {onAddToQueuePress && (
+            <Fab3D
+              onPress={onAddToQueuePress}
+              icon={isInQueue ? "playlist-check" : "playlist-plus"}
+              size={40}
+              iconSize={20}
+              active={isInQueue}
+            />
+          )}
+          {isTranslating ? (
+            <TranslatingFab onPress={onPress} progress={translationProgress} />
+          ) : (
+            <Fab3D
+              onPress={onPress}
+              icon={hasSubtitles ? "subtitles" : "subtitles-outline"}
+              size={52}
+              iconSize={26}
+              active={hasSubtitles}
+            />
+          )}
+        </View>
+      )}
     </>
   );
 };

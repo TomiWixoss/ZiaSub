@@ -66,7 +66,7 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
   const slideAnim = useRef(new Animated.Value(SHEET_HEIGHT)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
-  const [activeTab, setActiveTab] = useState<TabType>("srt");
+  const [activeTab, setActiveTab] = useState<TabType>("translate");
   const [isTranslating, setIsTranslating] = useState(false);
   const [translateStatus, setTranslateStatus] = useState("");
   const [keyStatus, setKeyStatus] = useState<string | null>(null);
@@ -260,26 +260,6 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
 
             <View style={styles.tabBar}>
               <TouchableOpacity
-                style={[styles.tab, activeTab === "srt" && styles.tabActive]}
-                onPress={() => setActiveTab("srt")}
-              >
-                <MaterialCommunityIcons
-                  name="file-document-outline"
-                  size={18}
-                  color={
-                    activeTab === "srt" ? COLORS.primary : COLORS.textMuted
-                  }
-                />
-                <Text
-                  style={[
-                    styles.tabText,
-                    activeTab === "srt" && styles.tabTextActive,
-                  ]}
-                >
-                  Nhập SRT
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
                 style={[
                   styles.tab,
                   activeTab === "translate" && styles.tabActive,
@@ -302,6 +282,26 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
                   ]}
                 >
                   Dịch tự động
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.tab, activeTab === "srt" && styles.tabActive]}
+                onPress={() => setActiveTab("srt")}
+              >
+                <MaterialCommunityIcons
+                  name="file-document-outline"
+                  size={18}
+                  color={
+                    activeTab === "srt" ? COLORS.primary : COLORS.textMuted
+                  }
+                />
+                <Text
+                  style={[
+                    styles.tabText,
+                    activeTab === "srt" && styles.tabTextActive,
+                  ]}
+                >
+                  Nhập SRT
                 </Text>
               </TouchableOpacity>
             </View>

@@ -124,13 +124,73 @@ export const INJECTED_JAVASCRIPT = `
       rafId = requestAnimationFrame(poll);
     }
 
-    // Translated video IDs set
+    // Translated video IDs set and queued video IDs
     let translatedVideoIds = new Set();
+    let queuedVideoIds = new Set();
 
-    function markTranslatedVideos() {
-      if (translatedVideoIds.size === 0) return;
+    function extractVideoId(href) {
+      const watchMatch = href.match(/[?&]v=([a-zA-Z0-9_-]+)/);
+      const shortsMatch = href.match(/\\/shorts\\/([a-zA-Z0-9_-]+)/);
+      if (watchMatch) return watchMatch[1];
+      if (shortsMatch) return shortsMatch[1];
+      return null;
+    }
+
+    function getVideoTitle(item) {
+      const titleSelectors = [
+        '.YtmCompactMediaItemHeadline .yt-core-attributed-string',
+        '.media-item-headline .yt-core-attributed-string',
+        'h4 .yt-core-attributed-string',
+        '.title',
+        'h3'
+      ];
+      for (const sel of titleSelectors) {
+        const el = item.querySelector(sel);
+        if (el && el.textContent) {
+          const title = el.textContent.trim();
+          if (title && title.length > 3) return title;
+        }
+      }
+      return 'Video YouTube';
+    }
+
+    function addQueueButton(thumbnailContainer, videoId, videoUrl, title) {
+      // Skip if already has button
+      if (thumbnailContainer.querySelector('.ziasub-add-queue-btn')) return;
       
-      // Only show badges on list pages, not on watch/shorts pages
+      const isQueued = queuedVideoIds.has(videoId);
+      const isTranslated = translatedVideoIds.has(videoId);
+      
+      // Don't show add button if already translated
+      if (isTranslated) return;
+      
+      const btn = document.createElement('div');
+      btn.className = 'ziasub-add-queue-btn';
+      btn.dataset.videoId = videoId;
+      btn.innerHTML = isQueued ? '✓' : '+';
+      btn.style.cssText = 'position:absolute;top:4px;right:4px;width:24px;height:24px;background:' + (isQueued ? 'linear-gradient(135deg,#4CAF50,#388E3C)' : 'linear-gradient(135deg,#9B7ED9,#7C5CBF)') + ';color:#fff;font-size:16px;font-weight:700;border-radius:6px;z-index:101;display:flex;justify-content:center;align-items:center;box-shadow:0 2px 4px rgba(0,0,0,0.3);cursor:pointer;user-select:none;';
+      
+      if (!isQueued) {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          // Send message to React Native to add to queue
+          window.ReactNativeWebView.postMessage(JSON.stringify({
+            type: 'addToQueue',
+            payload: { videoId, videoUrl, title }
+          }));
+          // Update button immediately
+          btn.innerHTML = '✓';
+          btn.style.background = 'linear-gradient(135deg,#4CAF50,#388E3C)';
+          queuedVideoIds.add(videoId);
+        }, { capture: true });
+      }
+      
+      thumbnailContainer.appendChild(btn);
+    }
+
+    function markVideos() {
+      // Only show on list pages, not on watch/shorts pages
       const currentUrl = window.location.href;
       if (currentUrl.includes('/watch') || currentUrl.includes('/shorts/')) {
         return;
@@ -153,38 +213,34 @@ export const INJECTED_JAVASCRIPT = `
         if (!link) return;
         
         const href = link.getAttribute('href') || '';
-        let videoId = null;
+        const videoId = extractVideoId(href);
+        if (!videoId) return;
         
-        // Extract video ID
-        const watchMatch = href.match(/[?&]v=([a-zA-Z0-9_-]+)/);
-        const shortsMatch = href.match(/\\/shorts\\/([a-zA-Z0-9_-]+)/);
-        if (watchMatch) videoId = watchMatch[1];
-        else if (shortsMatch) videoId = shortsMatch[1];
+        const videoUrl = 'https://m.youtube.com' + href;
+        const title = getVideoTitle(item);
         
-        if (!videoId || !translatedVideoIds.has(videoId)) return;
-        
-        // Find the thumbnail container - try multiple selectors for different layouts
+        // Find the thumbnail container
         let thumbnailContainer = item.querySelector('ytm-compact-thumbnail, .YtmCompactMediaItemImage, a.media-item-thumbnail-container, ytm-thumbnail-cover');
         if (!thumbnailContainer) {
-          // Fallback: use the first link as container
           thumbnailContainer = link;
         }
         
-        // Skip if already marked
-        if (thumbnailContainer.querySelector('.ziasub-translated-badge')) return;
-        
-        // Make container relative for badge positioning
+        // Make container relative for positioning
         if (thumbnailContainer.style.position !== 'relative' && thumbnailContainer.style.position !== 'absolute') {
           thumbnailContainer.style.position = 'relative';
         }
         
-        // Create badge
-        const badge = document.createElement('div');
-        badge.className = 'ziasub-translated-badge';
-        badge.textContent = 'Đã dịch';
-        badge.style.cssText = 'position:absolute;top:4px;left:4px;background:linear-gradient(135deg,#9B7ED9,#7C5CBF);color:#fff;font-size:10px;font-weight:600;padding:2px 6px;border-radius:4px;z-index:100;pointer-events:none;box-shadow:0 1px 3px rgba(0,0,0,0.3);';
+        // Add translated badge if applicable
+        if (translatedVideoIds.has(videoId) && !thumbnailContainer.querySelector('.ziasub-translated-badge')) {
+          const badge = document.createElement('div');
+          badge.className = 'ziasub-translated-badge';
+          badge.textContent = 'Đã dịch';
+          badge.style.cssText = 'position:absolute;top:4px;left:4px;background:linear-gradient(135deg,#9B7ED9,#7C5CBF);color:#fff;font-size:10px;font-weight:600;padding:2px 6px;border-radius:4px;z-index:100;pointer-events:none;box-shadow:0 1px 3px rgba(0,0,0,0.3);';
+          thumbnailContainer.appendChild(badge);
+        }
         
-        thumbnailContainer.appendChild(badge);
+        // Add queue button
+        addQueueButton(thumbnailContainer, videoId, videoUrl, title);
       });
     }
 
@@ -210,14 +266,18 @@ export const INJECTED_JAVASCRIPT = `
         } else if (d.type === 'setTranslatedVideos') {
           // Update translated video IDs and mark them
           translatedVideoIds = new Set(d.payload || []);
-          markTranslatedVideos();
+          markVideos();
+        } else if (d.type === 'setQueuedVideos') {
+          // Update queued video IDs
+          queuedVideoIds = new Set(d.payload || []);
+          markVideos();
         }
       } catch (e) {}
     }, 16);
     
     // Observe DOM changes to mark new video thumbnails
     const observer = new MutationObserver(throttle(() => {
-      markTranslatedVideos();
+      markVideos();
     }, 500));
     observer.observe(document.body, { childList: true, subtree: true });
 

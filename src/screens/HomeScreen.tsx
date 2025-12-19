@@ -100,11 +100,34 @@ const HomeScreen = () => {
       .map((url) => extractVideoId(url))
       .filter((id): id is string => id !== null);
 
-    if (webViewRef.current && videoIds.length > 0) {
+    if (webViewRef.current) {
       webViewRef.current.postMessage(
         JSON.stringify({ type: "setTranslatedVideos", payload: videoIds })
       );
     }
+  };
+
+  // Send queued video IDs to WebView
+  const syncQueuedVideosToWebView = () => {
+    const { items: queueItems } = queueManager.getItemsByStatus("all");
+    const videoIds = queueItems
+      .filter(
+        (item) => item.status === "pending" || item.status === "translating"
+      )
+      .map((item) => extractVideoId(item.videoUrl))
+      .filter((id): id is string => id !== null);
+
+    if (webViewRef.current) {
+      webViewRef.current.postMessage(
+        JSON.stringify({ type: "setQueuedVideos", payload: videoIds })
+      );
+    }
+  };
+
+  // Sync all data to WebView
+  const syncAllToWebView = async () => {
+    await syncTranslatedVideosToWebView();
+    syncQueuedVideosToWebView();
   };
 
   useEffect(() => {
@@ -130,6 +153,8 @@ const HomeScreen = () => {
       if (currentUrlRef.current) {
         setCurrentVideoInQueue(queueManager.isInQueue(currentUrlRef.current));
       }
+      // Sync queued videos to WebView
+      syncQueuedVideosToWebView();
     });
     return () => unsubscribe();
   }, []);
@@ -174,7 +199,7 @@ const HomeScreen = () => {
     loadSavedSRT();
   }, [currentUrl]);
 
-  const handleWebViewMessage = (event: WebViewMessageEvent) => {
+  const handleWebViewMessage = async (event: WebViewMessageEvent) => {
     try {
       const data = JSON.parse(event.nativeEvent.data);
       if (data.type === "currentTime") {
@@ -187,6 +212,14 @@ const HomeScreen = () => {
         onFullScreenOpen();
       } else if (data.type === "fullscreen_close") {
         onFullScreenClose();
+      } else if (data.type === "addToQueue") {
+        // Handle add to queue from thumbnail button
+        const { videoUrl, title } = data.payload;
+        const existing = queueManager.isInQueue(videoUrl);
+        if (!existing) {
+          await queueManager.addToQueue(videoUrl, title);
+          syncQueuedVideosToWebView();
+        }
       }
     } catch (e) {}
   };
@@ -214,16 +247,16 @@ const HomeScreen = () => {
         setVideoTitle("");
         setCurrentVideoInQueue(undefined);
       }
-      // Sync translated videos when on list/home page
-      syncTranslatedVideosToWebView();
+      // Sync all data when on list/home page
+      syncAllToWebView();
     }
   };
 
-  // Sync translated videos when WebView finishes loading
+  // Sync all data when WebView finishes loading
   const handleWebViewLoad = () => {
     // Delay a bit to ensure DOM is ready
     setTimeout(() => {
-      syncTranslatedVideosToWebView();
+      syncAllToWebView();
     }, 1000);
   };
 
@@ -388,7 +421,7 @@ const HomeScreen = () => {
       />
 
       <FloatingButton
-        visible={isVideoPlaying}
+        isVideoPage={isVideoPlaying}
         onPress={() => setModalVisible(true)}
         onSettingsPress={() => setSettingsVisible(true)}
         onQueuePress={() => setQueueModalVisible(true)}
