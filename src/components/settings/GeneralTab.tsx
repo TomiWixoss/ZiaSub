@@ -9,6 +9,7 @@ import {
   Linking,
 } from "react-native";
 import { alert, confirmDestructive } from "../CustomAlert";
+import Button3D from "../Button3D";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Slider from "@react-native-community/slider";
@@ -21,7 +22,6 @@ import {
   saveApiKeys,
 } from "@utils/storage";
 import { keyManager } from "@services/keyManager";
-import Button3D from "../Button3D";
 
 interface GeneralTabProps {
   subtitleSettings: SubtitleSettings;
@@ -185,9 +185,14 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
               color={COLORS.textMuted}
             />
           </TouchableOpacity>
-          <TouchableOpacity onPress={handleAddKey} style={styles.addKeyBtn}>
-            <MaterialCommunityIcons name="plus" size={20} color={COLORS.text} />
-          </TouchableOpacity>
+          <View style={styles.addKeyBtnWrapper}>
+            <Button3D
+              icon="plus"
+              variant="primary"
+              onPress={handleAddKey}
+              style={styles.addKeyBtn}
+            />
+          </View>
         </View>
       </View>
 
@@ -408,23 +413,26 @@ const styles = StyleSheet.create({
   deleteKeyBtn: { padding: 4 },
   addKeyRow: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     marginTop: 10,
     gap: 8,
+    paddingTop: 4,
   },
   addKeyInput: {
     flex: 1,
     backgroundColor: COLORS.surfaceElevated,
     borderRadius: 8,
     padding: 10,
+    height: 52,
     color: COLORS.text,
     fontSize: 13,
   },
-  eyeBtn: { padding: 8 },
+  eyeBtn: { padding: 8, height: 52, justifyContent: "center" },
+  addKeyBtnWrapper: {
+    width: 56,
+  },
   addKeyBtn: {
-    backgroundColor: COLORS.primary,
-    borderRadius: 8,
-    padding: 10,
+    // Don't override height - let Button3D use default
   },
   previewContainer: {
     backgroundColor: COLORS.background,

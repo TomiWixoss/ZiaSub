@@ -11,6 +11,7 @@ import {
   useWindowDimensions,
 } from "react-native";
 import { confirm, confirmDestructive } from "./CustomAlert";
+import Button3D from "./Button3D";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -490,17 +491,12 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
                 </View>
               )}
 
-              <TouchableOpacity
-                style={styles.startAllBtn}
+              <Button3D
+                title="Dịch tự động tất cả"
+                icon="play-circle"
+                variant="primary"
                 onPress={handleStartAll}
-              >
-                <MaterialCommunityIcons
-                  name="play-circle"
-                  size={20}
-                  color={COLORS.text}
-                />
-                <Text style={styles.startAllText}>Dịch tự động tất cả</Text>
-              </TouchableOpacity>
+              />
             </View>
           )}
 
