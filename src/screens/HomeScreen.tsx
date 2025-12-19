@@ -31,6 +31,7 @@ import {
   getBatchSettings,
   saveBatchSettings,
   getApiKeys,
+  getAllTranslatedVideoUrls,
 } from "@utils/storage";
 import { keyManager } from "@services/keyManager";
 import { queueManager, QueueItem } from "@services/queueManager";
@@ -77,6 +78,34 @@ const HomeScreen = () => {
   const webViewRef = useRef<WebView>(null);
   const currentUrlRef = useRef<string>("");
   const insets = useSafeAreaInsets();
+
+  // Extract video ID from URL
+  const extractVideoId = (url: string): string | null => {
+    const patterns = [
+      /youtu\.be\/([a-zA-Z0-9_-]+)/,
+      /[?&]v=([a-zA-Z0-9_-]+)/,
+      /\/shorts\/([a-zA-Z0-9_-]+)/,
+    ];
+    for (const p of patterns) {
+      const m = url.match(p);
+      if (m) return m[1];
+    }
+    return null;
+  };
+
+  // Send translated video IDs to WebView
+  const syncTranslatedVideosToWebView = async () => {
+    const urls = await getAllTranslatedVideoUrls();
+    const videoIds = urls
+      .map((url) => extractVideoId(url))
+      .filter((id): id is string => id !== null);
+
+    if (webViewRef.current && videoIds.length > 0) {
+      webViewRef.current.postMessage(
+        JSON.stringify({ type: "setTranslatedVideos", payload: videoIds })
+      );
+    }
+  };
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -185,6 +214,8 @@ const HomeScreen = () => {
         setVideoTitle("");
         setCurrentVideoInQueue(undefined);
       }
+      // Sync translated videos when on list/home page
+      syncTranslatedVideosToWebView();
     }
   };
 
@@ -367,7 +398,6 @@ const HomeScreen = () => {
         setSrtContent={setSrtContent}
         onLoadSubtitles={handleLoadSubtitles}
         videoUrl={currentUrl}
-        videoTitle={videoTitle}
         videoDuration={videoDuration}
         batchSettings={batchSettings}
         onTranslationStateChange={(translating, progress) => {

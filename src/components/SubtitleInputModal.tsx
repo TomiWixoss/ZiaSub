@@ -43,7 +43,6 @@ interface SubtitleInputModalProps {
   setSrtContent: (text: string) => void;
   onLoadSubtitles: () => void;
   videoUrl?: string;
-  videoTitle?: string;
   videoDuration?: number;
   batchSettings?: BatchSettings;
   onTranslationStateChange?: (
@@ -59,7 +58,6 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
   setSrtContent,
   onLoadSubtitles,
   videoUrl,
-  videoTitle,
   videoDuration,
   batchSettings,
   onTranslationStateChange,
@@ -123,12 +121,8 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
           // Update SRT content and load subtitles
           setSrtContent(job.result);
           onLoadSubtitles();
-          // Sync to queue - mark as completed (auto-add if not in queue)
-          queueManager.markVideoCompleted(
-            job.videoUrl,
-            job.configName,
-            videoTitle
-          );
+          // Sync to queue - mark as completed (only if in queue)
+          queueManager.markVideoCompleted(job.videoUrl, job.configName);
           translationManager.clearCompletedJob(videoUrl);
           alert("Thành công", "Đã dịch xong! Phụ đề đã được áp dụng.");
         }

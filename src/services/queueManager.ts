@@ -4,12 +4,7 @@
  */
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { translationManager } from "./translationManager";
-import {
-  getActiveGeminiConfig,
-  getBatchSettings,
-  getVideoTranslations,
-  getAllTranslatedVideoUrls,
-} from "@utils/storage";
+import { getActiveGeminiConfig, getBatchSettings } from "@utils/storage";
 
 const QUEUE_STORAGE_KEY = "@translation_queue";
 const PAGE_SIZE = 10;
@@ -64,65 +59,11 @@ class QueueManager {
         );
       }
 
-      // Sync with translation storage - check if any pending/error items actually have translations
-      await this.syncWithTranslationStorage();
-
       await this.save();
       this.initialized = true;
       this.notify();
     } catch (e) {
       console.error("[QueueManager] Init error:", e);
-    }
-  }
-
-  // Sync queue status with translation storage
-  // Also import videos that have translations but not in queue
-  private async syncWithTranslationStorage(): Promise<void> {
-    // Build a set of existing video IDs for fast lookup
-    const existingVideoIds = new Set(this.items.map((i) => i.videoId));
-
-    // First, update existing queue items
-    for (const item of this.items) {
-      if (item.status === "pending" || item.status === "error") {
-        const translations = await getVideoTranslations(item.videoUrl);
-        if (translations && translations.translations.length > 0) {
-          const latestTranslation =
-            translations.translations[translations.translations.length - 1];
-          item.status = "completed";
-          item.completedAt = latestTranslation.createdAt;
-          item.configName = latestTranslation.configName;
-          item.error = undefined;
-          item.progress = undefined;
-        }
-      }
-    }
-
-    // Then, import videos from translation storage that are not in queue
-    const translatedUrls = await getAllTranslatedVideoUrls();
-    for (const videoUrl of translatedUrls) {
-      const videoId = this.extractVideoId(videoUrl);
-      // Skip if already exists in queue
-      if (existingVideoIds.has(videoId)) continue;
-
-      const translations = await getVideoTranslations(videoUrl);
-      if (translations && translations.translations.length > 0) {
-        const latestTranslation =
-          translations.translations[translations.translations.length - 1];
-        const newItem: QueueItem = {
-          id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-          videoUrl,
-          videoId,
-          title: `Video ${videoId}`,
-          thumbnail: `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`,
-          status: "completed",
-          addedAt: latestTranslation.createdAt,
-          completedAt: latestTranslation.createdAt,
-          configName: latestTranslation.configName,
-        };
-        this.items.push(newItem);
-        // Add to set to prevent duplicates within this sync
-        existingVideoIds.add(videoId);
-      }
     }
   }
 
@@ -172,14 +113,6 @@ class QueueManager {
       return existing;
     }
 
-    // Check if video already has translations in storage
-    const translations = await getVideoTranslations(videoUrl);
-    const hasTranslations =
-      translations && translations.translations.length > 0;
-    const latestTranslation = hasTranslations
-      ? translations.translations[translations.translations.length - 1]
-      : null;
-
     const item: QueueItem = {
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       videoUrl,
@@ -187,10 +120,8 @@ class QueueManager {
       title: title || `Video ${videoId}`,
       thumbnail: `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`,
       duration,
-      status: hasTranslations ? "completed" : "pending",
+      status: "pending",
       addedAt: Date.now(),
-      completedAt: latestTranslation?.createdAt,
-      configName: latestTranslation?.configName,
     };
 
     this.items.unshift(item);
@@ -373,36 +304,15 @@ class QueueManager {
     }
   }
 
-  // Mark video as completed (called when translated outside of queue)
-  // If video is not in queue, add it automatically
+  // Mark video as completed (only if already in queue)
   async markVideoCompleted(
     videoUrl: string,
-    configName?: string,
-    title?: string
+    configName?: string
   ): Promise<void> {
     const videoId = this.extractVideoId(videoUrl);
-    let item = this.items.find((i) => i.videoId === videoId);
+    const item = this.items.find((i) => i.videoId === videoId);
 
-    if (!item) {
-      // Video not in queue, add it as completed
-      const newItem: QueueItem = {
-        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        videoUrl,
-        videoId,
-        title: title || `Video ${videoId}`,
-        thumbnail: `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`,
-        status: "completed",
-        addedAt: Date.now(),
-        completedAt: Date.now(),
-        configName,
-      };
-      this.items.unshift(newItem);
-      await this.save();
-      this.notify();
-      return;
-    }
-
-    if (item.status !== "completed") {
+    if (item && item.status !== "completed") {
       await this.updateItem(item.id, {
         status: "completed",
         completedAt: Date.now(),
