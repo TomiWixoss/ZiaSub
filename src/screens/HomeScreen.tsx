@@ -75,6 +75,7 @@ const HomeScreen = () => {
   const [videoTitle, setVideoTitle] = useState<string>("");
 
   const webViewRef = useRef<WebView>(null);
+  const currentUrlRef = useRef<string>("");
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
@@ -96,6 +97,10 @@ const HomeScreen = () => {
     const unsubscribe = queueManager.subscribe(() => {
       const counts = queueManager.getCounts();
       setQueueCount(counts.pending + counts.translating);
+      // Update current video queue status when queue changes
+      if (currentUrlRef.current) {
+        setCurrentVideoInQueue(queueManager.isInQueue(currentUrlRef.current));
+      }
     });
     return () => unsubscribe();
   }, []);
@@ -166,6 +171,7 @@ const HomeScreen = () => {
     if (isWatchPage) {
       if (navState.url !== currentUrl) {
         setCurrentUrl(navState.url);
+        currentUrlRef.current = navState.url;
         setVideoDuration(undefined); // Reset duration for new video
         setVideoTitle(""); // Reset title for new video
         // Check if video is in queue
@@ -174,6 +180,7 @@ const HomeScreen = () => {
     } else {
       if (currentUrl !== "") {
         setCurrentUrl("");
+        currentUrlRef.current = "";
         setVideoDuration(undefined);
         setVideoTitle("");
         setCurrentVideoInQueue(undefined);

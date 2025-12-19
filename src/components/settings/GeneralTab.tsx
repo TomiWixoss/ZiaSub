@@ -219,7 +219,7 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
         />
       </View>
 
-      <View style={styles.styleButtonsRow}>
+      <View style={[styles.styleButtonsRow, { marginBottom: 20 }]}>
         <Button3D
           onPress={toggleBold}
           icon="format-bold"

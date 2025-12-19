@@ -92,13 +92,25 @@ export const INJECTED_JAVASCRIPT = `
               }
             }
             
-            // Send video title
-            const titleEl = document.querySelector('h1.ytm-title, .slim-video-information-title, [class*="title"]');
-            if (titleEl && titleEl.textContent) {
-              const title = titleEl.textContent.trim();
-              if (title && title !== window.__lastSentTitle) {
-                window.__lastSentTitle = title;
-                window.ReactNativeWebView.postMessage(JSON.stringify({type:'videoTitle',payload:title}));
+            // Send video title - try multiple selectors for mobile YouTube
+            const titleSelectors = [
+              '.slim-video-information-title .yt-core-attributed-string',
+              '.slim-video-information-title',
+              'h1.title',
+              '.ytp-title-link',
+              'ytm-slim-video-information-header-renderer .title',
+              '[class*="video-title"]',
+              'h1'
+            ];
+            for (const sel of titleSelectors) {
+              const el = document.querySelector(sel);
+              if (el && el.textContent) {
+                const title = el.textContent.trim();
+                if (title && title.length > 3 && title !== 'YouTube' && title !== window.__lastSentTitle) {
+                  window.__lastSentTitle = title;
+                  window.ReactNativeWebView.postMessage(JSON.stringify({type:'videoTitle',payload:title}));
+                  break;
+                }
               }
             }
           }
