@@ -9,7 +9,7 @@ import {
   TouchableOpacity,
   Animated,
 } from "react-native";
-import { alert, confirm } from "./CustomAlert";
+import { alert, confirm } from "../common/CustomAlert";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -18,7 +18,8 @@ import { COLORS } from "@constants/colors";
 import type { BatchSettings, BatchProgress, TranslationJob } from "@src/types";
 import { translationManager } from "@services/translationManager";
 import { queueManager } from "@services/queueManager";
-import { SrtTab, TranslateTab } from "./subtitle";
+import { SrtTab } from "./SrtTab";
+import { TranslateTab } from "./TranslateTab";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 const SHEET_HEIGHT = SCREEN_HEIGHT * 0.7;

@@ -2,7 +2,7 @@ import React from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { PaperProvider, MD3DarkTheme } from "react-native-paper";
 import { COLORS } from "@constants/colors";
-import { AlertProvider } from "@components/CustomAlert";
+import { AlertProvider } from "@components/common/CustomAlert";
 import HomeScreen from "@screens/HomeScreen";
 
 const theme = {

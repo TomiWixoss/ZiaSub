@@ -6,7 +6,7 @@ import {
   Text,
   TouchableOpacity,
 } from "react-native";
-import { alert, showAlert } from "@components/CustomAlert";
+import { alert, showAlert } from "@components/common/CustomAlert";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -22,12 +22,12 @@ import { useVideoPlayer } from "@hooks/useVideoPlayer";
 import { useSubtitles } from "@hooks/useSubtitles";
 import { useTranslationQueue } from "@hooks/useTranslationQueue";
 
-import YouTubePlayer from "@components/YouTubePlayer";
-import SubtitleInputModal from "@components/SubtitleInputModal";
-import SettingsModal from "@components/SettingsModal";
-import FloatingButton from "@components/FloatingButton";
-import TranslationQueueModal from "@components/TranslationQueueModal";
-import ChatModal from "@components/ChatModal";
+import { YouTubePlayer } from "@components/video";
+import { SubtitleInputModal } from "@components/subtitle";
+import { SettingsModal } from "@components/settings";
+import { FloatingButton } from "@components/common";
+import { TranslationQueueModal } from "@components/queue";
+import { ChatModal } from "@components/chat";
 
 const HomeScreen = () => {
   const insets = useSafeAreaInsets();

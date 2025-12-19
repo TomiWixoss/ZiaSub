@@ -43,11 +43,11 @@ import {
   getApiKeys,
 } from "@utils/storage";
 import { sendChatMessage } from "@services/chatService";
-import ConfigSelector from "@components/chat/ConfigSelector";
-import TaskCard, { TaskItem } from "@components/chat/TaskCard";
-import ChatDrawer from "@components/chat/ChatDrawer";
-import ChatInput from "@components/chat/ChatInput";
-import ChatEmptyState from "@components/chat/ChatEmptyState";
+import ConfigSelector from "./ConfigSelector";
+import TaskCard, { TaskItem } from "./TaskCard";
+import ChatDrawer from "./ChatDrawer";
+import ChatInput from "./ChatInput";
+import ChatEmptyState from "./ChatEmptyState";
 
 interface ChatModalProps {
   visible: boolean;

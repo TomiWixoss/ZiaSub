@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { View, StyleSheet, ScrollView } from "react-native";
-import { alert, confirmDestructive } from "../CustomAlert";
+import { alert, confirmDestructive } from "../common/CustomAlert";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { COLORS } from "@constants/colors";
@@ -21,7 +21,7 @@ import {
 } from "@utils/storage";
 import { translationManager } from "@services/translationManager";
 import { parseTime } from "@utils/videoUtils";
-import Button3D from "../Button3D";
+import Button3D from "../common/Button3D";
 import {
   SavedTranslationsList,
   TranslationProgress,

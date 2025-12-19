@@ -2,7 +2,7 @@ import React from "react";
 import { View, TouchableOpacity } from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import Button3D from "../Button3D";
+import Button3D from "../common/Button3D";
 import { COLORS } from "@constants/colors";
 import type { GeminiConfig } from "@src/types";
 import { queueStyles as styles } from "./queueStyles";

@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { View, StyleSheet, TouchableOpacity, Linking } from "react-native";
 import * as Clipboard from "expo-clipboard";
-import { alert, confirmDestructive } from "../../CustomAlert";
-import Button3D from "../../Button3D";
+import { alert, confirmDestructive } from "../../common/CustomAlert";
+import Button3D from "../../common/Button3D";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { COLORS } from "@constants/colors";

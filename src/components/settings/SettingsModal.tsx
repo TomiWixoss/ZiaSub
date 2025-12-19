@@ -7,7 +7,7 @@ import {
   Animated,
   Dimensions,
 } from "react-native";
-import { alert, confirmDestructive } from "./CustomAlert";
+import { alert, confirmDestructive } from "../common/CustomAlert";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -19,7 +19,9 @@ import type {
   GeminiConfig,
 } from "@src/types";
 import { getGeminiConfigs, saveGeminiConfigs } from "@utils/storage";
-import { GeneralTab, GeminiList, GeminiEdit } from "./settings";
+import GeneralTab from "./GeneralTab";
+import GeminiList from "./GeminiList";
+import GeminiEdit from "./GeminiEdit";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 const SHEET_HEIGHT = SCREEN_HEIGHT * 0.85;

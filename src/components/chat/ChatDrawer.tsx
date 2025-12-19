@@ -12,7 +12,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { COLORS } from "@constants/colors";
 import type { ChatSession } from "@src/types";
 import { updateChatSession } from "@utils/storage";
-import { confirmDestructive } from "@components/CustomAlert";
+import { confirmDestructive } from "../common/CustomAlert";
 
 interface ChatDrawerProps {
   sessions: ChatSession[];

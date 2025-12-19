@@ -6,13 +6,13 @@ import {
   TextInput as RNTextInput,
   Platform,
 } from "react-native";
-import { alert } from "../CustomAlert";
+import { alert } from "../common/CustomAlert";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
 import * as Clipboard from "expo-clipboard";
 import { readAsStringAsync } from "expo-file-system/legacy";
 import { COLORS } from "@constants/colors";
-import Button3D from "../Button3D";
+import Button3D from "../common/Button3D";
 
 interface SrtTabProps {
   srtContent: string;

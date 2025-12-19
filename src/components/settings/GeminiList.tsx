@@ -4,7 +4,7 @@ import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { COLORS } from "@constants/colors";
 import type { GeminiConfig } from "@src/types";
-import Button3D from "../Button3D";
+import Button3D from "../common/Button3D";
 
 interface GeminiListProps {
   configs: GeminiConfig[];

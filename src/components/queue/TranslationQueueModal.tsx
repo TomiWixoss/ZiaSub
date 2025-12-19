@@ -9,7 +9,7 @@ import {
   Dimensions,
   useWindowDimensions,
 } from "react-native";
-import { confirm, confirmDestructive } from "./CustomAlert";
+import { confirm, confirmDestructive } from "../common/CustomAlert";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -22,15 +22,12 @@ import {
   saveActiveGeminiConfigId,
   getApiKeys,
 } from "@utils/storage";
-import {
-  QueueItemCard,
-  QueueTabs,
-  QueueActions,
-  QueueEmpty,
-  QueuePagination,
-  queueStyles,
-} from "./queue";
-import type { TabType } from "./queue/QueueTabs";
+import QueueItemCard from "./QueueItemCard";
+import QueueTabs, { TabType } from "./QueueTabs";
+import QueueActions from "./QueueActions";
+import QueueEmpty from "./QueueEmpty";
+import QueuePagination from "./QueuePagination";
+import { queueStyles } from "./queueStyles";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 const FLOATING_BUTTON_HEIGHT = 80;

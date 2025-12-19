@@ -12,7 +12,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Markdown from "react-native-markdown-display";
 import * as Clipboard from "expo-clipboard";
 import { COLORS } from "@constants/colors";
-import { confirmDestructive } from "@components/CustomAlert";
+import { confirmDestructive } from "../common/CustomAlert";
 
 export interface TaskItem {
   id: string;

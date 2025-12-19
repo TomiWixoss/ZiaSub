@@ -1,6 +1,7 @@
 /**
  * Chat components module
  */
+export { default as ChatModal } from "./ChatModal";
 export { default as ChatDrawer } from "./ChatDrawer";
 export { default as ChatInput } from "./ChatInput";
 export { default as ConfigSelector } from "./ConfigSelector";
