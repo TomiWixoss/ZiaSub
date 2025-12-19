@@ -8,30 +8,20 @@ import {
   Dimensions,
   TouchableOpacity,
   Alert,
-  TextInput as RNTextInput,
   Animated,
-  ActivityIndicator,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import * as DocumentPicker from "expo-document-picker";
 import * as Clipboard from "expo-clipboard";
-import { readAsStringAsync } from "expo-file-system/legacy";
 import { COLORS } from "@constants/colors";
-import {
-  GeminiConfig,
-  BatchSettings,
-  getGeminiConfigs,
-  getActiveGeminiConfig,
-  saveActiveGeminiConfigId,
-} from "@utils/storage";
+import { BatchSettings } from "@utils/storage";
 import { BatchProgress } from "@services/geminiService";
 import {
   translationManager,
   TranslationJob,
 } from "@services/translationManager";
-import Button3D from "./Button3D";
+import { SrtTab, TranslateTab } from "./subtitle";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 const SHEET_HEIGHT = SCREEN_HEIGHT * 0.7;
@@ -78,14 +68,10 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
   const [activeTab, setActiveTab] = useState<TabType>("srt");
   const [isTranslating, setIsTranslating] = useState(false);
   const [translateStatus, setTranslateStatus] = useState("");
-  const [geminiConfigs, setGeminiConfigs] = useState<GeminiConfig[]>([]);
-  const [selectedConfigId, setSelectedConfigId] = useState<string>("");
-  const [showConfigPicker, setShowConfigPicker] = useState(false);
   const [batchProgress, setBatchProgress] = useState<BatchProgress | null>(
     null
   );
 
-  // Use refs to avoid dependency issues in useEffect
   const onTranslationStateChangeRef = useRef(onTranslationStateChange);
   const setSrtContentRef = useRef(setSrtContent);
 
@@ -105,16 +91,13 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
         setBatchProgress(job.progress);
 
         if (job.progress) {
-          if (job.progress.totalBatches > 1) {
-            setTranslateStatus(
-              `Đang dịch batch ${job.progress.completedBatches}/${job.progress.totalBatches}...`
-            );
-          } else {
-            setTranslateStatus("Đang dịch video...");
-          }
+          setTranslateStatus(
+            job.progress.totalBatches > 1
+              ? `Đang dịch batch ${job.progress.completedBatches}/${job.progress.totalBatches}...`
+              : "Đang dịch video..."
+          );
         }
 
-        // Notify parent about translation state
         onTranslationStateChangeRef.current?.(
           job.status === "processing",
           job.progress
@@ -125,7 +108,6 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
             : null
         );
 
-        // Handle completion
         if (job.status === "completed" && job.result) {
           setSrtContentRef.current(job.result);
           setTranslateStatus("Hoàn tất!");
@@ -137,7 +119,6 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
           );
         }
 
-        // Handle error
         if (job.status === "error") {
           setTranslateStatus("");
           translationManager.clearCompletedJob(videoUrl);
@@ -145,27 +126,22 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
         }
       }
     });
-
     return () => unsubscribe();
   }, [videoUrl]);
 
-  // Check for existing translation job on mount
   useEffect(() => {
     if (videoUrl) {
       const existingJob = translationManager.getJobForUrl(videoUrl);
       if (existingJob) {
         setIsTranslating(existingJob.status === "processing");
         setBatchProgress(existingJob.progress);
-        if (existingJob.status === "processing") {
-          setActiveTab("translate");
-        }
+        if (existingJob.status === "processing") setActiveTab("translate");
       }
     }
   }, [videoUrl]);
 
   useEffect(() => {
     if (visible) {
-      loadConfigs();
       Animated.parallel([
         Animated.timing(fadeAnim, {
           toValue: 1,
@@ -182,7 +158,6 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
     } else {
       slideAnim.setValue(SHEET_HEIGHT);
       fadeAnim.setValue(0);
-      // Don't clear status if still translating
       if (!isTranslating) {
         setTranslateStatus("");
         setBatchProgress(null);
@@ -190,17 +165,7 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
     }
   }, [visible, isTranslating]);
 
-  const loadConfigs = async () => {
-    const configs = await getGeminiConfigs();
-    setGeminiConfigs(configs);
-    const activeConfig = await getActiveGeminiConfig();
-    if (activeConfig) {
-      setSelectedConfigId(activeConfig.id);
-    }
-  };
-
   const handleClose = () => {
-    // Allow closing even when translating (it continues in background)
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 0,
@@ -228,287 +193,20 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
           ]
         );
       }
-    } catch (error) {}
+    } catch {}
   }, [srtContent, setSrtContent]);
 
   useEffect(() => {
-    if (visible && activeTab === "srt") {
-      checkClipboard();
-    }
+    if (visible && activeTab === "srt") checkClipboard();
   }, [visible, activeTab, checkClipboard]);
-
-  const handlePasteFromClipboard = async () => {
-    try {
-      const clipboardContent = await Clipboard.getStringAsync();
-      if (clipboardContent) {
-        setSrtContent(clipboardContent);
-      } else {
-        Alert.alert("Thông báo", "Clipboard trống.");
-      }
-    } catch (error) {
-      Alert.alert("Lỗi", "Không thể truy cập clipboard.");
-    }
-  };
-
-  const handlePickFile = async () => {
-    try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: "*/*",
-        copyToCacheDirectory: true,
-      });
-
-      if (result.canceled) return;
-
-      const asset = result.assets[0];
-      if (asset) {
-        const content = await readAsStringAsync(asset.uri);
-        setSrtContent(content);
-      }
-    } catch (error) {
-      Alert.alert("Lỗi", "Không thể đọc file này.");
-    }
-  };
-
-  const handleTranslate = async () => {
-    const config = geminiConfigs.find((c) => c.id === selectedConfigId);
-    if (!config) {
-      Alert.alert("Lỗi", "Vui lòng chọn cấu hình Gemini.");
-      return;
-    }
-
-    if (!config.apiKey) {
-      Alert.alert("Lỗi", "Cấu hình này chưa có API Key. Vui lòng cài đặt.");
-      return;
-    }
-
-    if (!videoUrl) {
-      Alert.alert("Lỗi", "Không tìm thấy URL video.");
-      return;
-    }
-
-    // Check if already translating
-    if (translationManager.isTranslatingUrl(videoUrl)) {
-      Alert.alert("Thông báo", "Video này đang được dịch.");
-      return;
-    }
-
-    try {
-      setTranslateStatus("Đang kết nối với Gemini AI...");
-      await saveActiveGeminiConfigId(selectedConfigId);
-
-      // Start translation via manager (runs in background)
-      translationManager.startTranslation(
-        videoUrl,
-        config,
-        videoDuration,
-        batchSettings
-      );
-
-      // Close modal - translation continues in background
-      handleClose();
-    } catch (error: any) {
-      Alert.alert("Lỗi", error.message || "Không thể bắt đầu dịch.");
-    }
-  };
-
-  const selectedConfig = geminiConfigs.find((c) => c.id === selectedConfigId);
-
-  const renderSRTTab = () => (
-    <View style={styles.tabContent}>
-      <View style={styles.buttonRow}>
-        <Button3D
-          onPress={handlePickFile}
-          icon="file-document-outline"
-          title="File"
-          variant="outline"
-          style={styles.rowButton}
-        />
-        <Button3D
-          onPress={handlePasteFromClipboard}
-          icon="clipboard-text-outline"
-          title="Dán"
-          variant="outline"
-          style={styles.rowButton}
-        />
-      </View>
-
-      <View style={styles.inputContainer}>
-        <RNTextInput
-          placeholder="Dán nội dung SRT vào đây..."
-          placeholderTextColor={COLORS.textMuted}
-          multiline
-          value={srtContent}
-          onChangeText={setSrtContent}
-          style={styles.input}
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
-        {srtContent.length > 0 && (
-          <TouchableOpacity
-            style={styles.clearButton}
-            onPress={() => setSrtContent("")}
-          >
-            <MaterialCommunityIcons
-              name="close-circle"
-              size={18}
-              color={COLORS.textMuted}
-            />
-          </TouchableOpacity>
-        )}
-      </View>
-
-      <Button3D onPress={onLoadSubtitles} title="Áp dụng" variant="primary" />
-    </View>
-  );
-
-  const renderTranslateTab = () => (
-    <View style={styles.tabContent}>
-      {/* Config Picker */}
-      <TouchableOpacity
-        style={styles.configPicker}
-        onPress={() => setShowConfigPicker(!showConfigPicker)}
-      >
-        <View style={styles.configPickerLeft}>
-          <MaterialCommunityIcons
-            name="robot"
-            size={20}
-            color={COLORS.primary}
-          />
-          <Text style={styles.configPickerText}>
-            {selectedConfig?.name || "Chọn cấu hình"}
-          </Text>
-        </View>
-        <MaterialCommunityIcons
-          name={showConfigPicker ? "chevron-up" : "chevron-down"}
-          size={20}
-          color={COLORS.textMuted}
-        />
-      </TouchableOpacity>
-
-      {showConfigPicker && (
-        <View style={styles.configDropdown}>
-          {geminiConfigs.map((config) => (
-            <TouchableOpacity
-              key={config.id}
-              style={[
-                styles.configOption,
-                config.id === selectedConfigId && styles.configOptionActive,
-              ]}
-              onPress={() => {
-                setSelectedConfigId(config.id);
-                setShowConfigPicker(false);
-              }}
-            >
-              <Text
-                style={[
-                  styles.configOptionText,
-                  config.id === selectedConfigId &&
-                    styles.configOptionTextActive,
-                ]}
-              >
-                {config.name}
-              </Text>
-              {!config.apiKey && (
-                <Text style={styles.configNoKey}>Chưa có API Key</Text>
-              )}
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
-
-      {/* Video URL Info */}
-      <View style={styles.videoInfo}>
-        <MaterialCommunityIcons
-          name="youtube"
-          size={20}
-          color={COLORS.textMuted}
-        />
-        <Text style={styles.videoUrlText} numberOfLines={1}>
-          {videoUrl || "Chưa có video"}
-        </Text>
-      </View>
-
-      {/* Status */}
-      {isTranslating && (
-        <View style={styles.statusContainer}>
-          <ActivityIndicator size="small" color={COLORS.primary} />
-          <Text style={styles.statusText}>{translateStatus}</Text>
-        </View>
-      )}
-
-      {/* Batch Progress */}
-      {batchProgress && batchProgress.totalBatches > 1 && (
-        <View style={styles.batchProgressContainer}>
-          <View style={styles.batchProgressHeader}>
-            <Text style={styles.batchProgressTitle}>Tiến trình batch</Text>
-            <Text style={styles.batchProgressCount}>
-              {batchProgress.completedBatches}/{batchProgress.totalBatches}
-            </Text>
-          </View>
-          <View style={styles.batchGrid}>
-            {batchProgress.batchStatuses.map((status, index) => (
-              <View
-                key={index}
-                style={[
-                  styles.batchItem,
-                  status === "completed" && styles.batchCompleted,
-                  status === "processing" && styles.batchProcessing,
-                  status === "error" && styles.batchError,
-                ]}
-              >
-                <Text style={styles.batchItemText}>{index + 1}</Text>
-                {status === "processing" && (
-                  <ActivityIndicator
-                    size={10}
-                    color={COLORS.text}
-                    style={styles.batchSpinner}
-                  />
-                )}
-                {status === "completed" && (
-                  <MaterialCommunityIcons
-                    name="check"
-                    size={12}
-                    color={COLORS.text}
-                  />
-                )}
-                {status === "error" && (
-                  <MaterialCommunityIcons
-                    name="close"
-                    size={12}
-                    color={COLORS.text}
-                  />
-                )}
-              </View>
-            ))}
-          </View>
-        </View>
-      )}
-
-      {/* Translate Button */}
-      <View style={styles.translateButtonContainer}>
-        <Button3D
-          onPress={handleTranslate}
-          icon="translate"
-          title={isTranslating ? "Đang dịch..." : "Bắt đầu dịch"}
-          variant="primary"
-          disabled={isTranslating || !videoUrl}
-        />
-      </View>
-
-      <Text style={styles.noteText}>
-        Gemini AI sẽ phân tích video và tạo phụ đề SRT tự động.
-        {"\n"}Kết quả sẽ được đưa vào tab "Nhập SRT".
-      </Text>
-    </View>
-  );
 
   return (
     <Modal
       animationType="none"
-      transparent={true}
+      transparent
       visible={visible}
       onRequestClose={handleClose}
-      statusBarTranslucent={true}
+      statusBarTranslucent
     >
       <View style={styles.modalOverlay}>
         <Animated.View style={[styles.modalBackdrop, { opacity: fadeAnim }]}>
@@ -547,7 +245,6 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
               </TouchableOpacity>
             </View>
 
-            {/* Tab Bar */}
             <View style={styles.tabBar}>
               <TouchableOpacity
                 style={[styles.tab, activeTab === "srt" && styles.tabActive]}
@@ -596,7 +293,23 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
               </TouchableOpacity>
             </View>
 
-            {activeTab === "srt" ? renderSRTTab() : renderTranslateTab()}
+            {activeTab === "srt" ? (
+              <SrtTab
+                srtContent={srtContent}
+                setSrtContent={setSrtContent}
+                onLoadSubtitles={onLoadSubtitles}
+              />
+            ) : (
+              <TranslateTab
+                videoUrl={videoUrl}
+                videoDuration={videoDuration}
+                batchSettings={batchSettings}
+                isTranslating={isTranslating}
+                translateStatus={translateStatus}
+                batchProgress={batchProgress}
+                onClose={handleClose}
+              />
+            )}
           </Animated.View>
         </KeyboardAvoidingView>
       </View>
@@ -605,17 +318,12 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
 };
 
 const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    justifyContent: "flex-end",
-  },
+  modalOverlay: { flex: 1, justifyContent: "flex-end" },
   modalBackdrop: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: COLORS.overlay,
   },
-  keyboardView: {
-    width: "100%",
-  },
+  keyboardView: { width: "100%" },
   bottomSheet: {
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
@@ -626,11 +334,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderColor: COLORS.border,
   },
-  sheetHeader: {
-    alignItems: "center",
-    marginBottom: 16,
-    position: "relative",
-  },
+  sheetHeader: { alignItems: "center", marginBottom: 16, position: "relative" },
   dragHandle: {
     width: 36,
     height: 4,
@@ -638,17 +342,8 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     backgroundColor: COLORS.borderLight,
   },
-  title: {
-    color: COLORS.text,
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  closeButton: {
-    position: "absolute",
-    right: 0,
-    top: 12,
-    padding: 8,
-  },
+  title: { color: COLORS.text, fontSize: 16, fontWeight: "600" },
+  closeButton: { position: "absolute", right: 0, top: 12, padding: 8 },
   tabBar: {
     flexDirection: "row",
     backgroundColor: COLORS.surfaceLight,
@@ -665,194 +360,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     gap: 6,
   },
-  tabActive: {
-    backgroundColor: COLORS.surfaceElevated,
-  },
-  tabText: {
-    color: COLORS.textMuted,
-    fontSize: 13,
-    fontWeight: "500",
-  },
-  tabTextActive: {
-    color: COLORS.text,
-  },
-  tabContent: {
-    flex: 1,
-  },
-  buttonRow: {
-    flexDirection: "row",
-    gap: 12,
-    marginBottom: 16,
-  },
-  rowButton: {
-    flex: 1,
-  },
-  inputContainer: {
-    flex: 1,
-    marginBottom: 16,
-    position: "relative",
-  },
-  input: {
-    flex: 1,
-    backgroundColor: COLORS.surfaceLight,
-    borderRadius: 12,
-    padding: 16,
-    color: COLORS.text,
-    fontSize: 13,
-    fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
-    textAlignVertical: "top",
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  clearButton: {
-    position: "absolute",
-    top: 12,
-    right: 12,
-    padding: 4,
-  },
-  configPicker: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: COLORS.surfaceLight,
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  configPickerLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  configPickerText: {
-    color: COLORS.text,
-    fontSize: 14,
-    fontWeight: "500",
-  },
-  configDropdown: {
-    backgroundColor: COLORS.surfaceLight,
-    borderRadius: 12,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    overflow: "hidden",
-  },
-  configOption: {
-    padding: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  configOptionActive: {
-    backgroundColor: COLORS.surfaceElevated,
-  },
-  configOptionText: {
-    color: COLORS.text,
-    fontSize: 14,
-  },
-  configOptionTextActive: {
-    color: COLORS.primary,
-    fontWeight: "600",
-  },
-  configNoKey: {
-    color: COLORS.textMuted,
-    fontSize: 11,
-    marginTop: 2,
-  },
-  videoInfo: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: COLORS.surfaceLight,
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 16,
-    gap: 10,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  videoUrlText: {
-    flex: 1,
-    color: COLORS.textMuted,
-    fontSize: 12,
-  },
-  statusContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 16,
-    gap: 10,
-  },
-  statusText: {
-    color: COLORS.textSecondary,
-    fontSize: 14,
-  },
-  translateButtonContainer: {
-    marginTop: "auto",
-    marginBottom: 16,
-  },
-  noteText: {
-    color: COLORS.textMuted,
-    fontSize: 12,
-    textAlign: "center",
-    lineHeight: 18,
-  },
-  batchProgressContainer: {
-    backgroundColor: COLORS.surfaceLight,
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  batchProgressHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  batchProgressTitle: {
-    color: COLORS.text,
-    fontSize: 13,
-    fontWeight: "500",
-  },
-  batchProgressCount: {
-    color: COLORS.primary,
-    fontSize: 13,
-    fontWeight: "600",
-  },
-  batchGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  batchItem: {
-    width: 44,
-    height: 36,
-    borderRadius: 8,
-    backgroundColor: COLORS.surfaceElevated,
-    justifyContent: "center",
-    alignItems: "center",
-    flexDirection: "row",
-    gap: 4,
-  },
-  batchCompleted: {
-    backgroundColor: COLORS.success,
-  },
-  batchProcessing: {
-    backgroundColor: COLORS.primary,
-  },
-  batchError: {
-    backgroundColor: COLORS.error,
-  },
-  batchItemText: {
-    color: COLORS.text,
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  batchSpinner: {
-    marginLeft: 2,
-  },
+  tabActive: { backgroundColor: COLORS.surfaceElevated },
+  tabText: { color: COLORS.textMuted, fontSize: 13, fontWeight: "500" },
+  tabTextActive: { color: COLORS.text },
 });
 
 export default SubtitleInputModal;

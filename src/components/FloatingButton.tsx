@@ -31,13 +31,8 @@ const Fab3D: React.FC<Fab3DProps> = ({
 }) => {
   const animatedValue = useRef(new Animated.Value(0)).current;
 
-  const handlePressIn = () => {
-    animatedValue.setValue(1);
-  };
-
-  const handlePressOut = () => {
-    animatedValue.setValue(0);
-  };
+  const handlePressIn = () => animatedValue.setValue(1);
+  const handlePressOut = () => animatedValue.setValue(0);
 
   const translateY = animatedValue.interpolate({
     inputRange: [0, 1],
@@ -80,7 +75,7 @@ const Fab3D: React.FC<Fab3DProps> = ({
               height: size,
               borderRadius: size * 0.3,
               backgroundColor: bgColor,
-              borderColor: borderColor,
+              borderColor,
             },
           ]}
         >
@@ -104,55 +99,42 @@ const TranslatingFab: React.FC<TranslatingFabProps> = ({
   onPress,
   progress,
 }) => {
-  const rotateAnim = useRef(new Animated.Value(0)).current;
-  const glowAnim = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Rotate border animation
-    const rotate = Animated.loop(
-      Animated.timing(rotateAnim, {
-        toValue: 1,
-        duration: 1500,
-        easing: Easing.linear,
-        useNativeDriver: true,
-      })
-    );
-
-    // Glow pulse animation
-    const glow = Animated.loop(
+    const pulse = Animated.loop(
       Animated.sequence([
-        Animated.timing(glowAnim, {
+        Animated.timing(pulseAnim, {
           toValue: 1,
-          duration: 1000,
+          duration: 1200,
           easing: Easing.inOut(Easing.ease),
           useNativeDriver: false,
         }),
-        Animated.timing(glowAnim, {
+        Animated.timing(pulseAnim, {
           toValue: 0,
-          duration: 1000,
+          duration: 1200,
           easing: Easing.inOut(Easing.ease),
           useNativeDriver: false,
         }),
       ])
     );
-
-    rotate.start();
-    glow.start();
-
-    return () => {
-      rotate.stop();
-      glow.stop();
-    };
+    pulse.start();
+    return () => pulse.stop();
   }, []);
 
-  const spin = rotateAnim.interpolate({
+  const borderOpacity = pulseAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: ["0deg", "360deg"],
+    outputRange: [0.5, 1],
   });
 
-  const glowOpacity = glowAnim.interpolate({
+  const glowScale = pulseAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [0.4, 0.8],
+    outputRange: [1, 1.15],
+  });
+
+  const glowOpacity = pulseAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.3, 0.6],
   });
 
   const progressText = progress
@@ -162,20 +144,28 @@ const TranslatingFab: React.FC<TranslatingFabProps> = ({
   return (
     <Pressable onPress={onPress}>
       <View style={styles.translatingContainer}>
-        {/* Rotating border */}
-        <Animated.View
-          style={[styles.rotatingBorder, { transform: [{ rotate: spin }] }]}
-        />
         {/* Glow effect */}
-        <Animated.View style={[styles.glowEffect, { opacity: glowOpacity }]} />
-        {/* Main button */}
-        <View style={styles.translatingFab}>
-          <MaterialCommunityIcons
-            name="creation"
-            size={26}
-            color={COLORS.text}
-          />
-        </View>
+        <Animated.View
+          style={[
+            styles.glowEffect,
+            { opacity: glowOpacity, transform: [{ scale: glowScale }] },
+          ]}
+        />
+        {/* Main button with animated border */}
+        <Animated.View
+          style={[
+            styles.translatingFab,
+            { borderColor: COLORS.primary, opacity: borderOpacity },
+          ]}
+        >
+          <View style={styles.translatingFabInner}>
+            <MaterialCommunityIcons
+              name="creation"
+              size={26}
+              color={COLORS.text}
+            />
+          </View>
+        </Animated.View>
         {/* Progress badge */}
         {progress && progress.total > 1 && (
           <View style={styles.progressBadge}>
@@ -226,54 +216,38 @@ const styles = StyleSheet.create({
     gap: 10,
     zIndex: 20,
   },
-  fab3dContainer: {
-    position: "relative",
-  },
-  fabShadow: {
-    position: "absolute",
-    bottom: 0,
-  },
-  fabWrapper: {
-    position: "absolute",
-    top: 0,
-  },
-  fabButton: {
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 2,
-  },
+  fab3dContainer: { position: "relative" },
+  fabShadow: { position: "absolute", bottom: 0 },
+  fabWrapper: { position: "absolute", top: 0 },
+  fabButton: { justifyContent: "center", alignItems: "center", borderWidth: 2 },
   translatingContainer: {
     width: 60,
     height: 60,
     justifyContent: "center",
     alignItems: "center",
   },
-  rotatingBorder: {
-    position: "absolute",
-    width: 60,
-    height: 60,
-    borderRadius: 18,
-    borderWidth: 3,
-    borderColor: "transparent",
-    borderTopColor: COLORS.primary,
-    borderRightColor: COLORS.primaryLight,
-  },
   glowEffect: {
     position: "absolute",
-    width: 64,
-    height: 64,
-    borderRadius: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 18,
     backgroundColor: COLORS.primary,
   },
   translatingFab: {
     width: 52,
     height: 52,
     borderRadius: 16,
+    borderWidth: 2,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  translatingFabInner: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
     backgroundColor: COLORS.surfaceElevated,
     justifyContent: "center",
     alignItems: "center",
-    borderWidth: 2,
-    borderColor: COLORS.primary,
   },
   progressBadge: {
     position: "absolute",
