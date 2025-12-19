@@ -11,7 +11,12 @@ import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { COLORS } from "@constants/colors";
 
-type ButtonVariant = "primary" | "secondary" | "outline" | "ghost";
+type ButtonVariant =
+  | "primary"
+  | "secondary"
+  | "outline"
+  | "ghost"
+  | "destructive";
 
 interface Button3DProps {
   onPress: () => void;
@@ -94,6 +99,13 @@ const Button3D: React.FC<Button3DProps> = ({
           bg: isActive ? COLORS.surfaceLight : "transparent",
           shadow: "transparent",
           text: isActive ? COLORS.text : COLORS.textSecondary,
+          border: "transparent",
+        };
+      case "destructive":
+        return {
+          bg: COLORS.error,
+          shadow: "#8B0000",
+          text: COLORS.text,
           border: "transparent",
         };
       default:

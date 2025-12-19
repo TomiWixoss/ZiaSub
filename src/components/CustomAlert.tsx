@@ -9,6 +9,7 @@ import {
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { COLORS } from "@constants/colors";
+import Button3D from "./Button3D";
 
 export interface AlertButton {
   text: string;
@@ -55,8 +56,8 @@ export const confirm = (
   cancelText = "Hủy"
 ) => {
   showAlert(title, message, [
-    { text: cancelText, style: "cancel" },
     { text: confirmText, onPress: onConfirm },
+    { text: cancelText, style: "cancel" },
   ]);
 };
 
@@ -71,8 +72,8 @@ export const confirmDestructive = (
     title,
     message,
     [
-      { text: cancelText, style: "cancel" },
       { text: confirmText, style: "destructive", onPress: onConfirm },
+      { text: cancelText, style: "cancel" },
     ],
     "warning"
   );
@@ -128,29 +129,19 @@ const CustomAlert: React.FC<CustomAlertProps> = ({
 
   const handleButtonPress = (button: AlertButton) => {
     onClose();
-    setTimeout(() => button.onPress?.(), 100);
+    setTimeout(() => button.onPress?.(), 150);
   };
 
-  const getButtonColors = (style?: AlertButton["style"]) => {
+  const getButtonVariant = (
+    style?: AlertButton["style"]
+  ): "primary" | "secondary" | "destructive" => {
     switch (style) {
       case "destructive":
-        return {
-          bg: COLORS.error,
-          shadow: "#8B0000",
-          text: COLORS.text,
-        };
+        return "destructive";
       case "cancel":
-        return {
-          bg: COLORS.surfaceElevated,
-          shadow: COLORS.background,
-          text: COLORS.textSecondary,
-        };
+        return "secondary";
       default:
-        return {
-          bg: COLORS.primary,
-          shadow: COLORS.primaryDark,
-          text: COLORS.text,
-        };
+        return "primary";
     }
   };
 
@@ -191,36 +182,24 @@ const CustomAlert: React.FC<CustomAlertProps> = ({
           <View
             style={[
               styles.buttonContainer,
-              buttons.length > 2 && styles.buttonContainerVertical,
+              (buttons.length > 2 || buttons.some((b) => b.text.length > 10)) &&
+                styles.buttonContainerVertical,
             ]}
           >
             {buttons.map((button, index) => {
-              const colors = getButtonColors(button.style);
+              const isVertical =
+                buttons.length > 2 || buttons.some((b) => b.text.length > 10);
               return (
                 <View
                   key={index}
-                  style={[
-                    styles.button3DContainer,
-                    buttons.length <= 2 && styles.buttonFlex,
-                  ]}
+                  style={!isVertical ? styles.buttonFlex : undefined}
                 >
-                  {/* Shadow layer */}
-                  <View
-                    style={[
-                      styles.buttonShadow,
-                      { backgroundColor: colors.shadow },
-                    ]}
-                  />
-                  {/* Button layer */}
-                  <TouchableOpacity
-                    style={[styles.button3D, { backgroundColor: colors.bg }]}
+                  <Button3D
+                    title={button.text}
+                    variant={getButtonVariant(button.style)}
                     onPress={() => handleButtonPress(button)}
-                    activeOpacity={0.9}
-                  >
-                    <Text style={[styles.buttonText, { color: colors.text }]}>
-                      {button.text}
-                    </Text>
-                  </TouchableOpacity>
+                    style={styles.alertButton}
+                  />
                 </View>
               );
             })}
@@ -309,33 +288,11 @@ const styles = StyleSheet.create({
   buttonContainerVertical: {
     flexDirection: "column",
   },
-  button3DContainer: {
-    height: 48,
-  },
-  buttonShadow: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 44,
-    borderRadius: 12,
-  },
-  button3D: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 44,
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
+  alertButton: {
+    // Use default Button3D height
   },
   buttonFlex: {
     flex: 1,
-  },
-  buttonText: {
-    fontSize: 14,
-    fontWeight: "700",
   },
 });
 
