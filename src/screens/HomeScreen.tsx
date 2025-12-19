@@ -72,6 +72,7 @@ const HomeScreen = () => {
   const [currentVideoInQueue, setCurrentVideoInQueue] = useState<
     QueueItem | undefined
   >();
+  const [videoTitle, setVideoTitle] = useState<string>("");
 
   const webViewRef = useRef<WebView>(null);
   const insets = useSafeAreaInsets();
@@ -146,6 +147,8 @@ const HomeScreen = () => {
         findSubtitle(data.payload);
       } else if (data.type === "videoDuration") {
         setVideoDuration(data.payload);
+      } else if (data.type === "videoTitle") {
+        setVideoTitle(data.payload);
       } else if (data.type === "fullscreen_open") {
         onFullScreenOpen();
       } else if (data.type === "fullscreen_close") {
@@ -164,6 +167,7 @@ const HomeScreen = () => {
       if (navState.url !== currentUrl) {
         setCurrentUrl(navState.url);
         setVideoDuration(undefined); // Reset duration for new video
+        setVideoTitle(""); // Reset title for new video
         // Check if video is in queue
         setCurrentVideoInQueue(queueManager.isInQueue(navState.url));
       }
@@ -171,6 +175,7 @@ const HomeScreen = () => {
       if (currentUrl !== "") {
         setCurrentUrl("");
         setVideoDuration(undefined);
+        setVideoTitle("");
         setCurrentVideoInQueue(undefined);
       }
     }
@@ -263,8 +268,7 @@ const HomeScreen = () => {
       return;
     }
 
-    // Get video title from page if possible
-    const title = `Video YouTube`; // Could be enhanced to get actual title
+    const title = videoTitle || "Video YouTube";
     const item = await queueManager.addToQueue(
       currentUrl,
       title,

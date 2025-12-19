@@ -238,6 +238,49 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
         />
       </View>
 
+      <View style={styles.settingGroup}>
+        <Text style={styles.settingLabel}>
+          Vị trí (dọc): {subtitleSettings.portraitBottom ?? 12}px từ dưới
+        </Text>
+        <Slider
+          style={styles.slider}
+          minimumValue={0}
+          maximumValue={100}
+          step={2}
+          value={subtitleSettings.portraitBottom ?? 12}
+          onValueChange={(value) => {
+            const newSettings = { ...subtitleSettings, portraitBottom: value };
+            onSubtitleChange(newSettings);
+            saveSubtitleSettings(newSettings);
+          }}
+          minimumTrackTintColor={COLORS.primary}
+          maximumTrackTintColor={COLORS.border}
+          thumbTintColor={COLORS.primary}
+        />
+      </View>
+
+      <View style={styles.settingGroup}>
+        <Text style={styles.settingLabel}>
+          Vị trí (ngang/fullscreen): {subtitleSettings.landscapeBottom ?? 8}px
+          từ dưới
+        </Text>
+        <Slider
+          style={styles.slider}
+          minimumValue={0}
+          maximumValue={60}
+          step={2}
+          value={subtitleSettings.landscapeBottom ?? 8}
+          onValueChange={(value) => {
+            const newSettings = { ...subtitleSettings, landscapeBottom: value };
+            onSubtitleChange(newSettings);
+            saveSubtitleSettings(newSettings);
+          }}
+          minimumTrackTintColor={COLORS.primary}
+          maximumTrackTintColor={COLORS.border}
+          thumbTintColor={COLORS.primary}
+        />
+      </View>
+
       {/* Batch Section */}
       <Text style={[styles.sectionTitle, { marginTop: 24 }]}>Dịch video</Text>
 

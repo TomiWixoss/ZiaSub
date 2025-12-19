@@ -169,7 +169,8 @@ const styles = StyleSheet.create({
     fontSize: 13,
     borderWidth: 1,
     borderColor: COLORS.border,
-    height: 120,
+    minHeight: 200,
+    maxHeight: 300,
   },
   buttonRow: {
     flexDirection: "row",
