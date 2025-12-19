@@ -32,6 +32,7 @@ import {
   saveBatchSettings,
   getApiKeys,
   getAllTranslatedVideoUrls,
+  getActiveTranslation,
 } from "@utils/storage";
 import { keyManager } from "@services/keyManager";
 import { queueManager, QueueItem } from "@services/queueManager";
@@ -175,12 +176,13 @@ const HomeScreen = () => {
     }
   }, [isVideoPlaying, subtitleSettings]);
 
-  // Load saved SRT for current video
+  // Load saved SRT for current video (check both manual SRT and translations)
   const loadSavedSRT = async (url: string) => {
     if (!url) {
       setSrtContent("");
       setSubtitles([]);
       setCurrentSubtitle("");
+      lastSentSubtitleRef.current = "";
       if (webViewRef.current) {
         webViewRef.current.postMessage(
           JSON.stringify({ type: "setSubtitle", payload: "" })
@@ -189,16 +191,28 @@ const HomeScreen = () => {
       return;
     }
 
-    const savedSRT = await getSRT(url);
-    if (savedSRT) {
-      setSrtContent(savedSRT);
-      const { fixedData } = fixSRT(savedSRT);
+    // First check manual SRT
+    let srt = await getSRT(url);
+
+    // If no manual SRT, check for active translation
+    if (!srt) {
+      const activeTranslation = await getActiveTranslation(url);
+      if (activeTranslation) {
+        srt = activeTranslation.srtContent;
+      }
+    }
+
+    if (srt) {
+      setSrtContent(srt);
+      const { fixedData } = fixSRT(srt);
       const parsed = parseSRT(fixedData);
       setSubtitles(parsed);
+      lastSentSubtitleRef.current = ""; // Reset to force resync
     } else {
       setSrtContent("");
       setSubtitles([]);
       setCurrentSubtitle("");
+      lastSentSubtitleRef.current = "";
       if (webViewRef.current) {
         webViewRef.current.postMessage(
           JSON.stringify({ type: "setSubtitle", payload: "" })

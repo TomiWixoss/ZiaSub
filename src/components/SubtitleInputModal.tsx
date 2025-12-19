@@ -146,14 +146,46 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
     return () => unsubscribe();
   }, [videoUrl]);
 
+  // Reset state and check for existing job when videoUrl changes
   useEffect(() => {
     if (videoUrl) {
       const existingJob = translationManager.getJobForUrl(videoUrl);
-      if (existingJob) {
-        setIsTranslating(existingJob.status === "processing");
+      if (existingJob && existingJob.status === "processing") {
+        setIsTranslating(true);
         setBatchProgress(existingJob.progress);
-        if (existingJob.status === "processing") setActiveTab("translate");
+        setKeyStatus(existingJob.keyStatus);
+        setTranslateStatus(
+          existingJob.progress && existingJob.progress.totalBatches > 1
+            ? `Đang dịch batch ${existingJob.progress.completedBatches}/${existingJob.progress.totalBatches}...`
+            : "Đang dịch video..."
+        );
+        setActiveTab("translate");
+        // Notify parent about translation state
+        onTranslationStateChangeRef.current?.(
+          true,
+          existingJob.progress
+            ? {
+                completed: existingJob.progress.completedBatches,
+                total: existingJob.progress.totalBatches,
+              }
+            : null
+        );
+      } else {
+        // Reset state for new video that's not being translated
+        setIsTranslating(false);
+        setBatchProgress(null);
+        setKeyStatus(null);
+        setTranslateStatus("");
+        // Notify parent
+        onTranslationStateChangeRef.current?.(false, null);
       }
+    } else {
+      // No video URL - reset all state
+      setIsTranslating(false);
+      setBatchProgress(null);
+      setKeyStatus(null);
+      setTranslateStatus("");
+      onTranslationStateChangeRef.current?.(false, null);
     }
   }, [videoUrl]);
 

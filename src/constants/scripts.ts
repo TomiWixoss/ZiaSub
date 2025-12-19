@@ -60,6 +60,21 @@ export const INJECTED_JAVASCRIPT = `
       subtitleLayer.style.cssText = 'position:' + positionType + ';bottom:' + bottomPos + 'px;left:5%;right:5%;max-width:90%;margin:0 auto;text-align:center;color:#FFF;font-size:' + subtitleFontSize + 'px;font-weight:' + weight + ';font-style:' + subtitleFontStyle + ';font-family:system-ui,sans-serif;' + textStroke + textShadow + bgStyle + 'pointer-events:none;z-index:2147483647;display:' + (lastSubtitle ? 'block' : 'none') + ';line-height:1.5;white-space:pre-line;transform:translateZ(0);backface-visibility:hidden;contain:layout style paint';
     }
 
+    function ensureSubtitleInFullscreen() {
+      const fs = document.fullscreenElement || document.webkitFullscreenElement;
+      const layer = initSubtitleLayer();
+      const target = fs || document.body;
+      if (layer.parentElement !== target) {
+        target.appendChild(layer);
+        updateSubtitleStyle();
+        // Restore subtitle text
+        if (lastSubtitle) {
+          layer.textContent = lastSubtitle;
+          layer.style.display = 'block';
+        }
+      }
+    }
+
     function getVideo() {
       const currentVideo = document.querySelector('video');
       // If video element changed (quality change, etc.), reset lastTime to force resync
@@ -67,6 +82,8 @@ export const INJECTED_JAVASCRIPT = `
         cachedVideo = currentVideo;
         lastTime = -1; // Force resync subtitle
         lastDurationSent = 0; // Force resend duration
+        // Re-attach subtitle layer when video changes (quality change in fullscreen)
+        ensureSubtitleInFullscreen();
       }
       return cachedVideo;
     }
@@ -301,14 +318,34 @@ export const INJECTED_JAVASCRIPT = `
     document.addEventListener('message', handleMessage, { passive: true });
     window.addEventListener('message', handleMessage, { passive: true });
 
+    let fullscreenObserver = null;
+
     function handleFullscreenChange() {
       const fs = document.fullscreenElement || document.webkitFullscreenElement;
       const layer = initSubtitleLayer();
+      
+      // Disconnect previous observer
+      if (fullscreenObserver) {
+        fullscreenObserver.disconnect();
+        fullscreenObserver = null;
+      }
+      
       if (fs) {
         fs.appendChild(layer);
         isPortrait = false;
         updateSubtitleStyle();
+        // Restore subtitle
+        if (lastSubtitle) {
+          layer.textContent = lastSubtitle;
+          layer.style.display = 'block';
+        }
         window.ReactNativeWebView.postMessage('{"type":"fullscreen_open"}');
+        
+        // Observe fullscreen element for DOM changes (quality change causes DOM rebuild)
+        fullscreenObserver = new MutationObserver(throttle(() => {
+          ensureSubtitleInFullscreen();
+        }, 100));
+        fullscreenObserver.observe(fs, { childList: true, subtree: true });
       } else {
         document.body.appendChild(layer);
         isPortrait = window.innerHeight > window.innerWidth;
@@ -331,14 +368,10 @@ export const INJECTED_JAVASCRIPT = `
     window.addEventListener('resize', throttle(handleOrientationChange, 100), { passive: true });
     window.addEventListener('orientationchange', handleOrientationChange, { passive: true });
 
+    // Check subtitle layer position more frequently (every 500ms instead of 3s)
     parentCheckId = setInterval(() => {
-      const fs = document.fullscreenElement || document.webkitFullscreenElement;
-      const target = fs || document.body;
-      const layer = initSubtitleLayer();
-      if (layer.parentElement !== target) {
-        target.appendChild(layer);
-      }
-    }, 3000);
+      ensureSubtitleInFullscreen();
+    }, 500);
 
     window.addEventListener('beforeunload', () => {
       isPolling = false;
