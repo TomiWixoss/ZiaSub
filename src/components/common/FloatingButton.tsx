@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from "react";
 import { Animated, Pressable, StyleSheet, View, Easing } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { COLORS } from "@constants/colors";
+import { useTheme } from "@src/contexts";
 
 interface FloatingButtonProps {
   onPress: () => void;
@@ -35,60 +35,67 @@ const Fab3D: React.FC<Fab3DProps> = ({
   iconSize,
   active = false,
 }) => {
+  const { colors, isDark } = useTheme();
   const animatedValue = useRef(new Animated.Value(0)).current;
-
   const handlePressIn = () => animatedValue.setValue(1);
   const handlePressOut = () => animatedValue.setValue(0);
-
   const translateY = animatedValue.interpolate({
     inputRange: [0, 1],
     outputRange: [0, SHADOW_HEIGHT],
   });
-
-  const bgColor = active ? COLORS.primary : COLORS.surfaceElevated;
-  const shadowColor = active ? COLORS.primaryDark : COLORS.background;
-  const borderColor = active ? COLORS.primaryDark : COLORS.border;
+  const bgColor = active ? colors.primary : colors.surface;
+  const shadowColor = active
+    ? colors.primaryDark
+    : isDark
+    ? colors.background
+    : colors.border;
+  const borderColor = active
+    ? colors.primaryDark
+    : isDark
+    ? colors.border
+    : colors.borderLight;
+  const iconColor = active ? colors.background : colors.text;
 
   return (
     <View
-      style={[
-        styles.fab3dContainer,
-        { width: size, height: size + SHADOW_HEIGHT },
-      ]}
+      style={{
+        width: size,
+        height: size + SHADOW_HEIGHT,
+        position: "relative",
+      }}
     >
       <View
-        style={[
-          styles.fabShadow,
-          {
-            width: size,
-            height: size,
-            borderRadius: size * 0.3,
-            backgroundColor: shadowColor,
-          },
-        ]}
+        style={{
+          position: "absolute",
+          bottom: 0,
+          width: size,
+          height: size,
+          borderRadius: size * 0.3,
+          backgroundColor: shadowColor,
+        }}
       />
       <Animated.View
-        style={[styles.fabWrapper, { transform: [{ translateY }] }]}
+        style={{ position: "absolute", top: 0, transform: [{ translateY }] }}
       >
         <Pressable
           onPress={onPress}
           onPressIn={handlePressIn}
           onPressOut={handlePressOut}
-          style={[
-            styles.fabButton,
-            {
-              width: size,
-              height: size,
-              borderRadius: size * 0.3,
-              backgroundColor: bgColor,
-              borderColor,
-            },
-          ]}
+          style={{
+            width: size,
+            height: size,
+            borderRadius: size * 0.3,
+            backgroundColor: bgColor,
+            borderColor,
+            borderWidth: 2,
+            justifyContent: "center",
+            alignItems: "center",
+          }}
         >
           <MaterialCommunityIcons
             name={icon}
             size={iconSize}
-            color={COLORS.text}
+            color={iconColor}
           />
         </Pressable>
       </Animated.View>
@@ -96,14 +103,12 @@ const Fab3D: React.FC<Fab3DProps> = ({
   );
 };
 
-interface ChatFabProps {
-  onPress: () => void;
-  isLoading: boolean;
-}
-
-const ChatFab: React.FC<ChatFabProps> = ({ onPress, isLoading }) => {
+const ChatFab: React.FC<{ onPress: () => void; isLoading: boolean }> = ({
+  onPress,
+  isLoading,
+}) => {
+  const { colors } = useTheme();
   const pulseAnim = useRef(new Animated.Value(0)).current;
-
   useEffect(() => {
     if (isLoading) {
       const pulse = Animated.loop(
@@ -128,51 +133,57 @@ const ChatFab: React.FC<ChatFabProps> = ({ onPress, isLoading }) => {
       pulseAnim.setValue(0);
     }
   }, [isLoading]);
-
+  if (!isLoading)
+    return (
+      <Fab3D onPress={onPress} icon="robot-outline" size={40} iconSize={20} />
+    );
   const glowOpacity = pulseAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [0.3, 0.7],
   });
-
   const glowScale = pulseAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [1, 1.2],
   });
-
-  if (!isLoading) {
-    return (
-      <Fab3D onPress={onPress} icon="robot-outline" size={40} iconSize={20} />
-    );
-  }
-
   return (
     <Pressable onPress={onPress}>
       <View style={styles.chatLoadingContainer}>
         <Animated.View
           style={[
             styles.chatGlowEffect,
-            { opacity: glowOpacity, transform: [{ scale: glowScale }] },
+            {
+              backgroundColor: colors.primary,
+              opacity: glowOpacity,
+              transform: [{ scale: glowScale }],
+            },
           ]}
         />
-        <View style={styles.chatLoadingFab}>
-          <MaterialCommunityIcons name="robot" size={20} color={COLORS.text} />
+        <View
+          style={[
+            styles.chatLoadingFab,
+            {
+              backgroundColor: colors.primary,
+              borderColor: colors.primaryDark,
+            },
+          ]}
+        >
+          <MaterialCommunityIcons
+            name="robot"
+            size={20}
+            color={colors.background}
+          />
         </View>
       </View>
     </Pressable>
   );
 };
 
-interface TranslatingFabProps {
+const TranslatingFab: React.FC<{
   onPress: () => void;
   progress: { completed: number; total: number } | null;
-}
-
-const TranslatingFab: React.FC<TranslatingFabProps> = ({
-  onPress,
-  progress,
-}) => {
+}> = ({ onPress, progress }) => {
+  const { colors, isDark } = useTheme();
   const pulseAnim = useRef(new Animated.Value(0)).current;
-
   useEffect(() => {
     const pulse = Animated.loop(
       Animated.sequence([
@@ -193,55 +204,64 @@ const TranslatingFab: React.FC<TranslatingFabProps> = ({
     pulse.start();
     return () => pulse.stop();
   }, []);
-
   const borderOpacity = pulseAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [0.5, 1],
   });
-
   const glowScale = pulseAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [1, 1.15],
   });
-
   const glowOpacity = pulseAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [0.3, 0.6],
   });
-
   const progressText = progress
     ? `${progress.completed}/${progress.total}`
     : "";
-
   return (
     <Pressable onPress={onPress}>
       <View style={styles.translatingContainer}>
-        {/* Glow effect */}
         <Animated.View
           style={[
             styles.glowEffect,
-            { opacity: glowOpacity, transform: [{ scale: glowScale }] },
+            {
+              backgroundColor: colors.primary,
+              opacity: glowOpacity,
+              transform: [{ scale: glowScale }],
+            },
           ]}
         />
-        {/* Main button with animated border */}
         <Animated.View
           style={[
             styles.translatingFab,
-            { borderColor: COLORS.primary, opacity: borderOpacity },
+            { borderColor: colors.primary, opacity: borderOpacity },
           ]}
         >
-          <View style={styles.translatingFabInner}>
+          <View
+            style={[
+              styles.translatingFabInner,
+              {
+                backgroundColor: isDark
+                  ? colors.surfaceElevated
+                  : colors.surface,
+              },
+            ]}
+          >
             <MaterialCommunityIcons
               name="creation"
               size={26}
-              color={COLORS.text}
+              color={colors.primary}
             />
           </View>
         </Animated.View>
-        {/* Progress badge */}
         {progress && progress.total > 1 && (
-          <View style={styles.progressBadge}>
-            <Animated.Text style={styles.progressText}>
+          <View
+            style={[styles.progressBadge, { backgroundColor: colors.success }]}
+          >
+            <Animated.Text
+              style={[styles.progressText, { color: colors.background }]}
+            >
               {progressText}
             </Animated.Text>
           </View>
@@ -251,27 +271,25 @@ const TranslatingFab: React.FC<TranslatingFabProps> = ({
   );
 };
 
-const FloatingButton: React.FC<FloatingButtonProps> = ({
-  onPress,
-  onSettingsPress,
-  onQueuePress,
-  onChatPress,
-  onAddToQueuePress,
-  isVideoPage,
-  hasSubtitles = false,
-  isTranslating = false,
-  translationProgress = null,
-  queueCount = 0,
-  isInQueue = false,
-  isChatLoading = false,
-}) => {
-  // Higher position when on list page to avoid YouTube nav bar
+const FloatingButton: React.FC<FloatingButtonProps> = (props) => {
+  const { colors } = useTheme();
+  const {
+    onPress,
+    onSettingsPress,
+    onQueuePress,
+    onChatPress,
+    onAddToQueuePress,
+    isVideoPage,
+    hasSubtitles = false,
+    isTranslating = false,
+    translationProgress = null,
+    queueCount = 0,
+    isInQueue = false,
+    isChatLoading = false,
+  } = props;
   const bottomPosition = isVideoPage ? 20 : 80;
-  const rowHeight = 44 + 10; // button height + gap
-
   return (
     <>
-      {/* Left column: Settings on top, Queue+Add below */}
       <View style={[styles.fabColumnLeft, { bottom: bottomPosition }]}>
         <Fab3D onPress={onSettingsPress} icon="cog" size={40} iconSize={20} />
         <View style={styles.queueRow}>
@@ -283,8 +301,12 @@ const FloatingButton: React.FC<FloatingButtonProps> = ({
               iconSize={20}
             />
             {queueCount > 0 && (
-              <View style={styles.queueBadge}>
-                <Animated.Text style={styles.queueBadgeText}>
+              <View
+                style={[styles.queueBadge, { backgroundColor: colors.primary }]}
+              >
+                <Animated.Text
+                  style={[styles.queueBadgeText, { color: colors.background }]}
+                >
                   {queueCount}
                 </Animated.Text>
               </View>
@@ -301,8 +323,6 @@ const FloatingButton: React.FC<FloatingButtonProps> = ({
           )}
         </View>
       </View>
-
-      {/* Right column: AI (aligned with bottom row when no video, or above Sub when video) */}
       <View style={[styles.fabColumnRight, { bottom: bottomPosition }]}>
         <ChatFab onPress={onChatPress} isLoading={isChatLoading} />
         {isVideoPage &&
@@ -337,17 +357,12 @@ const styles = StyleSheet.create({
     gap: 10,
     zIndex: 20,
   },
-  queueRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
+  queueRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   queueBtnWrapper: { position: "relative" },
   queueBadge: {
     position: "absolute",
     top: -4,
     right: -4,
-    backgroundColor: COLORS.primary,
     borderRadius: 10,
     minWidth: 18,
     height: 18,
@@ -355,24 +370,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 4,
   },
-  queueBadgeText: { color: COLORS.background, fontSize: 10, fontWeight: "700" },
-  fab3dContainer: { position: "relative" },
-  fabShadow: { position: "absolute", bottom: 0 },
-  fabWrapper: { position: "absolute", top: 0 },
-  fabButton: { justifyContent: "center", alignItems: "center", borderWidth: 2 },
+  queueBadgeText: { fontSize: 10, fontWeight: "700" },
   translatingContainer: {
     width: 60,
     height: 60,
     justifyContent: "center",
     alignItems: "center",
   },
-  glowEffect: {
-    position: "absolute",
-    width: 56,
-    height: 56,
-    borderRadius: 18,
-    backgroundColor: COLORS.primary,
-  },
+  glowEffect: { position: "absolute", width: 56, height: 56, borderRadius: 18 },
   translatingFab: {
     width: 52,
     height: 52,
@@ -385,23 +390,17 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 14,
-    backgroundColor: COLORS.surfaceElevated,
     justifyContent: "center",
     alignItems: "center",
   },
   progressBadge: {
     position: "absolute",
     bottom: -4,
-    backgroundColor: COLORS.success,
     borderRadius: 8,
     paddingHorizontal: 6,
     paddingVertical: 2,
   },
-  progressText: {
-    color: COLORS.background,
-    fontSize: 9,
-    fontWeight: "700",
-  },
+  progressText: { fontSize: 9, fontWeight: "700" },
   chatLoadingContainer: {
     width: 44,
     height: 48,
@@ -413,15 +412,12 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: COLORS.primary,
   },
   chatLoadingFab: {
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: COLORS.primary,
     borderWidth: 2,
-    borderColor: COLORS.primaryDark,
     justifyContent: "center",
     alignItems: "center",
   },
