@@ -21,6 +21,7 @@ import {
   translationManager,
   TranslationJob,
 } from "@services/translationManager";
+import { queueManager } from "@services/queueManager";
 import { SrtTab, TranslateTab } from "./subtitle";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -93,6 +94,15 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
               ? `Đang dịch batch ${job.progress.completedBatches}/${job.progress.totalBatches}...`
               : "Đang dịch video..."
           );
+          // Sync progress to queue if video is in queue
+          queueManager.updateVideoProgress(
+            job.videoUrl,
+            {
+              completed: job.progress.completedBatches,
+              total: job.progress.totalBatches,
+            },
+            job.configName
+          );
         }
 
         onTranslationStateChangeRef.current?.(
@@ -108,13 +118,23 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
         if (job.status === "completed" && job.result) {
           setTranslateStatus("Hoàn tất!");
           setKeyStatus(null);
+          // Update SRT content and load subtitles
+          setSrtContent(job.result);
+          onLoadSubtitles();
+          // Sync to queue - mark as completed
+          queueManager.markVideoCompleted(job.videoUrl, job.configName);
           translationManager.clearCompletedJob(videoUrl);
-          Alert.alert("Thành công", "Đã dịch xong! Bản dịch đã được lưu.");
+          Alert.alert("Thành công", "Đã dịch xong! Phụ đề đã được áp dụng.");
         }
 
         if (job.status === "error") {
           setTranslateStatus("");
           setKeyStatus(null);
+          // Sync to queue - mark as error
+          queueManager.markVideoError(
+            job.videoUrl,
+            job.error || "Lỗi không xác định"
+          );
           translationManager.clearCompletedJob(videoUrl);
           Alert.alert("Lỗi dịch", job.error || "Không thể dịch video.");
         }

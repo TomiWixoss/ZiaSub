@@ -240,14 +240,14 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
 
       <View style={styles.settingGroup}>
         <Text style={styles.settingLabel}>
-          Vị trí (dọc): {subtitleSettings.portraitBottom ?? 12}px từ dưới
+          Vị trí (dọc): {subtitleSettings.portraitBottom ?? 100}px từ dưới
         </Text>
         <Slider
           style={styles.slider}
           minimumValue={0}
-          maximumValue={100}
-          step={2}
-          value={subtitleSettings.portraitBottom ?? 12}
+          maximumValue={200}
+          step={5}
+          value={subtitleSettings.portraitBottom ?? 100}
           onValueChange={(value) => {
             const newSettings = { ...subtitleSettings, portraitBottom: value };
             onSubtitleChange(newSettings);

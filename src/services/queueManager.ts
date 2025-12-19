@@ -302,6 +302,55 @@ class QueueManager {
       await this.startTranslation(next.id);
     }
   }
+
+  // Mark video as completed (called when translated outside of queue)
+  async markVideoCompleted(
+    videoUrl: string,
+    configName?: string
+  ): Promise<void> {
+    const videoId = this.extractVideoId(videoUrl);
+    const item = this.items.find((i) => i.videoId === videoId);
+    if (item && item.status !== "completed") {
+      await this.updateItem(item.id, {
+        status: "completed",
+        completedAt: Date.now(),
+        configName: configName || item.configName,
+        progress: undefined,
+        error: undefined,
+      });
+    }
+  }
+
+  // Update video progress (called when translating outside of queue)
+  async updateVideoProgress(
+    videoUrl: string,
+    progress: { completed: number; total: number } | null,
+    configName?: string
+  ): Promise<void> {
+    const videoId = this.extractVideoId(videoUrl);
+    const item = this.items.find((i) => i.videoId === videoId);
+    if (item) {
+      await this.updateItem(item.id, {
+        status: "translating",
+        progress: progress || undefined,
+        configName: configName || item.configName,
+        startedAt: item.startedAt || Date.now(),
+      });
+    }
+  }
+
+  // Mark video as error
+  async markVideoError(videoUrl: string, error: string): Promise<void> {
+    const videoId = this.extractVideoId(videoUrl);
+    const item = this.items.find((i) => i.videoId === videoId);
+    if (item) {
+      await this.updateItem(item.id, {
+        status: "error",
+        error,
+        progress: undefined,
+      });
+    }
+  }
 }
 
 export const queueManager = QueueManager.getInstance();

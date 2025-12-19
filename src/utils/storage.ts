@@ -38,7 +38,7 @@ export const DEFAULT_SUBTITLE_SETTINGS: SubtitleSettings = {
   fontSize: 15,
   fontWeight: "bold",
   fontStyle: "normal",
-  portraitBottom: 12,
+  portraitBottom: 100,
   landscapeBottom: 8,
 };
 
