@@ -136,16 +136,21 @@ export const INJECTED_JAVASCRIPT = `
         return;
       }
       
-      // Find all thumbnail links in video lists
-      const thumbnailLinks = document.querySelectorAll('a.media-item-thumbnail-container, a[href*="/watch"] ytm-thumbnail-cover, ytm-thumbnail-cover');
+      // Find all video item renderers (new YouTube mobile structure)
+      const selectors = [
+        'ytm-rich-item-renderer',
+        'ytm-compact-video-renderer', 
+        'ytm-video-with-context-renderer',
+        'ytm-item-section-renderer a[href*="/watch"]',
+        'a.media-item-thumbnail-container'
+      ];
       
-      thumbnailLinks.forEach(el => {
-        // Find parent link or use element itself
-        let link = el.closest('a[href*="/watch?v="], a[href*="/shorts/"]');
+      const videoItems = document.querySelectorAll(selectors.join(','));
+      
+      videoItems.forEach(item => {
+        // Find the link with video ID
+        let link = item.tagName === 'A' ? item : item.querySelector('a[href*="/watch?v="], a[href*="/shorts/"]');
         if (!link) return;
-        
-        // Skip if already marked
-        if (el.querySelector('.ziasub-translated-badge')) return;
         
         const href = link.getAttribute('href') || '';
         let videoId = null;
@@ -156,21 +161,30 @@ export const INJECTED_JAVASCRIPT = `
         if (watchMatch) videoId = watchMatch[1];
         else if (shortsMatch) videoId = shortsMatch[1];
         
-        if (videoId && translatedVideoIds.has(videoId)) {
-          // Make container relative for badge positioning
-          const container = el;
-          if (container.style.position !== 'relative' && container.style.position !== 'absolute') {
-            container.style.position = 'relative';
-          }
-          
-          // Create badge
-          const badge = document.createElement('div');
-          badge.className = 'ziasub-translated-badge';
-          badge.textContent = 'Đã dịch';
-          badge.style.cssText = 'position:absolute;top:4px;left:4px;background:linear-gradient(135deg,#9B7ED9,#7C5CBF);color:#fff;font-size:10px;font-weight:600;padding:2px 6px;border-radius:4px;z-index:100;pointer-events:none;box-shadow:0 1px 3px rgba(0,0,0,0.3);';
-          
-          container.appendChild(badge);
+        if (!videoId || !translatedVideoIds.has(videoId)) return;
+        
+        // Find the thumbnail container - try multiple selectors for different layouts
+        let thumbnailContainer = item.querySelector('ytm-compact-thumbnail, .YtmCompactMediaItemImage, a.media-item-thumbnail-container, ytm-thumbnail-cover');
+        if (!thumbnailContainer) {
+          // Fallback: use the first link as container
+          thumbnailContainer = link;
         }
+        
+        // Skip if already marked
+        if (thumbnailContainer.querySelector('.ziasub-translated-badge')) return;
+        
+        // Make container relative for badge positioning
+        if (thumbnailContainer.style.position !== 'relative' && thumbnailContainer.style.position !== 'absolute') {
+          thumbnailContainer.style.position = 'relative';
+        }
+        
+        // Create badge
+        const badge = document.createElement('div');
+        badge.className = 'ziasub-translated-badge';
+        badge.textContent = 'Đã dịch';
+        badge.style.cssText = 'position:absolute;top:4px;left:4px;background:linear-gradient(135deg,#9B7ED9,#7C5CBF);color:#fff;font-size:10px;font-weight:600;padding:2px 6px;border-radius:4px;z-index:100;pointer-events:none;box-shadow:0 1px 3px rgba(0,0,0,0.3);';
+        
+        thumbnailContainer.appendChild(badge);
       });
     }
 
