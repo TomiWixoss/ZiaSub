@@ -30,6 +30,7 @@ import {
 import YouTubePlayer from "@components/YouTubePlayer";
 import SubtitleInputModal from "@components/SubtitleInputModal";
 import SubtitleSettingsModal from "@components/SubtitleSettingsModal";
+import GeminiSettingsModal from "@components/GeminiSettingsModal";
 import FloatingButton from "@components/FloatingButton";
 
 import { COLORS } from "@constants/colors";
@@ -37,6 +38,7 @@ import { COLORS } from "@constants/colors";
 const HomeScreen = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [settingsModalVisible, setSettingsModalVisible] = useState(false);
+  const [geminiSettingsVisible, setGeminiSettingsVisible] = useState(false);
   const [srtContent, setSrtContent] = useState("");
   const [subtitles, setSubtitles] = useState<SubtitleItem[]>([]);
   const [currentSubtitle, setCurrentSubtitle] = useState("");
@@ -285,6 +287,10 @@ const HomeScreen = () => {
         srtContent={srtContent}
         setSrtContent={setSrtContent}
         onLoadSubtitles={handleLoadSubtitles}
+        onOpenGeminiSettings={() => {
+          setModalVisible(false);
+          setTimeout(() => setGeminiSettingsVisible(true), 300);
+        }}
       />
 
       <SubtitleSettingsModal
@@ -292,6 +298,11 @@ const HomeScreen = () => {
         onClose={() => setSettingsModalVisible(false)}
         settings={subtitleSettings}
         onSettingsChange={handleSettingsChange}
+      />
+
+      <GeminiSettingsModal
+        visible={geminiSettingsVisible}
+        onClose={() => setGeminiSettingsVisible(false)}
       />
     </View>
   );

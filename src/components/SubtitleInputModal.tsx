@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useRef } from "react";
+import React, { useEffect, useCallback, useRef, useState } from "react";
 import {
   View,
   Modal,
@@ -10,6 +10,7 @@ import {
   Alert,
   TextInput as RNTextInput,
   Animated,
+  ActivityIndicator,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "react-native-paper";
@@ -18,6 +19,8 @@ import * as DocumentPicker from "expo-document-picker";
 import * as Clipboard from "expo-clipboard";
 import { readAsStringAsync } from "expo-file-system/legacy";
 import { COLORS } from "@constants/colors";
+import { getGeminiConfig } from "@utils/storage";
+import { translateWithGemini } from "@services/geminiService";
 import Button3D from "./Button3D";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -37,6 +40,7 @@ interface SubtitleInputModalProps {
   srtContent: string;
   setSrtContent: (text: string) => void;
   onLoadSubtitles: () => void;
+  onOpenGeminiSettings: () => void;
 }
 
 const SHEET_HEIGHT = SCREEN_HEIGHT * 0.65;
@@ -47,10 +51,12 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
   srtContent,
   setSrtContent,
   onLoadSubtitles,
+  onOpenGeminiSettings,
 }) => {
   const insets = useSafeAreaInsets();
   const slideAnim = useRef(new Animated.Value(SHEET_HEIGHT)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const [isTranslating, setIsTranslating] = useState(false);
 
   useEffect(() => {
     if (visible) {
@@ -160,6 +166,43 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
     }
   };
 
+  const handleTranslate = async () => {
+    if (!srtContent.trim()) {
+      Alert.alert("Thông báo", "Vui lòng nhập nội dung SRT trước khi dịch.");
+      return;
+    }
+
+    try {
+      setIsTranslating(true);
+      const config = await getGeminiConfig();
+
+      if (!config.apiKey) {
+        Alert.alert(
+          "Chưa cấu hình API",
+          "Bạn cần cấu hình Gemini API Key trước khi sử dụng tính năng dịch.",
+          [
+            { text: "Hủy", style: "cancel" },
+            { text: "Cài đặt", onPress: onOpenGeminiSettings },
+          ]
+        );
+        return;
+      }
+
+      const translated = await translateWithGemini(
+        srtContent,
+        config,
+        (text: string) => setSrtContent(text) // Stream update
+      );
+
+      setSrtContent(translated);
+      Alert.alert("Thành công", "Đã dịch xong phụ đề!");
+    } catch (error: any) {
+      Alert.alert("Lỗi dịch", error.message || "Không thể dịch phụ đề.");
+    } finally {
+      setIsTranslating(false);
+    }
+  };
+
   return (
     <Modal
       animationType="none"
@@ -209,7 +252,7 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
               <Button3D
                 onPress={handlePickFile}
                 icon="file-document-outline"
-                title="Chọn file"
+                title="File"
                 variant="outline"
                 style={styles.rowButton}
               />
@@ -220,7 +263,32 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
                 variant="outline"
                 style={styles.rowButton}
               />
+              <Button3D
+                onPress={handleTranslate}
+                icon="translate"
+                title="Dịch"
+                variant="outline"
+                style={styles.rowButton}
+                disabled={isTranslating}
+              />
+              <TouchableOpacity
+                style={styles.settingsButton}
+                onPress={onOpenGeminiSettings}
+              >
+                <MaterialCommunityIcons
+                  name="cog"
+                  size={20}
+                  color={COLORS.textSecondary}
+                />
+              </TouchableOpacity>
             </View>
+
+            {isTranslating && (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="small" color={COLORS.primary} />
+                <Text style={styles.loadingText}>Đang dịch...</Text>
+              </View>
+            )}
 
             <View style={styles.inputContainer}>
               <RNTextInput
@@ -336,6 +404,27 @@ const styles = StyleSheet.create({
     top: 12,
     right: 12,
     padding: 4,
+  },
+  settingsButton: {
+    width: 52,
+    height: 52 + 4,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: COLORS.surfaceLight,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  loadingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 8,
+    gap: 8,
+  },
+  loadingText: {
+    color: COLORS.textSecondary,
+    fontSize: 13,
   },
 });
 
