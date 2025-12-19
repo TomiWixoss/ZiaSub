@@ -155,11 +155,19 @@ export const INJECTED_JAVASCRIPT = `
     }
 
     function addQueueButton(thumbnailContainer, videoId, videoUrl, title) {
-      // Skip if already has button
-      if (thumbnailContainer.querySelector('.ziasub-add-queue-btn')) return;
-      
       const isQueued = queuedVideoIds.has(videoId);
       const isTranslated = translatedVideoIds.has(videoId);
+      
+      // Check if button already exists
+      const existingBtn = thumbnailContainer.querySelector('.ziasub-add-queue-btn');
+      if (existingBtn) {
+        // Update existing button state if needed
+        if (isTranslated) {
+          existingBtn.remove();
+          return;
+        }
+        return;
+      }
       
       // Don't show add button if already translated
       if (isTranslated) return;
@@ -331,6 +339,16 @@ export const INJECTED_JAVASCRIPT = `
 
     initSubtitleLayer();
     startTimePolling();
+    
+    // Initial mark videos after DOM is ready
+    if (document.readyState === 'complete') {
+      setTimeout(markVideos, 500);
+    } else {
+      window.addEventListener('load', () => setTimeout(markVideos, 500), { once: true });
+    }
+    
+    // Also periodically check for new videos (in case MutationObserver misses some)
+    setInterval(markVideos, 2000);
   })();
   true;
 `;

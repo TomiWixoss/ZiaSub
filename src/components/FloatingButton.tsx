@@ -195,10 +195,13 @@ const FloatingButton: React.FC<FloatingButtonProps> = ({
   queueCount = 0,
   isInQueue = false,
 }) => {
+  // Higher position when on list page to avoid YouTube nav bar
+  const bottomPosition = isVideoPage ? 20 : 70;
+
   return (
     <>
       {/* Left side: Settings & Queue - always visible */}
-      <View style={styles.fabContainerLeft}>
+      <View style={[styles.fabContainerLeft, { bottom: bottomPosition }]}>
         <Fab3D onPress={onSettingsPress} icon="cog" size={40} iconSize={20} />
         <View style={styles.queueBtnWrapper}>
           <Fab3D
