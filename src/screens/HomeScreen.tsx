@@ -226,28 +226,35 @@ const HomeScreen = () => {
   }, [currentUrl]);
 
   // Subscribe to translation manager to auto-apply translations when completed
+  // Also handle streaming mode - apply partial results as each batch completes
   useEffect(() => {
     const unsubscribe = translationManager.subscribe((job) => {
-      // Auto-apply translation when completed for current video
       // Compare by video ID to handle URL variations
       const jobVideoId = extractVideoId(job.videoUrl);
       const currentVideoId = extractVideoId(currentUrlRef.current);
 
-      if (
-        jobVideoId &&
-        currentVideoId &&
-        jobVideoId === currentVideoId &&
-        job.status === "completed" &&
-        job.result
-      ) {
-        setSrtContent(job.result);
-        const { fixedData } = fixSRT(job.result);
-        const parsed = parseSRT(fixedData);
-        setSubtitles(parsed);
-        // Reset lastSentSubtitle to force resync
-        lastSentSubtitleRef.current = "";
-        // Sync translated videos to WebView
-        syncTranslatedVideosToWebView();
+      if (jobVideoId && currentVideoId && jobVideoId === currentVideoId) {
+        // Streaming mode: Apply partial result as each batch completes
+        if (job.status === "processing" && job.partialResult) {
+          setSrtContent(job.partialResult);
+          const { fixedData } = fixSRT(job.partialResult);
+          const parsed = parseSRT(fixedData);
+          setSubtitles(parsed);
+          // Reset lastSentSubtitle to force resync
+          lastSentSubtitleRef.current = "";
+        }
+
+        // Final result when completed
+        if (job.status === "completed" && job.result) {
+          setSrtContent(job.result);
+          const { fixedData } = fixSRT(job.result);
+          const parsed = parseSRT(fixedData);
+          setSubtitles(parsed);
+          // Reset lastSentSubtitle to force resync
+          lastSentSubtitleRef.current = "";
+          // Sync translated videos to WebView
+          syncTranslatedVideosToWebView();
+        }
       }
     });
     return () => unsubscribe();
@@ -506,6 +513,7 @@ const HomeScreen = () => {
         videoUrl={currentUrl}
         videoDuration={videoDuration}
         batchSettings={batchSettings}
+        onBatchSettingsChange={handleBatchSettingsChange}
         onTranslationStateChange={(translating, progress) => {
           setIsTranslating(translating);
           setTranslationProgress(progress);

@@ -13,6 +13,11 @@ export interface TranslationJob {
   error: string | null;
   startedAt: number;
   completedAt: number | null;
+  // Streaming mode - partial SRT content as batches complete
+  partialResult: string | null;
+  // Custom range
+  rangeStart?: number;
+  rangeEnd?: number;
 }
 
 type TranslationListener = (job: TranslationJob) => void;
@@ -72,7 +77,9 @@ class TranslationManager {
     videoUrl: string,
     config: GeminiConfig,
     videoDuration?: number,
-    batchSettings?: BatchSettings
+    batchSettings?: BatchSettings,
+    rangeStart?: number,
+    rangeEnd?: number
   ): Promise<string> {
     // Check if already translating this URL
     if (this.isTranslatingUrl(videoUrl)) {
@@ -92,6 +99,9 @@ class TranslationManager {
       error: null,
       startedAt: Date.now(),
       completedAt: null,
+      partialResult: null,
+      rangeStart,
+      rangeEnd,
     };
     this.notify();
 
@@ -114,6 +124,8 @@ class TranslationManager {
         {
           videoDuration,
           batchSettings,
+          rangeStart,
+          rangeEnd,
           onBatchProgress: (progress: BatchProgress) => {
             if (this.currentJob && this.currentJob.id === jobId) {
               this.currentJob = {
@@ -124,6 +136,20 @@ class TranslationManager {
             }
           },
           onKeyStatus,
+          // Streaming mode callback - update partial result as each batch completes
+          onBatchComplete: (
+            partialSrt: string,
+            batchIndex: number,
+            totalBatches: number
+          ) => {
+            if (this.currentJob && this.currentJob.id === jobId) {
+              this.currentJob = {
+                ...this.currentJob,
+                partialResult: partialSrt,
+              };
+              this.notify();
+            }
+          },
         }
       );
 
@@ -136,6 +162,7 @@ class TranslationManager {
           ...this.currentJob,
           status: "completed",
           result,
+          partialResult: null,
           keyStatus: null,
           completedAt: Date.now(),
         };

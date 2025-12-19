@@ -45,6 +45,7 @@ interface SubtitleInputModalProps {
   videoUrl?: string;
   videoDuration?: number;
   batchSettings?: BatchSettings;
+  onBatchSettingsChange?: (settings: BatchSettings) => void;
   onTranslationStateChange?: (
     isTranslating: boolean,
     progress: { completed: number; total: number } | null
@@ -60,6 +61,7 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
   videoUrl,
   videoDuration,
   batchSettings,
+  onBatchSettingsChange,
   onTranslationStateChange,
 }) => {
   const insets = useSafeAreaInsets();
@@ -361,6 +363,7 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
                   setSrtContent(srt);
                   onLoadSubtitles();
                 }}
+                onBatchSettingsChange={onBatchSettingsChange}
               />
             )}
           </Animated.View>

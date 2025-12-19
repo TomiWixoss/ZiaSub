@@ -34,6 +34,9 @@ export interface BatchSettings {
   maxVideoDuration: number; // Max duration per batch in seconds (default: 600 = 10 minutes)
   maxConcurrentBatches: number; // Max concurrent API calls (default: 2)
   batchOffset: number; // Offset tolerance in seconds (default: 60). If video exceeds maxVideoDuration by less than this, don't split
+  streamingMode: boolean; // If true, apply each batch result immediately for live preview (default: false)
+  presubMode: boolean; // If true, first batch uses shorter duration for quick preview (default: false)
+  presubDuration: number; // Duration for first batch in presub mode (default: 120 = 2 minutes)
 }
 
 // API Keys settings (shared, with rotation support)
@@ -60,6 +63,9 @@ export const DEFAULT_BATCH_SETTINGS: BatchSettings = {
   maxVideoDuration: 600, // 10 minutes
   maxConcurrentBatches: 2,
   batchOffset: 60, // 1 minute tolerance
+  streamingMode: false, // Apply each batch immediately for live preview
+  presubMode: false, // First batch uses shorter duration for quick preview
+  presubDuration: 120, // 2 minutes for first batch in presub mode
 };
 
 export const DEFAULT_API_KEYS_SETTINGS: ApiKeysSettings = {

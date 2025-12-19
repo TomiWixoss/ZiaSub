@@ -5,6 +5,8 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   ScrollView,
+  TextInput,
+  Switch,
 } from "react-native";
 import { alert, confirmDestructive } from "../CustomAlert";
 import { Text } from "react-native-paper";
@@ -26,6 +28,25 @@ import { BatchProgress } from "@services/geminiService";
 import { translationManager } from "@services/translationManager";
 import Button3D from "../Button3D";
 
+// Helper to format seconds to mm:ss
+const formatTime = (seconds: number): string => {
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins}:${secs.toString().padStart(2, "0")}`;
+};
+
+// Helper to parse mm:ss to seconds
+const parseTime = (timeStr: string): number | null => {
+  const parts = timeStr.split(":").map((p) => parseInt(p, 10));
+  if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+    return parts[0] * 60 + parts[1];
+  }
+  if (parts.length === 1 && !isNaN(parts[0])) {
+    return parts[0];
+  }
+  return null;
+};
+
 interface TranslateTabProps {
   videoUrl?: string;
   videoDuration?: number;
@@ -36,6 +57,7 @@ interface TranslateTabProps {
   batchProgress: BatchProgress | null;
   onClose: () => void;
   onSelectTranslation: (srtContent: string) => void;
+  onBatchSettingsChange?: (settings: BatchSettings) => void;
 }
 
 export const TranslateTab: React.FC<TranslateTabProps> = ({
@@ -48,6 +70,7 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
   batchProgress,
   onClose,
   onSelectTranslation,
+  onBatchSettingsChange,
 }) => {
   const [geminiConfigs, setGeminiConfigs] = useState<GeminiConfig[]>([]);
   const [selectedConfigId, setSelectedConfigId] = useState<string>("");
@@ -60,6 +83,18 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
   );
   const [hasApiKey, setHasApiKey] = useState(true);
 
+  // Advanced options
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [streamingMode, setStreamingMode] = useState(
+    batchSettings?.streamingMode ?? false
+  );
+  const [presubMode, setPresubMode] = useState(
+    batchSettings?.presubMode ?? false
+  );
+  const [useCustomRange, setUseCustomRange] = useState(false);
+  const [rangeStartStr, setRangeStartStr] = useState(""); // Empty = from start (0)
+  const [rangeEndStr, setRangeEndStr] = useState(""); // Empty = to end (videoDuration)
+
   useEffect(() => {
     loadConfigs();
     checkApiKeys();
@@ -68,6 +103,14 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
   useEffect(() => {
     if (videoUrl) loadTranslations();
   }, [videoUrl]);
+
+  useEffect(() => {
+    // Sync settings from batchSettings
+    if (batchSettings) {
+      setStreamingMode(batchSettings.streamingMode ?? false);
+      setPresubMode(batchSettings.presubMode ?? false);
+    }
+  }, [batchSettings]);
 
   const loadConfigs = async () => {
     const configs = await getGeminiConfigs();
@@ -93,6 +136,30 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
     }
   };
 
+  const handleStreamingModeChange = (value: boolean) => {
+    setStreamingMode(value);
+    if (batchSettings && onBatchSettingsChange) {
+      onBatchSettingsChange({ ...batchSettings, streamingMode: value });
+    }
+  };
+
+  const handlePresubModeChange = (value: boolean) => {
+    setPresubMode(value);
+    // Presub mode requires streaming mode
+    if (value && !streamingMode) {
+      setStreamingMode(true);
+      if (batchSettings && onBatchSettingsChange) {
+        onBatchSettingsChange({
+          ...batchSettings,
+          presubMode: value,
+          streamingMode: true,
+        });
+      }
+    } else if (batchSettings && onBatchSettingsChange) {
+      onBatchSettingsChange({ ...batchSettings, presubMode: value });
+    }
+  };
+
   const handleTranslate = async () => {
     const config = geminiConfigs.find((c) => c.id === selectedConfigId);
     if (!config) return alert("Chưa chọn", "Chọn kiểu dịch trước nhé.");
@@ -101,13 +168,52 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
       return alert("Thông báo", "Video này đang dịch rồi.");
     }
 
+    // Parse custom range if enabled
+    let rangeStart: number | undefined;
+    let rangeEnd: number | undefined;
+
+    if (useCustomRange) {
+      // Empty start = 0 (from beginning), empty end = videoDuration (to end)
+      const start = rangeStartStr.trim() ? parseTime(rangeStartStr) : 0;
+      const end = rangeEndStr.trim() ? parseTime(rangeEndStr) : videoDuration;
+
+      if (start === null) {
+        return alert(
+          "Lỗi",
+          "Thời gian bắt đầu không hợp lệ. Dùng mm:ss hoặc để trống"
+        );
+      }
+      if (end === null || end === undefined) {
+        return alert(
+          "Lỗi",
+          "Thời gian kết thúc không hợp lệ. Dùng mm:ss hoặc để trống"
+        );
+      }
+
+      // Clamp values to video duration
+      const clampedStart = Math.max(0, start);
+      const clampedEnd = videoDuration ? Math.min(end, videoDuration) : end;
+
+      if (clampedStart >= clampedEnd) {
+        return alert(
+          "Lỗi",
+          "Thời gian bắt đầu phải nhỏ hơn thời gian kết thúc"
+        );
+      }
+
+      rangeStart = clampedStart;
+      rangeEnd = clampedEnd;
+    }
+
     try {
       await saveActiveGeminiConfigId(selectedConfigId);
       translationManager.startTranslation(
         videoUrl,
         config,
         videoDuration,
-        batchSettings
+        batchSettings,
+        rangeStart,
+        rangeEnd
       );
     } catch (error: any) {
       alert("Không dịch được", error.message || "Có lỗi xảy ra.");
@@ -263,6 +369,146 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
               </Text>
             </TouchableOpacity>
           ))}
+        </View>
+      )}
+
+      {/* Advanced Options Toggle */}
+      <TouchableOpacity
+        style={styles.advancedToggle}
+        onPress={() => setShowAdvanced(!showAdvanced)}
+      >
+        <MaterialCommunityIcons
+          name="tune-variant"
+          size={18}
+          color={COLORS.textMuted}
+        />
+        <Text style={styles.advancedToggleText}>Tùy chọn nâng cao</Text>
+        <MaterialCommunityIcons
+          name={showAdvanced ? "chevron-up" : "chevron-down"}
+          size={18}
+          color={COLORS.textMuted}
+        />
+      </TouchableOpacity>
+
+      {/* Advanced Options Panel */}
+      {showAdvanced && (
+        <View style={styles.advancedPanel}>
+          {/* Streaming Mode */}
+          <View style={styles.advancedRow}>
+            <View style={styles.advancedRowLeft}>
+              <MaterialCommunityIcons
+                name="play-speed"
+                size={18}
+                color={COLORS.primary}
+              />
+              <View style={styles.advancedRowInfo}>
+                <Text style={styles.advancedRowTitle}>Dịch từng đợt</Text>
+                <Text style={styles.advancedRowDesc}>
+                  Xem phụ đề ngay khi mỗi phần dịch xong
+                </Text>
+              </View>
+            </View>
+            <Switch
+              value={streamingMode}
+              onValueChange={handleStreamingModeChange}
+              trackColor={{ false: COLORS.border, true: COLORS.primary }}
+              thumbColor={COLORS.text}
+            />
+          </View>
+
+          {/* Presub Mode */}
+          <View style={styles.advancedRow}>
+            <View style={styles.advancedRowLeft}>
+              <MaterialCommunityIcons
+                name="lightning-bolt"
+                size={18}
+                color={COLORS.warning}
+              />
+              <View style={styles.advancedRowInfo}>
+                <Text style={styles.advancedRowTitle}>Xem nhanh (Presub)</Text>
+                <Text style={styles.advancedRowDesc}>
+                  Phần đầu dịch ngắn hơn để xem ngay (~2 phút)
+                </Text>
+              </View>
+            </View>
+            <Switch
+              value={presubMode}
+              onValueChange={handlePresubModeChange}
+              trackColor={{ false: COLORS.border, true: COLORS.warning }}
+              thumbColor={COLORS.text}
+            />
+          </View>
+
+          {/* Custom Range */}
+          <View
+            style={[
+              styles.advancedRow,
+              { borderBottomWidth: useCustomRange ? 1 : 0 },
+            ]}
+          >
+            <View style={styles.advancedRowLeft}>
+              <MaterialCommunityIcons
+                name="clock-outline"
+                size={18}
+                color={COLORS.primary}
+              />
+              <View style={styles.advancedRowInfo}>
+                <Text style={styles.advancedRowTitle}>
+                  Dịch khoảng thời gian
+                </Text>
+                <Text style={styles.advancedRowDesc}>
+                  Để trống = từ đầu/tới cuối
+                </Text>
+              </View>
+            </View>
+            <Switch
+              value={useCustomRange}
+              onValueChange={setUseCustomRange}
+              trackColor={{ false: COLORS.border, true: COLORS.primary }}
+              thumbColor={COLORS.text}
+            />
+          </View>
+
+          {/* Range Inputs */}
+          {useCustomRange && (
+            <View style={styles.rangeInputContainer}>
+              <View style={styles.rangeInputGroup}>
+                <Text style={styles.rangeLabel}>Từ</Text>
+                <TextInput
+                  style={styles.rangeInput}
+                  value={rangeStartStr}
+                  onChangeText={setRangeStartStr}
+                  placeholder="0:00"
+                  placeholderTextColor={COLORS.textMuted}
+                  keyboardType="numbers-and-punctuation"
+                />
+              </View>
+              <MaterialCommunityIcons
+                name="arrow-right"
+                size={20}
+                color={COLORS.textMuted}
+              />
+              <View style={styles.rangeInputGroup}>
+                <Text style={styles.rangeLabel}>Đến</Text>
+                <TextInput
+                  style={styles.rangeInput}
+                  value={rangeEndStr}
+                  onChangeText={setRangeEndStr}
+                  placeholder={
+                    videoDuration ? formatTime(videoDuration) : "cuối"
+                  }
+                  placeholderTextColor={COLORS.textMuted}
+                  keyboardType="numbers-and-punctuation"
+                />
+              </View>
+            </View>
+          )}
+
+          {videoDuration && (
+            <Text style={styles.durationHint}>
+              Độ dài video: {formatTime(videoDuration)}
+            </Text>
+          )}
         </View>
       )}
 
@@ -458,4 +704,89 @@ const styles = StyleSheet.create({
   batchProcessing: { backgroundColor: COLORS.primary },
   batchError: { backgroundColor: COLORS.error },
   batchItemText: { color: COLORS.text, fontSize: 12, fontWeight: "600" },
+  // Advanced options styles
+  advancedToggle: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 8,
+    marginBottom: 8,
+  },
+  advancedToggleText: {
+    color: COLORS.textMuted,
+    fontSize: 13,
+  },
+  advancedPanel: {
+    backgroundColor: COLORS.surfaceLight,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  advancedRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  advancedRowLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    flex: 1,
+  },
+  advancedRowInfo: {
+    flex: 1,
+  },
+  advancedRowTitle: {
+    color: COLORS.text,
+    fontSize: 13,
+    fontWeight: "500",
+  },
+  advancedRowDesc: {
+    color: COLORS.textMuted,
+    fontSize: 11,
+    marginTop: 2,
+  },
+  rangeInputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12,
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
+  rangeInputGroup: {
+    alignItems: "center",
+    gap: 4,
+  },
+  rangeLabel: {
+    color: COLORS.textMuted,
+    fontSize: 11,
+  },
+  rangeInput: {
+    backgroundColor: COLORS.surfaceElevated,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    color: COLORS.text,
+    fontSize: 14,
+    fontWeight: "500",
+    minWidth: 80,
+    textAlign: "center",
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  durationHint: {
+    color: COLORS.textMuted,
+    fontSize: 11,
+    textAlign: "center",
+    marginTop: 8,
+  },
 });

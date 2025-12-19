@@ -354,6 +354,32 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
           thumbTintColor={COLORS.primary}
         />
       </View>
+
+      <View style={styles.settingGroup}>
+        <Text style={styles.settingLabel}>
+          Presub (xem nhanh):{" "}
+          {Math.floor((batchSettings.presubDuration ?? 120) / 60)} phút{" "}
+          {(batchSettings.presubDuration ?? 120) % 60}s
+        </Text>
+        <Text style={styles.settingHint}>
+          Độ dài phần đầu khi bật chế độ Presub để xem phụ đề nhanh hơn
+        </Text>
+        <Slider
+          style={styles.slider}
+          minimumValue={60}
+          maximumValue={300}
+          step={30}
+          value={batchSettings.presubDuration ?? 120}
+          onValueChange={(value) => {
+            const newSettings = { ...batchSettings, presubDuration: value };
+            onBatchChange(newSettings);
+            saveBatchSettings(newSettings);
+          }}
+          minimumTrackTintColor={COLORS.warning}
+          maximumTrackTintColor={COLORS.border}
+          thumbTintColor={COLORS.warning}
+        />
+      </View>
     </ScrollView>
   );
 };
