@@ -1,9 +1,14 @@
 import React from "react";
-import { View, StyleSheet, Text as RNText } from "react-native";
+import {
+  View,
+  StyleSheet,
+  Text as RNText,
+  TouchableOpacity,
+} from "react-native";
 import { Text } from "react-native-paper";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Slider from "@react-native-community/slider";
 import { useTranslation } from "react-i18next";
-import Button3D from "../../common/Button3D";
 import { useTheme } from "@src/contexts";
 import { useThemedStyles, createThemedStyles } from "@hooks/useThemedStyles";
 import type { SubtitleSettings } from "@src/types";
@@ -57,13 +62,10 @@ const SubtitleSection: React.FC<SubtitleSectionProps> = ({
 
   return (
     <>
-      <Text style={themedStyles.sectionTitle}>
-        {t("settings.subtitle.title")}
-      </Text>
-      <View style={themedStyles.previewContainer}>
+      <View style={styles.previewContainer}>
         <RNText
           style={[
-            themedStyles.previewText,
+            styles.previewText,
             {
               fontSize: subtitleSettings.fontSize,
               fontWeight:
@@ -92,23 +94,63 @@ const SubtitleSection: React.FC<SubtitleSectionProps> = ({
           thumbTintColor={colors.primary}
         />
       </View>
-      <View style={[styles.styleButtonsRow, { marginBottom: 20 }]}>
-        <Button3D
+      <View style={styles.styleButtonsRow}>
+        <TouchableOpacity
           onPress={toggleBold}
-          icon="format-bold"
-          title={t("settings.subtitle.bold")}
-          variant="secondary"
-          active={subtitleSettings.fontWeight === "bold"}
-          style={styles.styleButton}
-        />
-        <Button3D
+          style={[
+            themedStyles.styleButton,
+            subtitleSettings.fontWeight === "bold" &&
+              themedStyles.styleButtonActive,
+          ]}
+          activeOpacity={0.7}
+        >
+          <MaterialCommunityIcons
+            name="format-bold"
+            size={20}
+            color={
+              subtitleSettings.fontWeight === "bold"
+                ? colors.primary
+                : colors.textMuted
+            }
+          />
+          <Text
+            style={[
+              themedStyles.styleButtonText,
+              subtitleSettings.fontWeight === "bold" &&
+                themedStyles.styleButtonTextActive,
+            ]}
+          >
+            {t("settings.subtitle.bold")}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
           onPress={toggleItalic}
-          icon="format-italic"
-          title={t("settings.subtitle.italic")}
-          variant="secondary"
-          active={subtitleSettings.fontStyle === "italic"}
-          style={styles.styleButton}
-        />
+          style={[
+            themedStyles.styleButton,
+            subtitleSettings.fontStyle === "italic" &&
+              themedStyles.styleButtonActive,
+          ]}
+          activeOpacity={0.7}
+        >
+          <MaterialCommunityIcons
+            name="format-italic"
+            size={20}
+            color={
+              subtitleSettings.fontStyle === "italic"
+                ? colors.primary
+                : colors.textMuted
+            }
+          />
+          <Text
+            style={[
+              themedStyles.styleButtonText,
+              subtitleSettings.fontStyle === "italic" &&
+                themedStyles.styleButtonTextActive,
+            ]}
+          >
+            {t("settings.subtitle.italic")}
+          </Text>
+        </TouchableOpacity>
       </View>
       <View style={styles.settingGroup}>
         <Text style={themedStyles.settingLabel}>
@@ -158,20 +200,9 @@ const styles = StyleSheet.create({
   settingRow: { marginBottom: 16 },
   settingGroup: { marginBottom: 16 },
   slider: { width: "100%", height: 40 },
-  styleButtonsRow: { flexDirection: "row", gap: 12 },
-  styleButton: { flex: 1 },
-});
-
-const subtitleThemedStyles = createThemedStyles((colors) => ({
-  sectionTitle: {
-    color: colors.primary,
-    fontSize: 13,
-    fontWeight: "600",
-    marginBottom: 8,
-    textTransform: "uppercase",
-  },
+  styleButtonsRow: { flexDirection: "row", gap: 12, marginBottom: 20 },
   previewContainer: {
-    backgroundColor: colors.background,
+    backgroundColor: "#1a1a2e",
     borderRadius: 12,
     padding: 20,
     alignItems: "center",
@@ -180,16 +211,44 @@ const subtitleThemedStyles = createThemedStyles((colors) => ({
     justifyContent: "center",
   },
   previewText: {
-    color: colors.text,
+    color: "#ffffff",
     textShadowColor: "rgba(0,0,0,0.9)",
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 3,
   },
+});
+
+const subtitleThemedStyles = createThemedStyles((colors) => ({
   settingLabel: {
     color: colors.text,
     fontSize: 14,
     fontWeight: "500",
     marginBottom: 8,
+  },
+  styleButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    backgroundColor: colors.surfaceLight,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  styleButtonActive: {
+    backgroundColor: `${colors.primary}15`,
+    borderColor: colors.primary,
+  },
+  styleButtonText: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: colors.textMuted,
+  },
+  styleButtonTextActive: {
+    color: colors.primary,
   },
 }));
 

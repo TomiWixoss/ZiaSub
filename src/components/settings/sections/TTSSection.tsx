@@ -58,7 +58,6 @@ const TTSSection: React.FC<TTSSectionProps> = ({
 
   return (
     <>
-      <Text style={themedStyles.sectionTitle}>{t("settings.tts.title")}</Text>
       <View style={themedStyles.ttsToggleRow}>
         <View style={styles.ttsToggleInfo}>
           <MaterialCommunityIcons
@@ -209,13 +208,6 @@ const styles = StyleSheet.create({
 });
 
 const ttsThemedStyles = createThemedStyles((colors) => ({
-  sectionTitle: {
-    color: colors.primary,
-    fontSize: 13,
-    fontWeight: "600",
-    marginBottom: 8,
-    textTransform: "uppercase",
-  },
   settingLabel: {
     color: colors.text,
     fontSize: 14,

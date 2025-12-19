@@ -72,7 +72,7 @@ export const ThemeStep: React.FC<StepProps> = ({ onNext, onPrevious }) => {
             >
               <Ionicons
                 name={option.icon}
-                size={32}
+                size={24}
                 color={
                   themeMode === option.mode
                     ? colors.primary
@@ -155,26 +155,23 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   options: {
-    flexDirection: "row",
-    gap: 12,
     width: "100%",
+    gap: 12,
   },
   optionCard: {
-    flex: 1,
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 24,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
     borderRadius: 16,
-    gap: 8,
+    gap: 12,
     position: "relative",
   },
   optionText: {
-    fontSize: 14,
+    fontSize: 16,
+    flex: 1,
   },
   checkmark: {
-    position: "absolute",
-    top: 8,
-    right: 8,
     width: 22,
     height: 22,
     borderRadius: 11,

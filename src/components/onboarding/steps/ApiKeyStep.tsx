@@ -34,18 +34,20 @@ export const ApiKeyStep: React.FC<StepProps> = ({
   const { t } = useTranslation();
   const { colors } = useTheme();
   const [apiKey, setApiKey] = useState("");
-  const [hasKey, setHasKey] = useState(false);
+  const [apiKeys, setApiKeysState] = useState<string[]>([]);
   const [isAdding, setIsAdding] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    checkExistingKeys();
+    loadExistingKeys();
   }, []);
 
-  const checkExistingKeys = async () => {
+  const loadExistingKeys = async () => {
     const keys = await getApiKeys();
-    setHasKey(keys.length > 0);
+    setApiKeysState(keys);
   };
+
+  const hasKey = apiKeys.length > 0;
 
   const isValidApiKey = (key: string): boolean => {
     return key.startsWith("AIza") && key.length >= 35;
@@ -74,8 +76,8 @@ export const ApiKeyStep: React.FC<StepProps> = ({
       const newKeys = [...existingKeys, trimmedKey];
       await saveApiKeys(newKeys);
       keyManager.initialize(newKeys);
+      setApiKeysState(newKeys);
       setApiKey("");
-      setHasKey(true);
       Keyboard.dismiss();
     } catch (err) {
       setError(t("errors.generic"));
@@ -100,6 +102,18 @@ export const ApiKeyStep: React.FC<StepProps> = ({
 
   const handleGetKey = () => {
     Linking.openURL(API_KEY_URL);
+  };
+
+  const handleDeleteKey = async (keyToDelete: string) => {
+    const newKeys = apiKeys.filter((k) => k !== keyToDelete);
+    await saveApiKeys(newKeys);
+    keyManager.initialize(newKeys);
+    setApiKeysState(newKeys);
+  };
+
+  const maskApiKey = (key: string): string => {
+    if (key.length <= 12) return key;
+    return `${key.slice(0, 8)}...${key.slice(-4)}`;
   };
 
   return (
@@ -195,48 +209,63 @@ export const ApiKeyStep: React.FC<StepProps> = ({
         </View>
 
         {hasKey && (
-          <View
-            style={[
-              styles.successBadge,
-              { backgroundColor: colors.success + "20" },
-            ]}
-          >
-            <Ionicons
-              name="checkmark-circle"
-              size={20}
-              color={colors.success}
-            />
-            <Text style={[styles.successText, { color: colors.success }]}>
-              {t("onboarding.apiKey.added")}
-            </Text>
+          <View style={styles.keysList}>
+            {apiKeys.map((key, index) => (
+              <View
+                key={key}
+                style={[
+                  styles.keyItem,
+                  {
+                    backgroundColor: colors.surface,
+                    borderColor: colors.border,
+                  },
+                ]}
+              >
+                <View style={styles.keyInfo}>
+                  <Ionicons name="key" size={16} color={colors.primary} />
+                  <Text style={[styles.keyText, { color: colors.text }]}>
+                    {maskApiKey(key)}
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.deleteButton}
+                  onPress={() => handleDeleteKey(key)}
+                >
+                  <Ionicons
+                    name="close-circle"
+                    size={22}
+                    color={colors.error}
+                  />
+                </TouchableOpacity>
+              </View>
+            ))}
           </View>
         )}
       </View>
 
       <View style={styles.footer}>
-        <TouchableOpacity
-          style={[styles.backButton, { borderColor: colors.border }]}
-          onPress={onPrevious}
-        >
-          <Ionicons name="arrow-back" size={20} color={colors.text} />
-        </TouchableOpacity>
-
-        {!hasKey ? (
-          <TouchableOpacity
-            style={[styles.skipButton, { borderColor: colors.border }]}
-            onPress={onSkip}
-          >
+        {!hasKey && (
+          <TouchableOpacity style={styles.skipButton} onPress={onSkip}>
             <Text style={[styles.skipText, { color: colors.textSecondary }]}>
               {t("onboarding.skip")}
             </Text>
           </TouchableOpacity>
-        ) : null}
+        )}
 
-        <Button3D
-          title={t("common.done")}
-          onPress={onNext}
-          style={styles.nextButton}
-        />
+        <View style={styles.footerButtons}>
+          <TouchableOpacity
+            style={[styles.backButton, { borderColor: colors.border }]}
+            onPress={onPrevious}
+          >
+            <Ionicons name="arrow-back" size={20} color={colors.text} />
+          </TouchableOpacity>
+
+          <Button3D
+            title={t("common.done")}
+            onPress={onNext}
+            style={styles.nextButton}
+          />
+        </View>
       </View>
     </View>
   );
@@ -317,23 +346,48 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "500",
   },
-  successBadge: {
+  keysList: {
+    width: "100%",
+    marginTop: 16,
+    gap: 8,
+  },
+  keyItem: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    justifyContent: "space-between",
+    paddingVertical: 12,
     paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    marginTop: 16,
+    borderRadius: 12,
+    borderWidth: 1,
   },
-  successText: {
+  keyInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    flex: 1,
+  },
+  keyText: {
     fontSize: 14,
-    fontWeight: "500",
+    fontFamily: "monospace",
+  },
+  deleteButton: {
+    padding: 4,
   },
   footer: {
+    paddingTop: 24,
+    gap: 12,
+  },
+  skipButton: {
+    alignItems: "center",
+    paddingVertical: 8,
+  },
+  skipText: {
+    fontSize: 15,
+    fontWeight: "500",
+  },
+  footerButtons: {
     flexDirection: "row",
     gap: 12,
-    paddingTop: 24,
   },
   backButton: {
     width: 48,
@@ -342,18 +396,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
-  },
-  skipButton: {
-    height: 48,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  skipText: {
-    fontSize: 15,
-    fontWeight: "500",
   },
   nextButton: {
     flex: 1,

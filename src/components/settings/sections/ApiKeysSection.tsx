@@ -85,9 +85,6 @@ const ApiKeysSection: React.FC<ApiKeysSectionProps> = ({
 
   return (
     <>
-      <Text style={themedStyles.sectionTitle}>
-        {t("settings.apiKeys.title")}
-      </Text>
       <View style={styles.sectionHintRow}>
         <Text style={themedStyles.sectionHint}>
           {t("settings.apiKeys.description")}{" "}
@@ -187,13 +184,6 @@ const styles = StyleSheet.create({
 });
 
 const apiKeysThemedStyles = createThemedStyles((colors) => ({
-  sectionTitle: {
-    color: colors.primary,
-    fontSize: 13,
-    fontWeight: "600",
-    marginBottom: 8,
-    textTransform: "uppercase",
-  },
   sectionHint: { color: colors.textMuted, fontSize: 12 },
   linkText: {
     color: colors.primary,

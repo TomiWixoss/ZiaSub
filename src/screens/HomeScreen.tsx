@@ -69,6 +69,7 @@ const HomeScreen = () => {
     setVideoDuration,
     setVideoTitle,
     setCurrentVideoInQueue,
+    handleNavigationStateChange: handleVideoNavigation,
     onFullScreenOpen,
     onFullScreenClose,
     handleGoBack,
@@ -218,16 +219,9 @@ const HomeScreen = () => {
 
   const handleNavigationStateChange = useCallback(
     (navState: WebViewNavigation) => {
-      // Simple navigation handling
-      const isWatchPage =
-        navState.url.includes("/watch") || navState.url.includes("/shorts/");
-
-      if (!isWatchPage && currentUrl !== "") {
-        ttsService.stop();
-        ttsService.resetLastSpoken();
-      }
+      handleVideoNavigation(navState, undefined, undefined, syncAllToWebView);
     },
-    [currentUrl]
+    [handleVideoNavigation, syncAllToWebView]
   );
 
   const handleWebViewLoad = useCallback(() => {

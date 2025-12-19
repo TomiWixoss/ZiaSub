@@ -47,7 +47,6 @@ const BatchSection: React.FC<BatchSectionProps> = ({
 
   return (
     <>
-      <Text style={themedStyles.sectionTitle}>{t("settings.batch.title")}</Text>
       <View style={styles.settingGroup}>
         <Text style={themedStyles.settingLabel}>
           {t("settings.batch.batchDuration", {
@@ -144,13 +143,6 @@ const styles = StyleSheet.create({
 });
 
 const batchThemedStyles = createThemedStyles((colors) => ({
-  sectionTitle: {
-    color: colors.primary,
-    fontSize: 13,
-    fontWeight: "600",
-    marginBottom: 8,
-    textTransform: "uppercase",
-  },
   settingLabel: {
     color: colors.text,
     fontSize: 14,

@@ -230,7 +230,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   groupInfo: { flex: 1 },
-  groupContent: { paddingHorizontal: 16, paddingBottom: 16 },
+  groupContent: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 16 },
 });
 
 const generalThemedStyles = createThemedStyles((colors) => ({
