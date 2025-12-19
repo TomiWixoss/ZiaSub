@@ -11,6 +11,8 @@ export interface SubtitleSettings {
   fontSize: number;
   fontWeight: "normal" | "bold";
   fontStyle: "normal" | "italic";
+  portraitBottom: number; // Bottom position in portrait mode (px)
+  landscapeBottom: number; // Bottom position in landscape/fullscreen mode (px)
 }
 
 // Batch translation settings (shared across all Gemini profiles)
@@ -36,6 +38,8 @@ export const DEFAULT_SUBTITLE_SETTINGS: SubtitleSettings = {
   fontSize: 15,
   fontWeight: "bold",
   fontStyle: "normal",
+  portraitBottom: 12,
+  landscapeBottom: 8,
 };
 
 export const DEFAULT_BATCH_SETTINGS: BatchSettings = {

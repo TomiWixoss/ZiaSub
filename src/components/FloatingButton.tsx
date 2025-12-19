@@ -198,54 +198,64 @@ const FloatingButton: React.FC<FloatingButtonProps> = ({
   if (!visible) return null;
 
   return (
-    <View style={styles.fabContainer}>
-      <Fab3D onPress={onSettingsPress} icon="cog" size={40} iconSize={20} />
-
-      {/* Queue button with badge */}
-      <View style={styles.queueBtnWrapper}>
-        <Fab3D
-          onPress={onQueuePress}
-          icon="playlist-play"
-          size={40}
-          iconSize={20}
-        />
-        {queueCount > 0 && (
-          <View style={styles.queueBadge}>
-            <Animated.Text style={styles.queueBadgeText}>
-              {queueCount}
-            </Animated.Text>
-          </View>
-        )}
+    <>
+      {/* Left side: Settings & Queue */}
+      <View style={styles.fabContainerLeft}>
+        <Fab3D onPress={onSettingsPress} icon="cog" size={40} iconSize={20} />
+        <View style={styles.queueBtnWrapper}>
+          <Fab3D
+            onPress={onQueuePress}
+            icon="playlist-play"
+            size={40}
+            iconSize={20}
+          />
+          {queueCount > 0 && (
+            <View style={styles.queueBadge}>
+              <Animated.Text style={styles.queueBadgeText}>
+                {queueCount}
+              </Animated.Text>
+            </View>
+          )}
+        </View>
       </View>
 
-      {/* Add to queue button */}
-      {onAddToQueuePress && (
-        <Fab3D
-          onPress={onAddToQueuePress}
-          icon={isInQueue ? "playlist-check" : "playlist-plus"}
-          size={40}
-          iconSize={20}
-          active={isInQueue}
-        />
-      )}
-
-      {isTranslating ? (
-        <TranslatingFab onPress={onPress} progress={translationProgress} />
-      ) : (
-        <Fab3D
-          onPress={onPress}
-          icon={hasSubtitles ? "subtitles" : "subtitles-outline"}
-          size={52}
-          iconSize={26}
-          active={hasSubtitles}
-        />
-      )}
-    </View>
+      {/* Right side: Add to queue & Subtitle/Translate */}
+      <View style={styles.fabContainerRight}>
+        {onAddToQueuePress && (
+          <Fab3D
+            onPress={onAddToQueuePress}
+            icon={isInQueue ? "playlist-check" : "playlist-plus"}
+            size={40}
+            iconSize={20}
+            active={isInQueue}
+          />
+        )}
+        {isTranslating ? (
+          <TranslatingFab onPress={onPress} progress={translationProgress} />
+        ) : (
+          <Fab3D
+            onPress={onPress}
+            icon={hasSubtitles ? "subtitles" : "subtitles-outline"}
+            size={52}
+            iconSize={26}
+            active={hasSubtitles}
+          />
+        )}
+      </View>
+    </>
   );
 };
 
 const styles = StyleSheet.create({
-  fabContainer: {
+  fabContainerLeft: {
+    position: "absolute",
+    bottom: 20,
+    left: 16,
+    alignItems: "center",
+    gap: 10,
+    zIndex: 20,
+  },
+  fabContainerRight: {
     position: "absolute",
     bottom: 20,
     right: 16,

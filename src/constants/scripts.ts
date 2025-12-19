@@ -11,11 +11,14 @@ export const INJECTED_JAVASCRIPT = `
     let rafId = null;
     let parentCheckId = null;
     let isPolling = false;
+    let isPortrait = window.innerHeight > window.innerWidth;
     
     // Subtitle style settings
     let subtitleFontSize = 15;
     let subtitleFontWeight = 'bold';
     let subtitleFontStyle = 'normal';
+    let subtitlePortraitBottom = 12;
+    let subtitleLandscapeBottom = 8;
 
     // Throttle function for performance
     const throttle = (fn, delay) => {
@@ -23,9 +26,7 @@ export const INJECTED_JAVASCRIPT = `
       return (...args) => {
         const now = Date.now();
         if (now - last >= delay) {
-          last = now;
-          fn(...args);
-        }
+          last
       };
     };
 
@@ -43,13 +44,22 @@ export const INJECTED_JAVASCRIPT = `
     }
     
     // Update subtitle style with GPU acceleration
+    // Portrait mode: add background for better readability
     function updateSubtitleStyle() {
       if (!subtitleLayer) return;
       const weight = subtitleFontWeight === 'bold' ? '600' : '400';
       const textStroke = '-webkit-text-stroke:0.8px #000;paint-order:stroke fill;';
       const textShadow = 'text-shadow:0 0 2px #000,-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000,0 -1px 0 #000,0 1px 0 #000,-1px 0 0 #000,1px 0 0 #000;';
-      // Added transform:translateZ(0) for GPU layer promotion
-      subtitleLayer.style.cssText = 'position:absolute;bottom:8px;left:5%;right:5%;max-width:90%;margin:0 auto;text-align:center;color:#FFF;font-size:' + subtitleFontSize + 'px;font-weight:' + weight + ';font-style:' + subtitleFontStyle + ';font-family:system-ui,sans-serif;' + textStroke + textShadow + 'pointer-events:none;z-index:2147483647;display:' + (lastSubtitle ? 'block' : 'none') + ';line-height:1.5;white-space:pre-line;transform:translateZ(0);backface-visibility:hidden;contain:layout style paint';
+      
+      // Portrait mode: add semi-transparent background
+      const bgStyle = isPortrait 
+        ? 'background:rgba(0,0,0,0.7);padding:8px 16px;border-radius:8px;' 
+        : '';
+      
+      // Adjust bottom position for portrait (below video)
+      const bottomPos = isPortrait ? '12px' : '8px';
+      
+      subtitleLayer.style.cssText = 'position:absolute;bottom:' + bottomPos + ';left:5%;right:5%;max-width:90%;margin:0 auto;text-align:center;color:#FFF;font-size:' + subtitleFontSize + 'px;font-weight:' + weight + ';font-style:' + subtitleFontStyle + ';font-family:system-ui,sans-serif;' + textStroke + textShadow + bgStyle + 'pointer-events:none;z-index:2147483647;display:' + (lastSubtitle ? 'block' : 'none') + ';line-height:1.5;white-space:pre-line;transform:translateZ(0);backface-visibility:hidden;contain:layout style paint';
     }
 
     // 2. Optimized video element finder with caching
@@ -128,9 +138,15 @@ export const INJECTED_JAVASCRIPT = `
       const layer = initSubtitleLayer();
       if (fs) {
         fs.appendChild(layer);
+        // Fullscreen is always landscape, remove background
+        isPortrait = false;
+        updateSubtitleStyle();
         window.ReactNativeWebView.postMessage('{"type":"fullscreen_open"}');
       } else {
         document.body.appendChild(layer);
+        // Check orientation when exiting fullscreen
+        isPortrait = window.innerHeight > window.innerWidth;
+        updateSubtitleStyle();
         window.ReactNativeWebView.postMessage('{"type":"fullscreen_close"}');
       }
     }
@@ -138,7 +154,19 @@ export const INJECTED_JAVASCRIPT = `
     document.addEventListener('fullscreenchange', handleFullscreenChange, { passive: true });
     document.addEventListener('webkitfullscreenchange', handleFullscreenChange, { passive: true });
 
-    // 6. Parent check - less frequent (3s instead of 2s)
+    // 6. Handle orientation change
+    function handleOrientationChange() {
+      const newIsPortrait = window.innerHeight > window.innerWidth;
+      if (newIsPortrait !== isPortrait) {
+        isPortrait = newIsPortrait;
+        updateSubtitleStyle();
+      }
+    }
+
+    window.addEventListener('resize', throttle(handleOrientationChange, 100), { passive: true });
+    window.addEventListener('orientationchange', handleOrientationChange, { passive: true });
+
+    // 7. Parent check - less frequent (3s instead of 2s)
     parentCheckId = setInterval(() => {
       const fs = document.fullscreenElement || document.webkitFullscreenElement;
       const target = fs || document.body;

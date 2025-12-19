@@ -20,6 +20,7 @@ import {
   getVideoTranslations,
   setActiveTranslation,
   deleteTranslation,
+  getApiKeys,
 } from "@utils/storage";
 import { BatchProgress } from "@services/geminiService";
 import { translationManager } from "@services/translationManager";
@@ -57,9 +58,11 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
   const [activeTranslationId, setActiveTranslationId] = useState<string | null>(
     null
   );
+  const [hasApiKey, setHasApiKey] = useState(true);
 
   useEffect(() => {
     loadConfigs();
+    checkApiKeys();
   }, []);
 
   useEffect(() => {
@@ -71,6 +74,11 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
     setGeminiConfigs(configs);
     const activeConfig = await getActiveGeminiConfig();
     if (activeConfig) setSelectedConfigId(activeConfig.id);
+  };
+
+  const checkApiKeys = async () => {
+    const keys = await getApiKeys();
+    setHasApiKey(keys.length > 0);
   };
 
   const loadTranslations = async () => {
@@ -197,6 +205,20 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
         </View>
       )}
 
+      {/* API Key Warning */}
+      {!hasApiKey && (
+        <View style={styles.warningContainer}>
+          <MaterialCommunityIcons
+            name="alert-circle-outline"
+            size={20}
+            color={COLORS.warning}
+          />
+          <Text style={styles.warningText}>
+            Chưa có API Key. Vui lòng thêm trong Cài đặt → API Keys
+          </Text>
+        </View>
+      )}
+
       {/* Config Picker */}
       <TouchableOpacity
         style={styles.configPicker}
@@ -309,7 +331,7 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
           icon="translate"
           title={isTranslating ? "Đang dịch..." : "Dịch mới"}
           variant="primary"
-          disabled={isTranslating || !videoUrl}
+          disabled={isTranslating || !videoUrl || !hasApiKey}
         />
       </View>
     </View>
@@ -318,6 +340,22 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
 
 const styles = StyleSheet.create({
   tabContent: { flex: 1 },
+  warningContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255,183,77,0.15)",
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 12,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: COLORS.warning,
+  },
+  warningText: {
+    color: COLORS.warning,
+    fontSize: 13,
+    flex: 1,
+  },
   translationsSection: { marginBottom: 16 },
   sectionTitle: {
     color: COLORS.text,

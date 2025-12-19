@@ -9,6 +9,7 @@ import {
   Alert,
   Animated,
   Dimensions,
+  useWindowDimensions,
 } from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -17,6 +18,7 @@ import { COLORS } from "@constants/colors";
 import { queueManager, QueueItem, QueueStatus } from "@services/queueManager";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
+const FLOATING_BUTTON_HEIGHT = 80; // Height reserved for floating buttons
 
 type TabType = "pending" | "translating" | "completed";
 
@@ -32,6 +34,9 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
   onSelectVideo,
 }) => {
   const insets = useSafeAreaInsets();
+  const { width, height } = useWindowDimensions();
+  const isPortrait = height > width;
+
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -48,7 +53,7 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
 
   useEffect(() => {
     queueManager.initialize();
-    const unsubscribe = queueManager.subscribe((allItems) => {
+    const unsubscribe = queueManager.subscribe(() => {
       setCounts(queueManager.getCounts());
       loadItems();
     });
@@ -279,6 +284,11 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
 
   const pendingCount = counts.pending + counts.error;
 
+  // Calculate bottom padding: more space in portrait to avoid floating buttons
+  const bottomPadding = isPortrait
+    ? Math.max(insets.bottom, 20) + FLOATING_BUTTON_HEIGHT
+    : Math.max(insets.bottom, 20);
+
   return (
     <Modal
       animationType="none"
@@ -300,8 +310,8 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
           style={[
             styles.container,
             {
-              paddingTop: insets.top + 10,
-              paddingBottom: insets.bottom + 10,
+              marginTop: insets.top + 20,
+              paddingBottom: bottomPadding,
               transform: [{ translateY: slideAnim }],
             },
           ]}
@@ -485,6 +495,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingTop: 16,
   },
   header: {
     flexDirection: "row",
