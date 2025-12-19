@@ -196,7 +196,7 @@ const FloatingButton: React.FC<FloatingButtonProps> = ({
   isInQueue = false,
 }) => {
   // Higher position when on list page to avoid YouTube nav bar
-  const bottomPosition = isVideoPage ? 20 : 70;
+  const bottomPosition = isVideoPage ? 20 : 100;
 
   return (
     <>

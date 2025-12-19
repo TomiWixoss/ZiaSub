@@ -6,6 +6,20 @@ const APP_SETTINGS_KEY = "app_settings";
 const GEMINI_CONFIGS_KEY = "gemini_configs";
 const ACTIVE_GEMINI_CONFIG_KEY = "active_gemini_config";
 
+// Helper to extract video ID from URL
+const extractVideoId = (url: string): string | null => {
+  const patterns = [
+    /youtu\.be\/([a-zA-Z0-9_-]+)/,
+    /[?&]v=([a-zA-Z0-9_-]+)/,
+    /\/shorts\/([a-zA-Z0-9_-]+)/,
+  ];
+  for (const p of patterns) {
+    const m = url.match(p);
+    if (m) return m[1];
+  }
+  return null;
+};
+
 // Subtitle display settings
 export interface SubtitleSettings {
   fontSize: number;
@@ -202,13 +216,61 @@ export const getVideoTranslations = async (
   videoUrl: string
 ): Promise<VideoTranslations | null> => {
   try {
+    // First try exact URL match
     const key = `${TRANSLATION_STORAGE_KEY_PREFIX}${videoUrl}`;
     const data = await AsyncStorage.getItem(key);
-    return data ? JSON.parse(data) : null;
+    if (data) return JSON.parse(data);
+
+    // If not found, search by video ID
+    const videoId = extractVideoId(videoUrl);
+    if (!videoId) return null;
+
+    const allKeys = await AsyncStorage.getAllKeys();
+    const translationKeys = allKeys.filter((k) =>
+      k.startsWith(TRANSLATION_STORAGE_KEY_PREFIX)
+    );
+
+    for (const k of translationKeys) {
+      const storedUrl = k.replace(TRANSLATION_STORAGE_KEY_PREFIX, "");
+      const storedVideoId = extractVideoId(storedUrl);
+      if (storedVideoId === videoId) {
+        const storedData = await AsyncStorage.getItem(k);
+        return storedData ? JSON.parse(storedData) : null;
+      }
+    }
+
+    return null;
   } catch (error) {
     console.error("Error getting translations:", error);
     return null;
   }
+};
+
+// Helper to find the actual storage key for a video URL (handles URL variations)
+const findTranslationKey = async (videoUrl: string): Promise<string | null> => {
+  // First try exact URL match
+  const exactKey = `${TRANSLATION_STORAGE_KEY_PREFIX}${videoUrl}`;
+  const exactData = await AsyncStorage.getItem(exactKey);
+  if (exactData) return exactKey;
+
+  // If not found, search by video ID
+  const videoId = extractVideoId(videoUrl);
+  if (!videoId) return null;
+
+  const allKeys = await AsyncStorage.getAllKeys();
+  const translationKeys = allKeys.filter((k) =>
+    k.startsWith(TRANSLATION_STORAGE_KEY_PREFIX)
+  );
+
+  for (const k of translationKeys) {
+    const storedUrl = k.replace(TRANSLATION_STORAGE_KEY_PREFIX, "");
+    const storedVideoId = extractVideoId(storedUrl);
+    if (storedVideoId === videoId) {
+      return k;
+    }
+  }
+
+  return null;
 };
 
 export const setActiveTranslation = async (
@@ -216,7 +278,9 @@ export const setActiveTranslation = async (
   translationId: string
 ): Promise<void> => {
   try {
-    const key = `${TRANSLATION_STORAGE_KEY_PREFIX}${videoUrl}`;
+    const key = await findTranslationKey(videoUrl);
+    if (!key) return;
+
     const existing = await AsyncStorage.getItem(key);
     if (existing) {
       const data: VideoTranslations = JSON.parse(existing);
@@ -233,7 +297,9 @@ export const deleteTranslation = async (
   translationId: string
 ): Promise<void> => {
   try {
-    const key = `${TRANSLATION_STORAGE_KEY_PREFIX}${videoUrl}`;
+    const key = await findTranslationKey(videoUrl);
+    if (!key) return;
+
     const existing = await AsyncStorage.getItem(key);
     if (existing) {
       const data: VideoTranslations = JSON.parse(existing);

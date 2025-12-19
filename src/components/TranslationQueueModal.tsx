@@ -361,7 +361,7 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
           style={[
             styles.container,
             {
-              marginTop: insets.top + 20,
+              marginTop: insets.top + 10,
               paddingBottom: bottomPadding,
               transform: [{ translateY: slideAnim }],
             },
