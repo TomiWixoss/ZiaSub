@@ -1,26 +1,32 @@
 export const COLORS = {
   // Base
-  background: "#0A0A0A",
-  surface: "#121212",
-  surfaceLight: "#1A1A1A",
-  surfaceElevated: "#242424",
-  
-  // Brand
-  primary: "#FF0000",
-  primaryDark: "#CC0000",
-  accent: "#FF4444",
-  
+  background: "#0D0D1A",
+  surface: "#141428",
+  surfaceLight: "#1E1E3A",
+  surfaceElevated: "#2A2A4A",
+
+  // Brand - Purple/Blue gradient theme
+  primary: "#9B7ED9",
+  primaryDark: "#7B5FB9",
+  primaryLight: "#B8A0E8",
+  accent: "#6B8DD6",
+  accentDark: "#4A6DB6",
+
   // Text
   text: "#FFFFFF",
-  textSecondary: "#AAAAAA",
-  textMuted: "#666666",
-  
+  textSecondary: "#B8B8D0",
+  textMuted: "#6B6B8A",
+
   // UI Elements
-  border: "#2A2A2A",
-  borderLight: "#3A3A3A",
-  
+  border: "#2E2E4A",
+  borderLight: "#3E3E5A",
+
   // States
-  success: "#00C853",
-  overlay: "rgba(0,0,0,0.7)",
+  success: "#7ED99B",
+  overlay: "rgba(13,13,26,0.85)",
   transparent: "transparent",
+
+  // Gradient colors
+  gradientStart: "#9B7ED9",
+  gradientEnd: "#4A6DB6",
 } as const;

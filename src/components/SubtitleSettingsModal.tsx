@@ -1,11 +1,16 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import {
   View,
   Modal,
   StyleSheet,
   TouchableOpacity,
   Text as RNText,
+  Animated,
+  Dimensions,
 } from "react-native";
+
+const { height: SCREEN_HEIGHT } = Dimensions.get("window");
+const SHEET_HEIGHT = SCREEN_HEIGHT * 0.45;
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -28,6 +33,44 @@ const SubtitleSettingsModal: React.FC<SubtitleSettingsModalProps> = ({
   onSettingsChange,
 }) => {
   const insets = useSafeAreaInsets();
+  const slideAnim = useRef(new Animated.Value(SHEET_HEIGHT)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (visible) {
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.spring(slideAnim, {
+          toValue: 0,
+          tension: 65,
+          friction: 11,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      slideAnim.setValue(SHEET_HEIGHT);
+      fadeAnim.setValue(0);
+    }
+  }, [visible]);
+
+  const handleClose = () => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: SHEET_HEIGHT,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start(() => onClose());
+  };
 
   const handleFontSizeChange = (value: number) => {
     onSettingsChange({ ...settings, fontSize: Math.round(value) });
@@ -49,29 +92,34 @@ const SubtitleSettingsModal: React.FC<SubtitleSettingsModalProps> = ({
 
   return (
     <Modal
-      animationType="slide"
+      animationType="none"
       transparent={true}
       visible={visible}
-      onRequestClose={onClose}
+      onRequestClose={handleClose}
       statusBarTranslucent={true}
     >
       <View style={styles.modalOverlay}>
-        <TouchableOpacity
-          style={styles.modalBackdrop}
-          activeOpacity={1}
-          onPress={onClose}
-        />
+        <Animated.View style={[styles.modalBackdrop, { opacity: fadeAnim }]}>
+          <TouchableOpacity
+            style={StyleSheet.absoluteFill}
+            activeOpacity={1}
+            onPress={handleClose}
+          />
+        </Animated.View>
 
-        <View
+        <Animated.View
           style={[
             styles.bottomSheet,
-            { paddingBottom: Math.max(insets.bottom, 20) },
+            {
+              paddingBottom: Math.max(insets.bottom, 20),
+              transform: [{ translateY: slideAnim }],
+            },
           ]}
         >
           <View style={styles.sheetHeader}>
             <View style={styles.dragHandle} />
             <Text style={styles.title}>Cài đặt phụ đề</Text>
-            <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+            <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
               <MaterialCommunityIcons
                 name="close"
                 size={20}
@@ -98,7 +146,9 @@ const SubtitleSettingsModal: React.FC<SubtitleSettingsModalProps> = ({
 
           {/* Font Size */}
           <View style={styles.settingRow}>
-            <Text style={styles.settingLabel}>Cỡ chữ: {settings.fontSize}px</Text>
+            <Text style={styles.settingLabel}>
+              Cỡ chữ: {settings.fontSize}px
+            </Text>
             <Slider
               style={styles.slider}
               minimumValue={10}
@@ -130,7 +180,7 @@ const SubtitleSettingsModal: React.FC<SubtitleSettingsModalProps> = ({
               style={styles.styleButton}
             />
           </View>
-        </View>
+        </Animated.View>
       </View>
     </Modal>
   );
@@ -140,10 +190,10 @@ const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
     justifyContent: "flex-end",
-    backgroundColor: COLORS.overlay,
   },
   modalBackdrop: {
     ...StyleSheet.absoluteFillObject,
+    backgroundColor: COLORS.overlay,
   },
   bottomSheet: {
     borderTopLeftRadius: 20,

@@ -43,11 +43,16 @@ const Fab3D: React.FC<Fab3DProps> = ({
   });
 
   const bgColor = active ? COLORS.primary : COLORS.surfaceElevated;
-  const shadowColor = active ? "#990000" : COLORS.background;
+  const shadowColor = active ? COLORS.primaryDark : COLORS.background;
   const borderColor = active ? COLORS.primaryDark : COLORS.border;
 
   return (
-    <View style={[styles.fab3dContainer, { width: size, height: size + SHADOW_HEIGHT }]}>
+    <View
+      style={[
+        styles.fab3dContainer,
+        { width: size, height: size + SHADOW_HEIGHT },
+      ]}
+    >
       <View
         style={[
           styles.fabShadow,
@@ -60,10 +65,7 @@ const Fab3D: React.FC<Fab3DProps> = ({
         ]}
       />
       <Animated.View
-        style={[
-          styles.fabWrapper,
-          { transform: [{ translateY }] },
-        ]}
+        style={[styles.fabWrapper, { transform: [{ translateY }] }]}
       >
         <Pressable
           onPress={onPress}
@@ -80,7 +82,11 @@ const Fab3D: React.FC<Fab3DProps> = ({
             },
           ]}
         >
-          <MaterialCommunityIcons name={icon} size={iconSize} color={COLORS.text} />
+          <MaterialCommunityIcons
+            name={icon}
+            size={iconSize}
+            color={COLORS.text}
+          />
         </Pressable>
       </Animated.View>
     </View>

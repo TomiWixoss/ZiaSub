@@ -230,7 +230,7 @@ const HomeScreen = () => {
 
       {!isFullscreen && (
         <LinearGradient
-          colors={["#1a1a2e", "#16213e"]}
+          colors={["#1E1E3A", "#141428"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={[styles.headerGradient, { paddingTop: insets.top }]}
@@ -304,7 +304,7 @@ const styles = StyleSheet.create({
   },
   headerGradient: {
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(255,0,0,0.3)",
+    borderBottomColor: "rgba(155,126,217,0.3)",
   },
   header: {
     flexDirection: "row",

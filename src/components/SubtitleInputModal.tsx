@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback } from "react";
+import React, { useEffect, useCallback, useRef } from "react";
 import {
   View,
   Modal,
@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   Alert,
   TextInput as RNTextInput,
+  Animated,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "react-native-paper";
@@ -25,7 +26,8 @@ const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 const isSRTFormat = (text: string): boolean => {
   if (!text || text.length < 10) return false;
   // Check for SRT patterns: number, timestamp with --> , text
-  const srtPattern = /^\d+\s*\n\d{2}:\d{2}:\d{2}[,.:]\d{3}\s*-->\s*\d{2}:\d{2}:\d{2}[,.:]\d{3}/m;
+  const srtPattern =
+    /^\d+\s*\n\d{2}:\d{2}:\d{2}[,.:]\d{3}\s*-->\s*\d{2}:\d{2}:\d{2}[,.:]\d{3}/m;
   return srtPattern.test(text.trim());
 };
 
@@ -37,6 +39,8 @@ interface SubtitleInputModalProps {
   onLoadSubtitles: () => void;
 }
 
+const SHEET_HEIGHT = SCREEN_HEIGHT * 0.65;
+
 const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
   visible,
   onClose,
@@ -45,6 +49,47 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
   onLoadSubtitles,
 }) => {
   const insets = useSafeAreaInsets();
+  const slideAnim = useRef(new Animated.Value(SHEET_HEIGHT)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (visible) {
+      // Fade in backdrop + slide up sheet
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.spring(slideAnim, {
+          toValue: 0,
+          tension: 65,
+          friction: 11,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      // Reset animations
+      slideAnim.setValue(SHEET_HEIGHT);
+      fadeAnim.setValue(0);
+    }
+  }, [visible]);
+
+  const handleClose = () => {
+    // Animate out then close
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: SHEET_HEIGHT,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start(() => onClose());
+  };
 
   // Auto-detect SRT from clipboard when modal opens
   const checkClipboard = useCallback(async () => {
@@ -117,33 +162,41 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
 
   return (
     <Modal
-      animationType="slide"
+      animationType="none"
       transparent={true}
       visible={visible}
-      onRequestClose={onClose}
+      onRequestClose={handleClose}
       statusBarTranslucent={true}
     >
       <View style={styles.modalOverlay}>
-        <TouchableOpacity
-          style={styles.modalBackdrop}
-          activeOpacity={1}
-          onPress={onClose}
-        />
+        <Animated.View style={[styles.modalBackdrop, { opacity: fadeAnim }]}>
+          <TouchableOpacity
+            style={StyleSheet.absoluteFill}
+            activeOpacity={1}
+            onPress={handleClose}
+          />
+        </Animated.View>
 
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : undefined}
           style={styles.keyboardView}
         >
-          <View
+          <Animated.View
             style={[
               styles.bottomSheet,
-              { paddingBottom: Math.max(insets.bottom, 20) },
+              {
+                paddingBottom: Math.max(insets.bottom, 20),
+                transform: [{ translateY: slideAnim }],
+              },
             ]}
           >
             <View style={styles.sheetHeader}>
               <View style={styles.dragHandle} />
               <Text style={styles.title}>Phụ đề</Text>
-              <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={handleClose}
+              >
                 <MaterialCommunityIcons
                   name="close"
                   size={20}
@@ -199,7 +252,7 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
               title="Áp dụng"
               variant="primary"
             />
-          </View>
+          </Animated.View>
         </KeyboardAvoidingView>
       </View>
     </Modal>
@@ -210,10 +263,10 @@ const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
     justifyContent: "flex-end",
-    backgroundColor: COLORS.overlay,
   },
   modalBackdrop: {
     ...StyleSheet.absoluteFillObject,
+    backgroundColor: COLORS.overlay,
   },
   keyboardView: {
     width: "100%",
@@ -223,7 +276,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 20,
     padding: 20,
     width: "100%",
-    height: SCREEN_HEIGHT * 0.65,
+    height: SHEET_HEIGHT,
     backgroundColor: COLORS.surface,
     borderTopWidth: 1,
     borderColor: COLORS.border,

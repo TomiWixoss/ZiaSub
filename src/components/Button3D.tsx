@@ -71,14 +71,14 @@ const Button3D: React.FC<Button3DProps> = ({
       case "primary":
         return {
           bg: isActive ? COLORS.primary : COLORS.primary,
-          shadow: isActive ? "#990000" : "#990000",
+          shadow: isActive ? COLORS.primaryDark : COLORS.primaryDark,
           text: COLORS.text,
           border: "transparent",
         };
       case "secondary":
         return {
           bg: isActive ? COLORS.primaryDark : COLORS.surfaceElevated,
-          shadow: isActive ? "#990000" : COLORS.background,
+          shadow: isActive ? COLORS.primaryDark : COLORS.background,
           text: COLORS.text,
           border: isActive ? COLORS.primary : COLORS.border,
         };
