@@ -194,6 +194,30 @@ export const secondsToSrtTime = (seconds: number): string => {
 };
 
 /**
+ * Fix malformed SRT from Gemini (missing newlines between entries).
+ */
+const fixMalformedSrt = (content: string): string => {
+  if (!content) return "";
+
+  // Pattern: number followed immediately by timestamp (no newline)
+  // e.g., "1000:10:13,400" should be "100\n00:10:13,400"
+  // Match: digit(s) followed by HH:MM:SS pattern
+  let fixed = content.replace(
+    /(\d+)((?:\d{2}):(?:\d{2}):(?:\d{2})[,.](?:\d{3})\s*-->)/g,
+    "$1\n$2"
+  );
+
+  // Also fix timestamp followed immediately by next entry number
+  // e.g., "00:10:14,900Text here200:10:15" -> add newlines
+  fixed = fixed.replace(
+    /((?:\d{2}):(?:\d{2}):(?:\d{2})[,.](?:\d{3}))\s*(\d+)((?:\d{2}):(?:\d{2}):(?:\d{2})[,.](?:\d{3}))/g,
+    "$1\n\n$2\n$3"
+  );
+
+  return fixed;
+};
+
+/**
  * Parse SRT content into raw subtitle entries (for merging).
  */
 export const parseSrtRaw = (
@@ -202,7 +226,12 @@ export const parseSrtRaw = (
   const subtitles: Array<{ start: number; end: number; text: string }> = [];
   if (!content) return subtitles;
 
-  const lines = content.trim().split("\n");
+  // First fix malformed SRT and apply standard fixes
+  let fixedContent = fixMalformedSrt(content);
+  const { fixedData } = fixSRT(fixedContent);
+  fixedContent = fixedData;
+
+  const lines = fixedContent.trim().split("\n");
   let i = 0;
 
   while (i < lines.length) {
