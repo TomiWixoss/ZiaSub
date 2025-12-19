@@ -1,74 +1,31 @@
-import { GoogleGenAI, ThinkingLevel, MediaResolution } from "@google/genai";
+import { ThinkingLevel, MediaResolution } from "@google/genai";
 import {
   GeminiConfig,
   BatchSettings,
   DEFAULT_BATCH_SETTINGS,
 } from "@utils/storage";
 import { mergeSrtContents } from "@utils/srtParser";
+import { keyManager, isRateLimitError, isRetryableError } from "./keyManager";
 
-// Translate SRT content
-export const translateWithGemini = async (
-  srtContent: string,
-  config: GeminiConfig,
-  onChunk?: (text: string) => void
-): Promise<string> => {
-  if (!config.apiKey) {
-    throw new Error("Vui lòng cấu hình API Key trong cài đặt");
-  }
+const MAX_RETRIES = 3;
+const RETRY_DELAY_MS = 2000;
 
-  const ai = new GoogleGenAI({
-    apiKey: config.apiKey,
-  });
-
-  const response = await ai.models.generateContentStream({
-    model: config.model,
-    contents: srtContent,
-    config: {
-      temperature: config.temperature,
-      systemInstruction: config.systemPrompt,
-    },
-  });
-
-  let fullText = "";
-
-  for await (const chunk of response) {
-    const text = chunk.text;
-    if (text) {
-      fullText += text;
-      onChunk?.(fullText);
-    }
-  }
-
-  return fullText;
-};
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // Extract video ID and convert to standard YouTube URL
 const normalizeYouTubeUrl = (url: string): string => {
   let videoId = "";
 
-  // Handle youtu.be/VIDEO_ID
   const shortMatch = url.match(/youtu\.be\/([a-zA-Z0-9_-]+)/);
-  if (shortMatch) {
-    videoId = shortMatch[1];
-  }
+  if (shortMatch) videoId = shortMatch[1];
 
-  // Handle youtube.com/watch?v=VIDEO_ID or m.youtube.com/watch?v=VIDEO_ID
   const watchMatch = url.match(/[?&]v=([a-zA-Z0-9_-]+)/);
-  if (watchMatch) {
-    videoId = watchMatch[1];
-  }
+  if (watchMatch) videoId = watchMatch[1];
 
-  // Handle youtube.com/shorts/VIDEO_ID
   const shortsMatch = url.match(/\/shorts\/([a-zA-Z0-9_-]+)/);
-  if (shortsMatch) {
-    videoId = shortsMatch[1];
-  }
+  if (shortsMatch) videoId = shortsMatch[1];
 
-  if (videoId) {
-    return `https://www.youtube.com/watch?v=${videoId}`;
-  }
-
-  // Return original if can't parse
+  if (videoId) return `https://www.youtube.com/watch?v=${videoId}`;
   return url;
 };
 
@@ -83,11 +40,11 @@ export interface BatchProgress {
 
 // Options for video translation
 export interface VideoTranslateOptions {
-  startOffset?: string; // e.g., "60s" or "1250s"
-  endOffset?: string; // e.g., "120s" or "1570s"
-  videoDuration?: number; // Total video duration in seconds (for batch splitting)
-  batchSettings?: BatchSettings; // Batch translation settings
-  onBatchProgress?: (progress: BatchProgress) => void; // Callback for batch progress
+  startOffset?: string;
+  endOffset?: string;
+  videoDuration?: number;
+  batchSettings?: BatchSettings;
+  onBatchProgress?: (progress: BatchProgress) => void;
 }
 
 // Run promises with concurrency limit
@@ -134,63 +91,109 @@ const runWithConcurrency = async <T>(
   return results;
 };
 
-// Translate a single video batch
+// Translate a single video batch with retry and key rotation
 const translateVideoBatch = async (
   videoUrl: string,
   config: GeminiConfig,
   startOffset?: string,
   endOffset?: string
 ): Promise<string> => {
-  const ai = new GoogleGenAI({ apiKey: config.apiKey });
+  let lastError: any = null;
+  let skipDelay = false;
 
-  const videoPart: any = {
-    fileData: {
-      fileUri: videoUrl,
-      mimeType: "video/*",
-    },
-  };
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    if (attempt > 0 && !skipDelay) {
+      const delayMs = RETRY_DELAY_MS * Math.pow(2, attempt - 1);
+      console.log(
+        `[Gemini] Retry ${attempt}/${MAX_RETRIES} sau ${delayMs}ms...`
+      );
+      await sleep(delayMs);
+    }
+    skipDelay = false;
 
-  if (startOffset || endOffset) {
-    videoPart.videoMetadata = {};
-    if (startOffset) videoPart.videoMetadata.startOffset = startOffset;
-    if (endOffset) videoPart.videoMetadata.endOffset = endOffset;
+    const ai = keyManager.getCurrentAI();
+    if (!ai) {
+      throw new Error("Vui lòng thêm API Key trong cài đặt");
+    }
+
+    try {
+      const videoPart: any = {
+        fileData: { fileUri: videoUrl, mimeType: "video/*" },
+      };
+
+      if (startOffset || endOffset) {
+        videoPart.videoMetadata = {};
+        if (startOffset) videoPart.videoMetadata.startOffset = startOffset;
+        if (endOffset) videoPart.videoMetadata.endOffset = endOffset;
+      }
+
+      const contents = [
+        {
+          role: "user" as const,
+          parts: [
+            videoPart,
+            { text: "Hãy tạo phụ đề SRT tiếng Việt cho video này." },
+          ],
+        },
+      ];
+
+      const response = await ai.models.generateContent({
+        model: config.model,
+        contents,
+        config: {
+          temperature: 0.7,
+          systemInstruction: config.systemPrompt,
+          thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
+          mediaResolution: MediaResolution.MEDIA_RESOLUTION_HIGH,
+        },
+      });
+
+      if (attempt > 0) {
+        console.log(`[Gemini] ✅ Retry thành công sau ${attempt} lần thử`);
+      }
+
+      return response.text || "";
+    } catch (error: any) {
+      lastError = error;
+
+      // Handle rate limit (429) - rotate key and retry immediately
+      if (isRateLimitError(error)) {
+        const rotated = keyManager.handleRateLimitError();
+        if (rotated && attempt < MAX_RETRIES) {
+          console.log(
+            `[Gemini] ⚠️ Rate limit, chuyển sang key #${keyManager.getCurrentKeyIndex()}/${keyManager.getTotalKeys()}`
+          );
+          skipDelay = true;
+          continue;
+        }
+      }
+
+      // Handle retryable errors (503, etc.) - retry with delay
+      if (isRetryableError(error) && attempt < MAX_RETRIES) {
+        console.log(
+          `[Gemini] ⚠️ Lỗi ${
+            error.status || error.code
+          }: Model overloaded, sẽ retry...`
+        );
+        continue;
+      }
+
+      break;
+    }
   }
 
-  const contents = [
-    {
-      role: "user" as const,
-      parts: [
-        videoPart,
-        { text: "Hãy tạo phụ đề SRT tiếng Việt cho video này." },
-      ],
-    },
-  ];
-
-  const response = await ai.models.generateContent({
-    model: config.model,
-    contents,
-    config: {
-      temperature: 0.7,
-      systemInstruction: config.systemPrompt,
-      thinkingConfig: {
-        thinkingLevel: ThinkingLevel.HIGH,
-      },
-      mediaResolution: MediaResolution.MEDIA_RESOLUTION_HIGH,
-    },
-  });
-
-  return response.text || "";
+  throw lastError;
 };
 
-// Translate video directly from YouTube URL (with auto batch splitting for long videos)
+// Translate video directly from YouTube URL
 export const translateVideoWithGemini = async (
   videoUrl: string,
   config: GeminiConfig,
   onChunk?: (text: string) => void,
   options?: VideoTranslateOptions
 ): Promise<string> => {
-  if (!config.apiKey) {
-    throw new Error("Vui lòng cấu hình API Key trong cài đặt");
+  if (!keyManager.hasAvailableKey()) {
+    throw new Error("Vui lòng thêm API Key trong cài đặt");
   }
 
   const normalizedUrl = normalizeYouTubeUrl(videoUrl);
@@ -201,8 +204,8 @@ export const translateVideoWithGemini = async (
 
   console.log("[Gemini] Starting video translation...");
   console.log("[Gemini] Normalized URL:", normalizedUrl);
+  console.log("[Gemini] Using key:", keyManager.getCurrentKeyMasked());
   console.log("[Gemini] Max duration per batch:", maxDuration, "seconds");
-  console.log("[Gemini] Max concurrent batches:", maxConcurrent);
   console.log("[Gemini] Video duration:", videoDuration || "unknown");
 
   try {
@@ -211,7 +214,6 @@ export const translateVideoWithGemini = async (
       const numBatches = Math.ceil(videoDuration / maxDuration);
       console.log(`[Gemini] Splitting into ${numBatches} batches...`);
 
-      // Initialize batch progress
       const initialStatuses: Array<
         "pending" | "processing" | "completed" | "error"
       > = new Array(numBatches).fill("pending");
@@ -224,7 +226,6 @@ export const translateVideoWithGemini = async (
         batchStatuses: initialStatuses,
       });
 
-      // Create batch tasks (functions that return promises)
       const batchTasks: (() => Promise<{
         content: string;
         offsetSeconds: number;
@@ -244,14 +245,10 @@ export const translateVideoWithGemini = async (
             config,
             `${startSeconds}s`,
             `${endSeconds}s`
-          ).then((content) => ({
-            content,
-            offsetSeconds: startSeconds,
-          }))
+          ).then((content) => ({ content, offsetSeconds: startSeconds }))
         );
       }
 
-      // Execute batches with concurrency limit
       const results = await runWithConcurrency(
         batchTasks,
         maxConcurrent,
@@ -278,13 +275,12 @@ export const translateVideoWithGemini = async (
         batchStatuses: new Array(numBatches).fill("completed"),
       });
 
-      // Merge all SRT parts
       const mergedSrt = mergeSrtContents(results);
       onChunk?.(mergedSrt);
       return mergedSrt;
     }
 
-    // Single batch translation (video is short enough or duration unknown)
+    // Single batch translation
     console.log("[Gemini] Single batch translation...");
     options?.onBatchProgress?.({
       totalBatches: 1,

@@ -19,10 +19,16 @@ export interface BatchSettings {
   maxConcurrentBatches: number; // Max concurrent API calls (default: 2)
 }
 
+// API Keys settings (shared, with rotation support)
+export interface ApiKeysSettings {
+  keys: string[]; // List of API keys
+}
+
 // Combined app settings
 export interface AppSettings {
   subtitle: SubtitleSettings;
   batch: BatchSettings;
+  apiKeys: ApiKeysSettings;
 }
 
 export const DEFAULT_SUBTITLE_SETTINGS: SubtitleSettings = {
@@ -36,9 +42,14 @@ export const DEFAULT_BATCH_SETTINGS: BatchSettings = {
   maxConcurrentBatches: 2,
 };
 
+export const DEFAULT_API_KEYS_SETTINGS: ApiKeysSettings = {
+  keys: [],
+};
+
 export const DEFAULT_APP_SETTINGS: AppSettings = {
   subtitle: DEFAULT_SUBTITLE_SETTINGS,
   batch: DEFAULT_BATCH_SETTINGS,
+  apiKeys: DEFAULT_API_KEYS_SETTINGS,
 };
 
 export const saveAppSettings = async (settings: AppSettings): Promise<void> => {
@@ -58,6 +69,7 @@ export const getAppSettings = async (): Promise<AppSettings> => {
       return {
         subtitle: { ...DEFAULT_SUBTITLE_SETTINGS, ...parsed.subtitle },
         batch: { ...DEFAULT_BATCH_SETTINGS, ...parsed.batch },
+        apiKeys: { ...DEFAULT_API_KEYS_SETTINGS, ...parsed.apiKeys },
       };
     }
     return DEFAULT_APP_SETTINGS;
@@ -92,6 +104,17 @@ export const saveBatchSettings = async (
 export const getBatchSettings = async (): Promise<BatchSettings> => {
   const appSettings = await getAppSettings();
   return appSettings.batch;
+};
+
+export const saveApiKeys = async (keys: string[]): Promise<void> => {
+  const appSettings = await getAppSettings();
+  appSettings.apiKeys = { keys };
+  await saveAppSettings(appSettings);
+};
+
+export const getApiKeys = async (): Promise<string[]> => {
+  const appSettings = await getAppSettings();
+  return appSettings.apiKeys?.keys || [];
 };
 
 export const saveSRT = async (
@@ -236,11 +259,10 @@ export const getActiveTranslation = async (
   }
 };
 
-// Gemini Config with multiple profiles
+// Gemini Config with multiple profiles (API key is now global)
 export interface GeminiConfig {
   id: string;
   name: string;
-  apiKey: string;
   model: string;
   temperature: number;
   systemPrompt: string;
@@ -258,7 +280,6 @@ Critical Rules:
 export const createDefaultGeminiConfig = (): GeminiConfig => ({
   id: Date.now().toString(),
   name: "Mặc định",
-  apiKey: "",
   model: "models/gemini-3-flash-preview",
   temperature: 0.7,
   systemPrompt: DEFAULT_SYSTEM_PROMPT,

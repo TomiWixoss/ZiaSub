@@ -30,7 +30,9 @@ import {
   saveSubtitleSettings,
   getBatchSettings,
   saveBatchSettings,
+  getApiKeys,
 } from "@utils/storage";
+import { keyManager } from "@services/keyManager";
 import YouTubePlayer from "@components/YouTubePlayer";
 import SubtitleInputModal from "@components/SubtitleInputModal";
 import SettingsModal from "@components/SettingsModal";
@@ -62,18 +64,22 @@ const HomeScreen = () => {
   const [videoDuration, setVideoDuration] = useState<number | undefined>(
     undefined
   );
+  const [apiKeys, setApiKeys] = useState<string[]>([]);
 
   const webViewRef = useRef<WebView>(null);
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
     const loadSettings = async () => {
-      const [subtitleS, batchS] = await Promise.all([
+      const [subtitleS, batchS, keys] = await Promise.all([
         getSubtitleSettings(),
         getBatchSettings(),
+        getApiKeys(),
       ]);
       setSubtitleSettings(subtitleS);
       setBatchSettings(batchS);
+      setApiKeys(keys);
+      keyManager.initialize(keys);
     };
     loadSettings();
   }, []);
@@ -309,6 +315,8 @@ const HomeScreen = () => {
         onSubtitleSettingsChange={handleSubtitleSettingsChange}
         batchSettings={batchSettings}
         onBatchSettingsChange={handleBatchSettingsChange}
+        apiKeys={apiKeys}
+        onApiKeysChange={setApiKeys}
       />
     </View>
   );

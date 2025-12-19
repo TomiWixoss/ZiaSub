@@ -86,8 +86,6 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
   const handleTranslate = async () => {
     const config = geminiConfigs.find((c) => c.id === selectedConfigId);
     if (!config) return Alert.alert("Lỗi", "Vui lòng chọn cấu hình Gemini.");
-    if (!config.apiKey)
-      return Alert.alert("Lỗi", "Cấu hình này chưa có API Key.");
     if (!videoUrl) return Alert.alert("Lỗi", "Không tìm thấy URL video.");
     if (translationManager.isTranslatingUrl(videoUrl)) {
       return Alert.alert("Thông báo", "Video này đang được dịch.");
@@ -242,9 +240,6 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
               >
                 {config.name}
               </Text>
-              {!config.apiKey && (
-                <Text style={styles.configNoKey}>Chưa có API Key</Text>
-              )}
             </TouchableOpacity>
           ))}
         </View>

@@ -34,7 +34,6 @@ const GeminiEdit: React.FC<GeminiEditProps> = ({
   onSave,
   onCancel,
 }) => {
-  const [showApiKey, setShowApiKey] = useState(false);
   const [showModelPicker, setShowModelPicker] = useState(false);
 
   const selectedModel = AVAILABLE_MODELS.find((m) => m.id === config.model);
@@ -51,31 +50,6 @@ const GeminiEdit: React.FC<GeminiEditProps> = ({
           placeholder="Tên cấu hình..."
           placeholderTextColor={COLORS.textMuted}
         />
-      </View>
-
-      <View style={styles.settingGroup}>
-        <Text style={styles.settingLabel}>API Key</Text>
-        <View style={styles.apiKeyContainer}>
-          <RNTextInput
-            style={styles.apiKeyInput}
-            value={config.apiKey}
-            onChangeText={(text) => onChange({ ...config, apiKey: text })}
-            placeholder="Nhập Gemini API Key..."
-            placeholderTextColor={COLORS.textMuted}
-            secureTextEntry={!showApiKey}
-            autoCapitalize="none"
-          />
-          <TouchableOpacity
-            style={styles.eyeButton}
-            onPress={() => setShowApiKey(!showApiKey)}
-          >
-            <MaterialCommunityIcons
-              name={showApiKey ? "eye-off" : "eye"}
-              size={20}
-              color={COLORS.textSecondary}
-            />
-          </TouchableOpacity>
-        </View>
       </View>
 
       <View style={styles.settingGroup}>
@@ -187,22 +161,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
   },
-  apiKeyContainer: { position: "relative" },
-  apiKeyInput: {
-    backgroundColor: COLORS.surfaceLight,
-    borderRadius: 12,
-    padding: 14,
-    paddingRight: 44,
-    color: COLORS.text,
-    fontSize: 14,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  eyeButton: {
-    position: "absolute",
-    right: 12,
-    top: 14,
-  },
   promptInput: {
     backgroundColor: COLORS.surfaceLight,
     borderRadius: 12,
@@ -249,5 +207,7 @@ const styles = StyleSheet.create({
   modelOptionTextActive: { color: COLORS.primary, fontWeight: "600" },
   modelOptionId: { color: COLORS.textMuted, fontSize: 11, marginTop: 2 },
 });
+
+export { GeminiEdit };
 
 export default GeminiEdit;

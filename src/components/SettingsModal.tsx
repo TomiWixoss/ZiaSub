@@ -34,6 +34,8 @@ interface SettingsModalProps {
   onSubtitleSettingsChange: (settings: SubtitleSettings) => void;
   batchSettings: BatchSettings;
   onBatchSettingsChange: (settings: BatchSettings) => void;
+  apiKeys: string[];
+  onApiKeysChange: (keys: string[]) => void;
 }
 
 const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -43,6 +45,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   onSubtitleSettingsChange,
   batchSettings,
   onBatchSettingsChange,
+  apiKeys,
+  onApiKeysChange,
 }) => {
   const insets = useSafeAreaInsets();
   const slideAnim = useRef(new Animated.Value(SHEET_HEIGHT)).current;
@@ -151,6 +155,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
           onSubtitleChange={onSubtitleSettingsChange}
           batchSettings={batchSettings}
           onBatchChange={onBatchSettingsChange}
+          apiKeys={apiKeys}
+          onApiKeysChange={onApiKeysChange}
         />
       );
     }
