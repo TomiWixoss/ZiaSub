@@ -28,8 +28,12 @@
     },
     "extra": {
       "eas": {
-        "projectId": "4018cfa9-403e-4367-96b8-8759f4594c56"
+        "projectId": "92f23d21-a478-44c2-a761-7cebb834a071"
       }
-    }
+    },
+    "owner": "tomisakae",
+    "plugins": [
+      "expo-font"
+    ]
   }
 }
