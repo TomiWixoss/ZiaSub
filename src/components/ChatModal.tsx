@@ -1,13 +1,17 @@
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, {
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  useMemo,
+} from "react";
 import {
   View,
   StyleSheet,
-  TextInput,
   TouchableOpacity,
   FlatList,
   KeyboardAvoidingView,
   Platform,
-  ActivityIndicator,
   Modal,
   Animated,
   Dimensions,
@@ -16,46 +20,96 @@ import { Text } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-const { height: SCREEN_HEIGHT } = Dimensions.get("window");
-import Markdown from "react-native-markdown-display";
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
+const DRAWER_WIDTH = SCREEN_WIDTH * 0.82;
+
 import { COLORS } from "@constants/colors";
 import {
   GeminiConfig,
   getGeminiConfigs,
   getActiveGeminiConfig,
   saveActiveGeminiConfigId,
-  getChatHistory,
-  saveChatHistory,
-  clearChatHistory,
+  getChatSessions,
+  getActiveChatSession,
+  createChatSession,
+  updateChatSession,
+  deleteChatSession,
+  setActiveChatSessionId,
+  ChatSession,
   StoredChatMessage,
 } from "@utils/storage";
 import { ChatMessage, sendChatMessage } from "@services/chatService";
 import ConfigSelector from "@components/chat/ConfigSelector";
+import TaskCard, { TaskItem } from "@components/chat/TaskCard";
+import ChatDrawer from "@components/chat/ChatDrawer";
+import ChatInput from "@components/chat/ChatInput";
 
 interface ChatModalProps {
   visible: boolean;
   onClose: () => void;
   videoUrl?: string;
+  videoTitle?: string;
 }
+
+// Quick actions
+const QUICK_ACTIONS = [
+  { id: "summary", label: "Tóm tắt video", icon: "text-box-outline" },
+  { id: "analyze", label: "Phân tích nội dung", icon: "chart-box-outline" },
+  { id: "keypoints", label: "Điểm chính", icon: "format-list-bulleted" },
+  { id: "translate", label: "Dịch video", icon: "translate" },
+];
 
 const ChatModal: React.FC<ChatModalProps> = ({
   visible,
   onClose,
   videoUrl,
+  videoTitle,
 }) => {
   const insets = useSafeAreaInsets();
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const drawerAnim = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [streamingText, setStreamingText] = useState("");
   const [configs, setConfigs] = useState<GeminiConfig[]>([]);
   const [activeConfig, setActiveConfig] = useState<GeminiConfig | null>(null);
   const [showConfigSelector, setShowConfigSelector] = useState(false);
-  const [attachedVideoUrl, setAttachedVideoUrl] = useState<string | null>(null);
+  const [attachVideo, setAttachVideo] = useState(false);
+  const [sessions, setSessions] = useState<ChatSession[]>([]);
+  const [currentSession, setCurrentSession] = useState<ChatSession | null>(
+    null
+  );
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [isFromHistory, setIsFromHistory] = useState(false);
   const flatListRef = useRef<FlatList>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Convert messages to tasks
+  const tasks = useMemo((): TaskItem[] => {
+    const result: TaskItem[] = [];
+    for (let i = 0; i < messages.length; i++) {
+      const msg = messages[i];
+      if (msg.role === "user") {
+        const nextMsg = messages[i + 1];
+        const hasResult = nextMsg && nextMsg.role === "model";
+        result.push({
+          id: msg.id,
+          command: msg.content,
+          result: hasResult ? nextMsg.content : undefined,
+          hasVideo: msg.hasVideo,
+          timestamp: msg.timestamp,
+          status: hasResult
+            ? nextMsg.content.startsWith("Lỗi:")
+              ? "error"
+              : "done"
+            : "pending",
+        });
+      }
+    }
+    return result;
+  }, [messages]);
 
   useEffect(() => {
     if (visible) {
@@ -76,31 +130,45 @@ const ChatModal: React.FC<ChatModalProps> = ({
     } else {
       slideAnim.setValue(SCREEN_HEIGHT);
       fadeAnim.setValue(0);
+      drawerAnim.setValue(-DRAWER_WIDTH);
+      setDrawerOpen(false);
     }
   }, [visible]);
 
   useEffect(() => {
-    if (messages.length > 0 && activeConfig) {
-      saveChatHistory({
+    if (currentSession && messages.length > 0) {
+      const updatedSession = {
+        ...currentSession,
         messages: messages as StoredChatMessage[],
-        lastConfigId: activeConfig.id,
-        videoUrl: attachedVideoUrl,
-      });
+        configId: activeConfig?.id || null,
+      };
+      updateChatSession(updatedSession);
     }
-  }, [messages, activeConfig, attachedVideoUrl]);
+  }, [messages, activeConfig]);
+
+  const toggleDrawer = () => {
+    const opening = !drawerOpen;
+    setDrawerOpen(opening);
+    Animated.timing(drawerAnim, {
+      toValue: opening ? 0 : -DRAWER_WIDTH,
+      duration: 250,
+      useNativeDriver: true,
+    }).start();
+  };
 
   const loadData = async () => {
-    const [allConfigs, active, history] = await Promise.all([
+    const [allConfigs, active, allSessions, activeSession] = await Promise.all([
       getGeminiConfigs(),
       getActiveGeminiConfig(),
-      getChatHistory(),
+      getChatSessions(),
+      getActiveChatSession(),
     ]);
     setConfigs(allConfigs);
     setActiveConfig(active);
-
-    if (history.messages.length > 0) {
-      setMessages(history.messages);
-      setAttachedVideoUrl(history.videoUrl);
+    setSessions(allSessions);
+    if (activeSession) {
+      setCurrentSession(activeSession);
+      setMessages(activeSession.messages);
     }
   };
 
@@ -111,43 +179,53 @@ const ChatModal: React.FC<ChatModalProps> = ({
   };
 
   const scrollToBottom = useCallback(() => {
-    setTimeout(() => {
-      flatListRef.current?.scrollToEnd({ animated: true });
-    }, 100);
+    setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
   }, []);
 
-  const handleSend = async () => {
-    if (!inputText.trim() || isLoading || !activeConfig) return;
+  const handleSend = async (text?: string, withVideo?: boolean) => {
+    const messageText = text || inputText.trim();
+    if (!messageText || isLoading || !activeConfig) return;
+
+    const shouldAttachVideo = withVideo !== undefined ? withVideo : attachVideo;
 
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
       role: "user",
-      content: inputText.trim(),
+      content: messageText,
       timestamp: Date.now(),
-      hasVideo: attachedVideoUrl !== null && messages.length === 0,
+      hasVideo: shouldAttachVideo && !!videoUrl,
     };
+
+    if (!currentSession) {
+      const newSession = await createChatSession(
+        messageText.slice(0, 30),
+        activeConfig.id
+      );
+      setCurrentSession(newSession);
+      setSessions((prev) => [newSession, ...prev]);
+    }
 
     const newMessages = [...messages, userMessage];
     setMessages(newMessages);
     setInputText("");
+    setAttachVideo(false);
     setIsLoading(true);
-    setStreamingText("");
+    setIsFromHistory(false);
     scrollToBottom();
 
-    const currentVideoUrl = attachedVideoUrl;
-    if (userMessage.hasVideo) {
-      setAttachedVideoUrl(null);
-    }
+    // Create abort controller for this request
+    abortControllerRef.current = new AbortController();
+    const currentAbort = abortControllerRef.current;
 
     sendChatMessage(
       newMessages,
       activeConfig,
       {
-        onChunk: (text) => {
-          setStreamingText(text);
-          scrollToBottom();
-        },
+        onChunk: () => scrollToBottom(),
         onComplete: (fullText) => {
+          // Ignore if aborted
+          if (currentAbort.signal.aborted) return;
+
           const aiMessage: ChatMessage = {
             id: (Date.now() + 1).toString(),
             role: "model",
@@ -155,102 +233,95 @@ const ChatModal: React.FC<ChatModalProps> = ({
             timestamp: Date.now(),
           };
           setMessages((prev) => [...prev, aiMessage]);
-          setStreamingText("");
           setIsLoading(false);
+          abortControllerRef.current = null;
           scrollToBottom();
         },
         onError: (error) => {
+          // Ignore if aborted
+          if (currentAbort.signal.aborted) return;
+
           const errorMessage: ChatMessage = {
             id: (Date.now() + 1).toString(),
             role: "model",
-            content: `❌ Lỗi: ${error.message}`,
+            content: `Lỗi: ${error.message}`,
             timestamp: Date.now(),
           };
           setMessages((prev) => [...prev, errorMessage]);
-          setStreamingText("");
           setIsLoading(false);
+          abortControllerRef.current = null;
         },
       },
-      currentVideoUrl || undefined
+      shouldAttachVideo ? videoUrl : undefined
     );
   };
 
-  const handleAttachVideo = () => {
-    if (videoUrl && messages.length === 0) {
-      setAttachedVideoUrl(videoUrl);
+  const handleQuickAction = (actionId: string) => {
+    const actionMap: Record<string, string> = {
+      summary: "Tóm tắt nội dung video này",
+      analyze: "Phân tích chi tiết video này",
+      keypoints: "Liệt kê các điểm chính trong video",
+      translate: "Dịch nội dung video sang tiếng Việt",
+    };
+    handleSend(actionMap[actionId], true);
+  };
+
+  const handleStop = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    // Thêm message lỗi cho task đang pending
+    const errorMessage: ChatMessage = {
+      id: (Date.now() + 1).toString(),
+      role: "model",
+      content: "Lỗi: Đã dừng bởi người dùng",
+      timestamp: Date.now(),
+    };
+    setMessages((prev) => [...prev, errorMessage]);
+    setIsLoading(false);
+  };
+
+  const handleNewChat = async () => {
+    // Clear current state first
+    setMessages([]);
+    setAttachVideo(false);
+    setInputText("");
+    setIsFromHistory(false);
+
+    // Create new session
+    const newSession = await createChatSession(undefined, activeConfig?.id);
+    setCurrentSession(newSession);
+
+    // Reload sessions from storage to get fresh list
+    const allSessions = await getChatSessions();
+    setSessions(allSessions);
+
+    toggleDrawer();
+  };
+
+  const handleSelectSession = async (session: ChatSession) => {
+    await setActiveChatSessionId(session.id);
+    setCurrentSession(session);
+    setMessages(session.messages);
+    setIsFromHistory(true);
+    toggleDrawer();
+  };
+
+  const handleDeleteSession = async (sessionId: string) => {
+    await deleteChatSession(sessionId);
+    const newSessions = sessions.filter((s) => s.id !== sessionId);
+    setSessions(newSessions);
+    if (currentSession?.id === sessionId) {
+      if (newSessions.length > 0) {
+        setCurrentSession(newSessions[0]);
+        setMessages(newSessions[0].messages);
+      } else {
+        setCurrentSession(null);
+        setMessages([]);
+      }
     }
   };
-
-  const handleRemoveVideo = () => {
-    setAttachedVideoUrl(null);
-  };
-
-  const handleClearChat = async () => {
-    setMessages([]);
-    setAttachedVideoUrl(null);
-    await clearChatHistory();
-  };
-
-  const renderAIHeader = () => (
-    <View style={styles.aiHeader}>
-      <View style={styles.aiAvatar}>
-        <MaterialCommunityIcons name="robot" size={18} color={COLORS.primary} />
-      </View>
-      <Text style={styles.aiName}>Zia</Text>
-    </View>
-  );
-
-  const renderMessage = ({ item }: { item: ChatMessage }) => {
-    const isUser = item.role === "user";
-    return (
-      <View style={[styles.messageRow, isUser && styles.messageRowUser]}>
-        {item.hasVideo && (
-          <View style={styles.videoIndicator}>
-            <MaterialCommunityIcons
-              name="youtube"
-              size={14}
-              color={COLORS.error}
-            />
-            <Text style={styles.videoIndicatorText}>Video đính kèm</Text>
-          </View>
-        )}
-        {!isUser && renderAIHeader()}
-        <View
-          style={[
-            styles.messageBubble,
-            isUser ? styles.userBubble : styles.aiBubble,
-          ]}
-        >
-          {isUser ? (
-            <Text style={styles.userText}>{item.content}</Text>
-          ) : (
-            <Markdown style={markdownStyles}>{item.content}</Markdown>
-          )}
-        </View>
-      </View>
-    );
-  };
-
-  const renderStreamingMessage = () => {
-    if (!isLoading && !streamingText) return null;
-    return (
-      <View style={styles.messageRow}>
-        {renderAIHeader()}
-        <View style={[styles.messageBubble, styles.aiBubble]}>
-          {streamingText ? (
-            <Markdown style={markdownStyles}>{streamingText}</Markdown>
-          ) : (
-            <View style={styles.typingIndicator}>
-              <ActivityIndicator size="small" color={COLORS.primary} />
-              <Text style={styles.typingText}>Đang suy nghĩ...</Text>
-            </View>
-          )}
-        </View>
-      </View>
-    );
-  };
-
-  const canAttachVideo = videoUrl && messages.length === 0 && !attachedVideoUrl;
 
   const handleClose = () => {
     Animated.parallel([
@@ -267,6 +338,40 @@ const ChatModal: React.FC<ChatModalProps> = ({
     ]).start(() => onClose());
   };
 
+  const renderTask = ({ item, index }: { item: TaskItem; index: number }) => {
+    // Mặc định mở task cuối cùng (đang pending hoặc mới nhất), đóng các task cũ khi load từ history
+    const isLastTask = index === tasks.length - 1;
+    const shouldExpand =
+      isLastTask && (!isFromHistory || item.status === "pending");
+    return <TaskCard task={item} defaultExpanded={shouldExpand} />;
+  };
+
+  const renderEmptyState = () => (
+    <View style={styles.emptyContainer}>
+      <Text style={styles.greeting}>Xin chào!</Text>
+      <Text style={styles.greetingSubtitle}>Tôi có thể giúp gì cho bạn?</Text>
+      {videoUrl && (
+        <View style={styles.quickActionsContainer}>
+          {QUICK_ACTIONS.map((action) => (
+            <TouchableOpacity
+              key={action.id}
+              style={styles.quickActionBtn}
+              onPress={() => handleQuickAction(action.id)}
+              disabled={isLoading}
+            >
+              <MaterialCommunityIcons
+                name={action.icon as any}
+                size={18}
+                color={COLORS.text}
+              />
+              <Text style={styles.quickActionLabel}>{action.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+    </View>
+  );
+
   const bottomPadding = Math.max(insets.bottom, 10);
 
   return (
@@ -278,7 +383,13 @@ const ChatModal: React.FC<ChatModalProps> = ({
       statusBarTranslucent
     >
       <View style={styles.modalOverlay}>
-        <Animated.View style={[styles.modalBackdrop, { opacity: fadeAnim }]}>
+        {/* Backdrop - only covers top area */}
+        <Animated.View
+          style={[
+            styles.modalBackdrop,
+            { height: insets.top, opacity: fadeAnim },
+          ]}
+        >
           <TouchableOpacity
             style={StyleSheet.absoluteFill}
             activeOpacity={1}
@@ -290,7 +401,6 @@ const ChatModal: React.FC<ChatModalProps> = ({
           style={[
             styles.container,
             {
-              marginTop: insets.top + 10,
               paddingBottom: bottomPadding,
               transform: [{ translateY: slideAnim }],
             },
@@ -298,138 +408,74 @@ const ChatModal: React.FC<ChatModalProps> = ({
         >
           {/* Header */}
           <View style={styles.header}>
-            <TouchableOpacity style={styles.headerBtn} onPress={handleClose}>
+            <TouchableOpacity style={styles.headerBtn} onPress={toggleDrawer}>
               <MaterialCommunityIcons
-                name="close"
-                size={22}
+                name="menu"
+                size={24}
                 color={COLORS.text}
               />
             </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.configButton}
-              onPress={() => setShowConfigSelector(true)}
-            >
+            <Text style={styles.headerTitle}>Zia</Text>
+            <TouchableOpacity style={styles.headerBtn} onPress={handleClose}>
               <MaterialCommunityIcons
-                name="robot"
-                size={18}
-                color={COLORS.primary}
-              />
-              <Text style={styles.configName} numberOfLines={1}>
-                {activeConfig?.name || "Chọn cấu hình"}
-              </Text>
-              <MaterialCommunityIcons
-                name="chevron-down"
-                size={16}
-                color={COLORS.textMuted}
-              />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.headerBtn}
-              onPress={handleClearChat}
-            >
-              <MaterialCommunityIcons
-                name="delete-outline"
-                size={20}
+                name="close"
+                size={24}
                 color={COLORS.text}
               />
             </TouchableOpacity>
           </View>
 
-          {/* Attached Video Banner */}
-          {attachedVideoUrl && messages.length === 0 && (
-            <View style={styles.attachedBanner}>
-              <MaterialCommunityIcons
-                name="youtube"
-                size={18}
-                color={COLORS.error}
-              />
-              <Text style={styles.attachedText} numberOfLines={1}>
-                Video sẽ được đính kèm
-              </Text>
-              <TouchableOpacity onPress={handleRemoveVideo}>
-                <MaterialCommunityIcons
-                  name="close"
-                  size={18}
-                  color={COLORS.textMuted}
-                />
-              </TouchableOpacity>
-            </View>
-          )}
-
-          {/* Messages */}
+          {/* Tasks */}
           <FlatList
             ref={flatListRef}
-            data={messages}
-            renderItem={renderMessage}
+            data={tasks}
+            renderItem={renderTask}
             keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.messageList}
-            ListFooterComponent={renderStreamingMessage}
+            contentContainerStyle={styles.taskList}
             onContentSizeChange={scrollToBottom}
-            ListEmptyComponent={
-              <View style={styles.emptyContainer}>
-                <MaterialCommunityIcons
-                  name="robot-happy"
-                  size={48}
-                  color={COLORS.textMuted}
-                />
-                <Text style={styles.emptyText}>Bắt đầu cuộc trò chuyện</Text>
-                {videoUrl && !attachedVideoUrl && (
-                  <Text style={styles.emptyHint}>
-                    Nhấn nút YouTube để đính kèm video hiện tại
-                  </Text>
-                )}
-              </View>
-            }
+            ListEmptyComponent={renderEmptyState}
           />
 
-          {/* Input */}
+          {/* Input Area */}
           <KeyboardAvoidingView
             behavior={Platform.OS === "ios" ? "padding" : undefined}
           >
-            <View style={styles.inputContainer}>
-              {canAttachVideo && (
-                <TouchableOpacity
-                  style={styles.videoButton}
-                  onPress={handleAttachVideo}
-                >
-                  <MaterialCommunityIcons
-                    name="youtube"
-                    size={22}
-                    color={COLORS.error}
-                  />
-                </TouchableOpacity>
-              )}
-              <TextInput
-                style={styles.input}
-                value={inputText}
-                onChangeText={setInputText}
-                placeholder="Nhập tin nhắn..."
-                placeholderTextColor={COLORS.textMuted}
-                multiline
-                maxLength={4000}
-              />
-              <TouchableOpacity
-                style={[
-                  styles.sendButton,
-                  (!inputText.trim() || isLoading) && styles.sendButtonDisabled,
-                ]}
-                onPress={handleSend}
-                disabled={!inputText.trim() || isLoading}
-              >
-                {isLoading ? (
-                  <ActivityIndicator size="small" color={COLORS.text} />
-                ) : (
-                  <MaterialCommunityIcons
-                    name="send"
-                    size={20}
-                    color={COLORS.text}
-                  />
-                )}
-              </TouchableOpacity>
-            </View>
+            <ChatInput
+              inputText={inputText}
+              onChangeText={setInputText}
+              onSend={() => handleSend()}
+              onStop={handleStop}
+              isLoading={isLoading}
+              videoUrl={videoUrl}
+              videoTitle={videoTitle}
+              attachVideo={attachVideo}
+              onToggleVideo={() => setAttachVideo(!attachVideo)}
+              configName={activeConfig?.name || "Chọn model"}
+              onOpenConfig={() => setShowConfigSelector(true)}
+            />
           </KeyboardAvoidingView>
+
+          {/* Drawer Overlay */}
+          {drawerOpen && (
+            <TouchableOpacity
+              style={styles.drawerOverlay}
+              activeOpacity={1}
+              onPress={toggleDrawer}
+            />
+          )}
+
+          {/* Drawer */}
+          <ChatDrawer
+            sessions={sessions}
+            currentSession={currentSession}
+            drawerAnim={drawerAnim}
+            paddingTop={insets.top + 12}
+            onNewChat={handleNewChat}
+            onSelectSession={handleSelectSession}
+            onDeleteSession={handleDeleteSession}
+            onUpdateSessions={setSessions}
+            onUpdateCurrentSession={setCurrentSession}
+          />
 
           <ConfigSelector
             visible={showConfigSelector}
@@ -447,256 +493,81 @@ const ChatModal: React.FC<ChatModalProps> = ({
 const styles = StyleSheet.create({
   modalOverlay: { flex: 1 },
   modalBackdrop: {
-    ...StyleSheet.absoluteFillObject,
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
     backgroundColor: COLORS.overlay,
   },
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingTop: 16,
+    overflow: "hidden",
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 8,
-    height: 50,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-    backgroundColor: COLORS.surface,
+    paddingVertical: 8,
   },
   headerBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 8,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: "center",
     alignItems: "center",
   },
-  configButton: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    marginHorizontal: 8,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    backgroundColor: COLORS.surfaceLight,
-    borderRadius: 8,
-  },
-  configName: {
+  headerTitle: {
     color: COLORS.text,
-    fontSize: 14,
-    fontWeight: "500",
-    maxWidth: 150,
+    fontSize: 20,
+    fontWeight: "600",
   },
-  attachedBanner: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    backgroundColor: COLORS.surfaceLight,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  attachedText: {
-    flex: 1,
-    color: COLORS.textSecondary,
-    fontSize: 13,
-  },
-  messageList: {
+  taskList: {
     padding: 16,
     paddingBottom: 8,
     flexGrow: 1,
   },
-  messageRow: {
-    marginBottom: 12,
-    alignItems: "flex-start",
-  },
-  messageRowUser: {
-    alignItems: "flex-end",
-  },
-  videoIndicator: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    marginBottom: 4,
-    paddingHorizontal: 8,
-  },
-  videoIndicatorText: {
-    color: COLORS.textMuted,
-    fontSize: 11,
-  },
-  aiHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 6,
-  },
-  aiAvatar: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: COLORS.surfaceLight,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  aiName: {
-    color: COLORS.text,
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  typingIndicator: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingVertical: 4,
-  },
-  typingText: {
-    color: COLORS.textMuted,
-    fontSize: 14,
-  },
-  messageBubble: {
-    maxWidth: "85%",
-    borderRadius: 16,
-    padding: 12,
-  },
-  userBubble: {
-    backgroundColor: COLORS.primary,
-    borderBottomRightRadius: 4,
-  },
-  aiBubble: {
-    backgroundColor: "transparent",
-    padding: 0,
-    paddingRight: 8,
-  },
-  userText: {
-    color: COLORS.text,
-    fontSize: 15,
-    lineHeight: 22,
-  },
   emptyContainer: {
     flex: 1,
     justifyContent: "center",
-    alignItems: "center",
-    paddingVertical: 60,
-    gap: 12,
+    alignItems: "flex-start",
+    paddingHorizontal: 8,
+    paddingTop: 40,
   },
-  emptyText: {
-    color: COLORS.textMuted,
-    fontSize: 16,
+  greeting: {
+    color: COLORS.textSecondary,
+    fontSize: 18,
+    marginBottom: 4,
   },
-  emptyHint: {
-    color: COLORS.textMuted,
-    fontSize: 13,
-    textAlign: "center",
-    paddingHorizontal: 40,
+  greetingSubtitle: {
+    color: COLORS.text,
+    fontSize: 26,
+    fontWeight: "600",
+    marginBottom: 32,
   },
-  inputContainer: {
+  quickActionsContainer: {
+    gap: 10,
+    width: "100%",
+  },
+  quickActionBtn: {
     flexDirection: "row",
-    alignItems: "flex-end",
-    padding: 12,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-    backgroundColor: COLORS.surface,
-    gap: 8,
-  },
-  videoButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.surfaceLight,
-    justifyContent: "center",
     alignItems: "center",
-  },
-  input: {
-    flex: 1,
-    minHeight: 40,
-    maxHeight: 120,
+    gap: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 18,
+    borderRadius: 24,
     backgroundColor: COLORS.surfaceLight,
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    alignSelf: "flex-start",
+  },
+  quickActionLabel: {
     color: COLORS.text,
     fontSize: 15,
   },
-  sendButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.primary,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  sendButtonDisabled: {
-    backgroundColor: COLORS.surfaceElevated,
+  drawerOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.5)",
   },
 });
-
-const markdownStyles = {
-  body: { color: COLORS.text, fontSize: 15, lineHeight: 22 },
-  heading1: {
-    color: COLORS.text,
-    fontSize: 22,
-    fontWeight: "bold" as const,
-    marginVertical: 8,
-  },
-  heading2: {
-    color: COLORS.text,
-    fontSize: 20,
-    fontWeight: "bold" as const,
-    marginVertical: 6,
-  },
-  heading3: {
-    color: COLORS.text,
-    fontSize: 18,
-    fontWeight: "600" as const,
-    marginVertical: 4,
-  },
-  paragraph: { color: COLORS.text, marginVertical: 4 },
-  link: { color: COLORS.accent },
-  blockquote: {
-    backgroundColor: COLORS.surfaceLight,
-    borderLeftColor: COLORS.primary,
-    borderLeftWidth: 3,
-    paddingLeft: 12,
-    paddingVertical: 4,
-    marginVertical: 8,
-  },
-  code_inline: {
-    backgroundColor: COLORS.surfaceLight,
-    color: COLORS.primaryLight,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
-    fontSize: 13,
-  },
-  code_block: {
-    backgroundColor: COLORS.surfaceLight,
-    padding: 12,
-    borderRadius: 8,
-    marginVertical: 8,
-  },
-  fence: {
-    backgroundColor: COLORS.surfaceLight,
-    padding: 12,
-    borderRadius: 8,
-    marginVertical: 8,
-    fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
-    fontSize: 13,
-    color: COLORS.text,
-  },
-  list_item: { color: COLORS.text, marginVertical: 2 },
-  bullet_list: { marginVertical: 4 },
-  ordered_list: { marginVertical: 4 },
-  strong: { color: COLORS.text, fontWeight: "bold" as const },
-  em: { color: COLORS.text, fontStyle: "italic" as const },
-  hr: { backgroundColor: COLORS.border, height: 1, marginVertical: 12 },
-};
 
 export default ChatModal;

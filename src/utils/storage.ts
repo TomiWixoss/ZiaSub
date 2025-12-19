@@ -487,8 +487,9 @@ export const getActiveGeminiConfig = async (): Promise<GeminiConfig | null> => {
   }
 };
 
-// Chat history storage
-const CHAT_HISTORY_KEY = "chat_history";
+// Chat history storage - Multiple sessions
+const CHAT_SESSIONS_KEY = "chat_sessions";
+const ACTIVE_CHAT_SESSION_KEY = "active_chat_session";
 
 export interface StoredChatMessage {
   id: string;
@@ -496,39 +497,153 @@ export interface StoredChatMessage {
   content: string;
   timestamp: number;
   hasVideo?: boolean;
+  videoUrl?: string; // Video URL đính kèm cho message này
 }
 
+export interface ChatSession {
+  id: string;
+  name: string;
+  messages: StoredChatMessage[];
+  configId: string | null;
+  createdAt: number;
+  updatedAt: number;
+}
+
+// Legacy support
 export interface ChatHistory {
   messages: StoredChatMessage[];
   lastConfigId: string | null;
   videoUrl: string | null;
 }
 
-export const saveChatHistory = async (history: ChatHistory): Promise<void> => {
+// Get all chat sessions
+export const getChatSessions = async (): Promise<ChatSession[]> => {
   try {
-    await AsyncStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(history));
-  } catch (error) {
-    console.error("Error saving chat history:", error);
-  }
-};
-
-export const getChatHistory = async (): Promise<ChatHistory> => {
-  try {
-    const data = await AsyncStorage.getItem(CHAT_HISTORY_KEY);
+    const data = await AsyncStorage.getItem(CHAT_SESSIONS_KEY);
     if (data) {
       return JSON.parse(data);
     }
-    return { messages: [], lastConfigId: null, videoUrl: null };
+    return [];
   } catch (error) {
-    console.error("Error getting chat history:", error);
-    return { messages: [], lastConfigId: null, videoUrl: null };
+    console.error("Error getting chat sessions:", error);
+    return [];
   }
 };
 
-export const clearChatHistory = async (): Promise<void> => {
+// Save all chat sessions
+export const saveChatSessions = async (
+  sessions: ChatSession[]
+): Promise<void> => {
   try {
-    await AsyncStorage.removeItem(CHAT_HISTORY_KEY);
+    await AsyncStorage.setItem(CHAT_SESSIONS_KEY, JSON.stringify(sessions));
   } catch (error) {
-    console.error("Error clearing chat history:", error);
+    console.error("Error saving chat sessions:", error);
+  }
+};
+
+// Create new chat session
+export const createChatSession = async (
+  name?: string,
+  configId?: string
+): Promise<ChatSession> => {
+  const sessions = await getChatSessions();
+  const newSession: ChatSession = {
+    id: Date.now().toString(),
+    name: name || `Chat ${sessions.length + 1}`,
+    messages: [],
+    configId: configId || null,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  };
+  sessions.unshift(newSession);
+  await saveChatSessions(sessions);
+  await setActiveChatSessionId(newSession.id);
+  return newSession;
+};
+
+// Update chat session
+export const updateChatSession = async (
+  session: ChatSession
+): Promise<void> => {
+  const sessions = await getChatSessions();
+  const index = sessions.findIndex((s) => s.id === session.id);
+  if (index !== -1) {
+    sessions[index] = { ...session, updatedAt: Date.now() };
+    await saveChatSessions(sessions);
+  }
+};
+
+// Delete chat session
+export const deleteChatSession = async (sessionId: string): Promise<void> => {
+  const sessions = await getChatSessions();
+  const filtered = sessions.filter((s) => s.id !== sessionId);
+  await saveChatSessions(filtered);
+
+  // If deleted active session, set new active
+  const activeId = await getActiveChatSessionId();
+  if (activeId === sessionId && filtered.length > 0) {
+    await setActiveChatSessionId(filtered[0].id);
+  }
+};
+
+// Get/Set active session ID
+export const getActiveChatSessionId = async (): Promise<string | null> => {
+  try {
+    return await AsyncStorage.getItem(ACTIVE_CHAT_SESSION_KEY);
+  } catch (error) {
+    return null;
+  }
+};
+
+export const setActiveChatSessionId = async (id: string): Promise<void> => {
+  try {
+    await AsyncStorage.setItem(ACTIVE_CHAT_SESSION_KEY, id);
+  } catch (error) {
+    console.error("Error setting active chat session:", error);
+  }
+};
+
+// Get active chat session
+export const getActiveChatSession = async (): Promise<ChatSession | null> => {
+  const sessions = await getChatSessions();
+  const activeId = await getActiveChatSessionId();
+
+  if (activeId) {
+    const session = sessions.find((s) => s.id === activeId);
+    if (session) return session;
+  }
+
+  // Return first session or null
+  return sessions[0] || null;
+};
+
+// Legacy compatibility - maps to active session
+export const saveChatHistory = async (history: ChatHistory): Promise<void> => {
+  let session = await getActiveChatSession();
+  if (!session) {
+    session = await createChatSession();
+  }
+  session.messages = history.messages;
+  session.configId = history.lastConfigId;
+  await updateChatSession(session);
+};
+
+export const getChatHistory = async (): Promise<ChatHistory> => {
+  const session = await getActiveChatSession();
+  if (session) {
+    return {
+      messages: session.messages,
+      lastConfigId: session.configId,
+      videoUrl: null,
+    };
+  }
+  return { messages: [], lastConfigId: null, videoUrl: null };
+};
+
+export const clearChatHistory = async (): Promise<void> => {
+  const session = await getActiveChatSession();
+  if (session) {
+    session.messages = [];
+    await updateChatSession(session);
   }
 };

@@ -668,6 +668,7 @@ const HomeScreen = () => {
         visible={chatModalVisible}
         onClose={() => setChatModalVisible(false)}
         videoUrl={currentUrl}
+        videoTitle={videoTitle}
       />
     </View>
   );
