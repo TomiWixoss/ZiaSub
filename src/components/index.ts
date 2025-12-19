@@ -19,3 +19,4 @@ export * from "./chat";
 export * from "./settings";
 export * from "./subtitle";
 export * from "./queue";
+export * from "./onboarding";

@@ -168,7 +168,6 @@ const subtitleThemedStyles = createThemedStyles((colors) => ({
     fontSize: 13,
     fontWeight: "600",
     marginBottom: 8,
-    marginTop: 24,
     textTransform: "uppercase",
   },
   previewContainer: {

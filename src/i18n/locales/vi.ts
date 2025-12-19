@@ -1,4 +1,33 @@
 export default {
+  // Onboarding
+  onboarding: {
+    getStarted: "Bắt đầu",
+    skip: "Bỏ qua",
+    welcome: {
+      title: "Chào mừng đến ZiaSub",
+      subtitle: "Dịch phụ đề video YouTube tự động với AI",
+      feature1: "Dịch phụ đề tự động bằng Gemini AI",
+      feature2: "Hỗ trợ nhiều ngôn ngữ và kiểu dịch",
+      feature3: "Xem video với phụ đề ngay trong app",
+    },
+    theme: {
+      title: "Chọn giao diện",
+      subtitle:
+        "Chọn giao diện phù hợp với bạn. Có thể thay đổi sau trong Cài đặt.",
+    },
+    language: {
+      title: "Chọn ngôn ngữ",
+      subtitle: "Chọn ngôn ngữ hiển thị cho ứng dụng.",
+    },
+    apiKey: {
+      title: "Thêm API Key",
+      subtitle:
+        "Cần API key của Gemini để dịch phụ đề. Bạn có thể thêm sau trong Cài đặt.",
+      placeholder: "Dán API key vào đây...",
+      added: "Đã thêm API key!",
+    },
+  },
+
   // Common
   common: {
     ok: "OK",
@@ -90,6 +119,18 @@ export default {
     language: "Ngôn ngữ",
     selectLanguage: "Chọn ngôn ngữ",
     editConfig: "Chỉnh kiểu dịch",
+
+    // Groups
+    groups: {
+      appearance: "Giao diện",
+      appearanceDesc: "Chủ đề và ngôn ngữ",
+      apiKeysDesc: "{{count}} key đã thêm",
+      subtitleDesc: "Cỡ chữ, kiểu chữ, vị trí",
+      batchDesc: "Chia video, dịch song song",
+      ttsDesc: "{{status}}",
+      enabled: "Đang bật",
+      disabled: "Đang tắt",
+    },
 
     // Theme
     theme: {

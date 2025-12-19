@@ -1,4 +1,33 @@
 export default {
+  // Onboarding
+  onboarding: {
+    getStarted: "Get Started",
+    skip: "Skip",
+    welcome: {
+      title: "Welcome to ZiaSub",
+      subtitle: "Auto-translate YouTube video subtitles with AI",
+      feature1: "Auto-translate subtitles with Gemini AI",
+      feature2: "Support multiple languages and translation styles",
+      feature3: "Watch videos with subtitles right in the app",
+    },
+    theme: {
+      title: "Choose Theme",
+      subtitle:
+        "Pick a theme that suits you. You can change it later in Settings.",
+    },
+    language: {
+      title: "Choose Language",
+      subtitle: "Select your preferred display language for the app.",
+    },
+    apiKey: {
+      title: "Add API Key",
+      subtitle:
+        "A Gemini API key is needed to translate subtitles. You can add it later in Settings.",
+      placeholder: "Paste API key here...",
+      added: "API key added!",
+    },
+  },
+
   // Common
   common: {
     ok: "OK",
@@ -90,6 +119,18 @@ export default {
     language: "Language",
     selectLanguage: "Select language",
     editConfig: "Edit translation style",
+
+    // Groups
+    groups: {
+      appearance: "Appearance",
+      appearanceDesc: "Theme and language",
+      apiKeysDesc: "{{count}} key(s) added",
+      subtitleDesc: "Font size, style, position",
+      batchDesc: "Split video, parallel translation",
+      ttsDesc: "{{status}}",
+      enabled: "Enabled",
+      disabled: "Disabled",
+    },
 
     // Theme
     theme: {

@@ -58,7 +58,7 @@ const LanguageSection: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  section: { marginBottom: 24 },
+  section: { marginBottom: 0 },
   sectionHeader: {
     flexDirection: "row",
     alignItems: "center",

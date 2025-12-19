@@ -1,18 +1,34 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { View, ActivityIndicator, StyleSheet } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { PaperProvider, MD3DarkTheme, MD3LightTheme } from "react-native-paper";
 import { ThemeProvider, useTheme } from "@src/contexts";
 import { AlertProvider } from "@components/common/CustomAlert";
 import HomeScreen from "@screens/HomeScreen";
+import { OnboardingScreen } from "@components/onboarding";
 import { initI18n } from "@i18n/index";
+import { getOnboardingCompleted, setOnboardingCompleted } from "@utils/storage";
 
 const AppContent = () => {
   const { colors, isDark } = useTheme();
   const [isI18nReady, setIsI18nReady] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState<boolean | null>(null);
 
   useEffect(() => {
-    initI18n().then(() => setIsI18nReady(true));
+    const init = async () => {
+      const [, onboardingCompleted] = await Promise.all([
+        initI18n(),
+        getOnboardingCompleted(),
+      ]);
+      setIsI18nReady(true);
+      setShowOnboarding(!onboardingCompleted);
+    };
+    init();
+  }, []);
+
+  const handleOnboardingComplete = useCallback(async () => {
+    await setOnboardingCompleted(true);
+    setShowOnboarding(false);
   }, []);
 
   const paperTheme = {
@@ -27,7 +43,7 @@ const AppContent = () => {
     },
   };
 
-  if (!isI18nReady) {
+  if (!isI18nReady || showOnboarding === null) {
     return (
       <View
         style={[
@@ -37,6 +53,14 @@ const AppContent = () => {
       >
         <ActivityIndicator size="large" color={colors.primary} />
       </View>
+    );
+  }
+
+  if (showOnboarding) {
+    return (
+      <PaperProvider theme={paperTheme}>
+        <OnboardingScreen onComplete={handleOnboardingComplete} />
+      </PaperProvider>
     );
   }
 

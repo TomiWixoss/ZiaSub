@@ -107,3 +107,31 @@ export const getTTSSettings = async (): Promise<TTSSettings> => {
   const appSettings = await getAppSettings();
   return appSettings.tts;
 };
+
+// ============================================
+// ONBOARDING
+// ============================================
+const ONBOARDING_COMPLETED_KEY = "@onboarding_completed";
+
+export const setOnboardingCompleted = async (
+  completed: boolean
+): Promise<void> => {
+  try {
+    await AsyncStorage.setItem(
+      ONBOARDING_COMPLETED_KEY,
+      JSON.stringify(completed)
+    );
+  } catch (error) {
+    console.error("Error saving onboarding status:", error);
+  }
+};
+
+export const getOnboardingCompleted = async (): Promise<boolean> => {
+  try {
+    const data = await AsyncStorage.getItem(ONBOARDING_COMPLETED_KEY);
+    return data ? JSON.parse(data) : false;
+  } catch (error) {
+    console.error("Error getting onboarding status:", error);
+    return false;
+  }
+};

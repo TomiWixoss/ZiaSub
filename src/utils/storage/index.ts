@@ -14,6 +14,8 @@ export {
   getApiKeys,
   saveTTSSettings,
   getTTSSettings,
+  setOnboardingCompleted,
+  getOnboardingCompleted,
 } from "./settingsStorage";
 
 // SRT
