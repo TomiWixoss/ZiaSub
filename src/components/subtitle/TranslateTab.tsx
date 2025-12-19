@@ -252,316 +252,322 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
 
   return (
     <View style={styles.tabContent}>
-      {/* Saved Translations List */}
-      {savedTranslations.length > 0 && (
-        <View style={styles.translationsSection}>
-          <Text style={styles.sectionTitle}>Đã dịch</Text>
-          <ScrollView
-            style={styles.translationsList}
-            showsVerticalScrollIndicator={false}
-          >
-            {savedTranslations.map((t) => (
-              <View
-                key={t.id}
-                style={[
-                  styles.translationItem,
-                  t.id === activeTranslationId && styles.translationItemActive,
-                ]}
-              >
-                <TouchableOpacity
-                  style={styles.translationInfo}
-                  onPress={() => handleSelectTranslation(t)}
-                >
-                  <View style={styles.translationHeader}>
-                    <MaterialCommunityIcons
-                      name={
-                        t.id === activeTranslationId
-                          ? "check-circle"
-                          : "file-document-outline"
-                      }
-                      size={16}
-                      color={
-                        t.id === activeTranslationId
-                          ? COLORS.success
-                          : COLORS.textMuted
-                      }
-                    />
-                    <Text style={styles.translationConfig}>{t.configName}</Text>
-                  </View>
-                  <Text style={styles.translationDate}>
-                    {formatDate(t.createdAt)}
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.deleteBtn}
-                  onPress={() => handleDeleteTranslation(t)}
-                >
-                  <MaterialCommunityIcons
-                    name="delete-outline"
-                    size={18}
-                    color={COLORS.error}
-                  />
-                </TouchableOpacity>
-              </View>
-            ))}
-          </ScrollView>
-        </View>
-      )}
-
-      {/* API Key Warning */}
-      {!hasApiKey && (
-        <View style={styles.warningContainer}>
-          <MaterialCommunityIcons
-            name="alert-circle-outline"
-            size={20}
-            color={COLORS.warning}
-          />
-          <Text style={styles.warningText}>
-            Chưa có key. Thêm trong Cài đặt nhé
-          </Text>
-        </View>
-      )}
-
-      {/* Config Picker */}
-      <TouchableOpacity
-        style={styles.configPicker}
-        onPress={() => setShowConfigPicker(!showConfigPicker)}
+      <ScrollView
+        style={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
-        <View style={styles.configPickerLeft}>
-          <MaterialCommunityIcons
-            name="robot"
-            size={20}
-            color={COLORS.primary}
-          />
-          <Text style={styles.configPickerText}>
-            {selectedConfig?.name || "Chọn kiểu dịch"}
-          </Text>
-        </View>
-        <MaterialCommunityIcons
-          name={showConfigPicker ? "chevron-up" : "chevron-down"}
-          size={20}
-          color={COLORS.textMuted}
-        />
-      </TouchableOpacity>
-
-      {showConfigPicker && (
-        <View style={styles.configDropdown}>
-          {geminiConfigs.map((config) => (
-            <TouchableOpacity
-              key={config.id}
-              style={[
-                styles.configOption,
-                config.id === selectedConfigId && styles.configOptionActive,
-              ]}
-              onPress={() => {
-                setSelectedConfigId(config.id);
-                setShowConfigPicker(false);
-              }}
-            >
-              <Text
-                style={[
-                  styles.configOptionText,
-                  config.id === selectedConfigId &&
-                    styles.configOptionTextActive,
-                ]}
-              >
-                {config.name}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
-
-      {/* Advanced Options Toggle */}
-      <TouchableOpacity
-        style={styles.advancedToggle}
-        onPress={() => setShowAdvanced(!showAdvanced)}
-      >
-        <MaterialCommunityIcons
-          name="tune-variant"
-          size={18}
-          color={COLORS.textMuted}
-        />
-        <Text style={styles.advancedToggleText}>Tùy chọn nâng cao</Text>
-        <MaterialCommunityIcons
-          name={showAdvanced ? "chevron-up" : "chevron-down"}
-          size={18}
-          color={COLORS.textMuted}
-        />
-      </TouchableOpacity>
-
-      {/* Advanced Options Panel */}
-      {showAdvanced && (
-        <View style={styles.advancedPanel}>
-          {/* Streaming Mode */}
-          <View style={styles.advancedRow}>
-            <View style={styles.advancedRowLeft}>
-              <MaterialCommunityIcons
-                name="play-speed"
-                size={18}
-                color={COLORS.primary}
-              />
-              <View style={styles.advancedRowInfo}>
-                <Text style={styles.advancedRowTitle}>Dịch từng đợt</Text>
-                <Text style={styles.advancedRowDesc}>
-                  Xem phụ đề ngay khi mỗi phần dịch xong
-                </Text>
-              </View>
-            </View>
-            <Switch
-              value={streamingMode}
-              onValueChange={handleStreamingModeChange}
-              trackColor={{ false: COLORS.border, true: COLORS.primary }}
-              thumbColor={COLORS.text}
-            />
-          </View>
-
-          {/* Presub Mode */}
-          <View style={styles.advancedRow}>
-            <View style={styles.advancedRowLeft}>
-              <MaterialCommunityIcons
-                name="lightning-bolt"
-                size={18}
-                color={COLORS.warning}
-              />
-              <View style={styles.advancedRowInfo}>
-                <Text style={styles.advancedRowTitle}>Xem nhanh (Presub)</Text>
-                <Text style={styles.advancedRowDesc}>
-                  Phần đầu dịch ngắn hơn để xem ngay (~2 phút)
-                </Text>
-              </View>
-            </View>
-            <Switch
-              value={presubMode}
-              onValueChange={handlePresubModeChange}
-              trackColor={{ false: COLORS.border, true: COLORS.warning }}
-              thumbColor={COLORS.text}
-            />
-          </View>
-
-          {/* Custom Range */}
-          <View
-            style={[
-              styles.advancedRow,
-              { borderBottomWidth: useCustomRange ? 1 : 0 },
-            ]}
-          >
-            <View style={styles.advancedRowLeft}>
-              <MaterialCommunityIcons
-                name="clock-outline"
-                size={18}
-                color={COLORS.primary}
-              />
-              <View style={styles.advancedRowInfo}>
-                <Text style={styles.advancedRowTitle}>
-                  Dịch khoảng thời gian
-                </Text>
-                <Text style={styles.advancedRowDesc}>
-                  Để trống = từ đầu/tới cuối
-                </Text>
-              </View>
-            </View>
-            <Switch
-              value={useCustomRange}
-              onValueChange={setUseCustomRange}
-              trackColor={{ false: COLORS.border, true: COLORS.primary }}
-              thumbColor={COLORS.text}
-            />
-          </View>
-
-          {/* Range Inputs */}
-          {useCustomRange && (
-            <View style={styles.rangeInputContainer}>
-              <View style={styles.rangeInputGroup}>
-                <Text style={styles.rangeLabel}>Từ</Text>
-                <TextInput
-                  style={styles.rangeInput}
-                  value={rangeStartStr}
-                  onChangeText={setRangeStartStr}
-                  placeholder="0:00"
-                  placeholderTextColor={COLORS.textMuted}
-                  keyboardType="numbers-and-punctuation"
-                />
-              </View>
-              <MaterialCommunityIcons
-                name="arrow-right"
-                size={20}
-                color={COLORS.textMuted}
-              />
-              <View style={styles.rangeInputGroup}>
-                <Text style={styles.rangeLabel}>Đến</Text>
-                <TextInput
-                  style={styles.rangeInput}
-                  value={rangeEndStr}
-                  onChangeText={setRangeEndStr}
-                  placeholder={
-                    videoDuration ? formatTime(videoDuration) : "cuối"
-                  }
-                  placeholderTextColor={COLORS.textMuted}
-                  keyboardType="numbers-and-punctuation"
-                />
-              </View>
-            </View>
-          )}
-
-          {videoDuration && (
-            <Text style={styles.durationHint}>
-              Độ dài video: {formatTime(videoDuration)}
-            </Text>
-          )}
-        </View>
-      )}
-
-      {/* Translation Progress */}
-      {isTranslating && (
-        <View style={styles.progressContainer}>
-          <View style={styles.progressHeader}>
-            <View style={styles.progressTitleRow}>
-              <ActivityIndicator size="small" color={COLORS.primary} />
-              <Text style={styles.progressTitle}>{translateStatus}</Text>
-            </View>
-            {batchProgress && batchProgress.totalBatches > 1 && (
-              <Text style={styles.progressCount}>
-                {batchProgress.completedBatches}/{batchProgress.totalBatches}
-              </Text>
-            )}
-          </View>
-
-          {keyStatus && <Text style={styles.keyStatusText}>{keyStatus}</Text>}
-
-          {batchProgress && batchProgress.totalBatches > 1 && (
-            <View style={styles.batchGrid}>
-              {batchProgress.batchStatuses.map((status, index) => (
+        {/* Saved Translations List */}
+        {savedTranslations.length > 0 && (
+          <View style={styles.translationsSection}>
+            <Text style={styles.sectionTitle}>Đã dịch</Text>
+            <View style={styles.translationsList}>
+              {savedTranslations.map((t) => (
                 <View
-                  key={index}
+                  key={t.id}
                   style={[
-                    styles.batchItem,
-                    status === "completed" && styles.batchCompleted,
-                    status === "processing" && styles.batchProcessing,
-                    status === "error" && styles.batchError,
+                    styles.translationItem,
+                    t.id === activeTranslationId &&
+                      styles.translationItemActive,
                   ]}
                 >
-                  <Text style={styles.batchItemText}>{index + 1}</Text>
-                  {status === "completed" && (
+                  <TouchableOpacity
+                    style={styles.translationInfo}
+                    onPress={() => handleSelectTranslation(t)}
+                  >
+                    <View style={styles.translationHeader}>
+                      <MaterialCommunityIcons
+                        name={
+                          t.id === activeTranslationId
+                            ? "check-circle"
+                            : "file-document-outline"
+                        }
+                        size={16}
+                        color={
+                          t.id === activeTranslationId
+                            ? COLORS.success
+                            : COLORS.textMuted
+                        }
+                      />
+                      <Text style={styles.translationConfig}>
+                        {t.configName}
+                      </Text>
+                    </View>
+                    <Text style={styles.translationDate}>
+                      {formatDate(t.createdAt)}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.deleteBtn}
+                    onPress={() => handleDeleteTranslation(t)}
+                  >
                     <MaterialCommunityIcons
-                      name="check"
-                      size={12}
-                      color={COLORS.text}
+                      name="delete-outline"
+                      size={18}
+                      color={COLORS.error}
                     />
-                  )}
-                  {status === "error" && (
-                    <MaterialCommunityIcons
-                      name="close"
-                      size={12}
-                      color={COLORS.text}
-                    />
-                  )}
+                  </TouchableOpacity>
                 </View>
               ))}
             </View>
-          )}
-        </View>
-      )}
+          </View>
+        )}
+
+        {/* API Key Warning */}
+        {!hasApiKey && (
+          <View style={styles.warningContainer}>
+            <MaterialCommunityIcons
+              name="alert-circle-outline"
+              size={20}
+              color={COLORS.warning}
+            />
+            <Text style={styles.warningText}>
+              Chưa có key. Thêm trong Cài đặt nhé
+            </Text>
+          </View>
+        )}
+
+        {/* Config Picker */}
+        <TouchableOpacity
+          style={styles.configPicker}
+          onPress={() => setShowConfigPicker(!showConfigPicker)}
+        >
+          <View style={styles.configPickerLeft}>
+            <MaterialCommunityIcons
+              name="robot"
+              size={20}
+              color={COLORS.primary}
+            />
+            <Text style={styles.configPickerText}>
+              {selectedConfig?.name || "Chọn kiểu dịch"}
+            </Text>
+          </View>
+          <MaterialCommunityIcons
+            name={showConfigPicker ? "chevron-up" : "chevron-down"}
+            size={20}
+            color={COLORS.textMuted}
+          />
+        </TouchableOpacity>
+
+        {showConfigPicker && (
+          <View style={styles.configDropdown}>
+            {geminiConfigs.map((config) => (
+              <TouchableOpacity
+                key={config.id}
+                style={[
+                  styles.configOption,
+                  config.id === selectedConfigId && styles.configOptionActive,
+                ]}
+                onPress={() => {
+                  setSelectedConfigId(config.id);
+                  setShowConfigPicker(false);
+                }}
+              >
+                <Text
+                  style={[
+                    styles.configOptionText,
+                    config.id === selectedConfigId &&
+                      styles.configOptionTextActive,
+                  ]}
+                >
+                  {config.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        {/* Advanced Options Toggle */}
+        <TouchableOpacity
+          style={styles.advancedToggle}
+          onPress={() => setShowAdvanced(!showAdvanced)}
+        >
+          <MaterialCommunityIcons
+            name="tune-variant"
+            size={18}
+            color={COLORS.textMuted}
+          />
+          <Text style={styles.advancedToggleText}>Tùy chọn nâng cao</Text>
+          <MaterialCommunityIcons
+            name={showAdvanced ? "chevron-up" : "chevron-down"}
+            size={18}
+            color={COLORS.textMuted}
+          />
+        </TouchableOpacity>
+
+        {/* Advanced Options Panel */}
+        {showAdvanced && (
+          <View style={styles.advancedPanel}>
+            {/* Streaming Mode */}
+            <View style={styles.advancedRow}>
+              <View style={styles.advancedRowLeft}>
+                <MaterialCommunityIcons
+                  name="play-speed"
+                  size={18}
+                  color={COLORS.primary}
+                />
+                <View style={styles.advancedRowInfo}>
+                  <Text style={styles.advancedRowTitle}>Dịch từng đợt</Text>
+                  <Text style={styles.advancedRowDesc}>
+                    Xem phụ đề ngay khi mỗi phần dịch xong
+                  </Text>
+                </View>
+              </View>
+              <Switch
+                value={streamingMode}
+                onValueChange={handleStreamingModeChange}
+                trackColor={{ false: COLORS.border, true: COLORS.primary }}
+                thumbColor={COLORS.text}
+              />
+            </View>
+
+            {/* Presub Mode */}
+            <View style={styles.advancedRow}>
+              <View style={styles.advancedRowLeft}>
+                <MaterialCommunityIcons
+                  name="lightning-bolt"
+                  size={18}
+                  color={COLORS.warning}
+                />
+                <View style={styles.advancedRowInfo}>
+                  <Text style={styles.advancedRowTitle}>Xem nhanh</Text>
+                  <Text style={styles.advancedRowDesc}>
+                    Phần đầu dịch ngắn hơn để xem ngay (~2 phút)
+                  </Text>
+                </View>
+              </View>
+              <Switch
+                value={presubMode}
+                onValueChange={handlePresubModeChange}
+                trackColor={{ false: COLORS.border, true: COLORS.warning }}
+                thumbColor={COLORS.text}
+              />
+            </View>
+
+            {/* Custom Range */}
+            <View
+              style={[
+                styles.advancedRow,
+                { borderBottomWidth: useCustomRange ? 1 : 0 },
+              ]}
+            >
+              <View style={styles.advancedRowLeft}>
+                <MaterialCommunityIcons
+                  name="clock-outline"
+                  size={18}
+                  color={COLORS.primary}
+                />
+                <View style={styles.advancedRowInfo}>
+                  <Text style={styles.advancedRowTitle}>
+                    Dịch khoảng thời gian
+                  </Text>
+                  <Text style={styles.advancedRowDesc}>
+                    Để trống = từ đầu/tới cuối
+                  </Text>
+                </View>
+              </View>
+              <Switch
+                value={useCustomRange}
+                onValueChange={setUseCustomRange}
+                trackColor={{ false: COLORS.border, true: COLORS.primary }}
+                thumbColor={COLORS.text}
+              />
+            </View>
+
+            {/* Range Inputs */}
+            {useCustomRange && (
+              <View style={styles.rangeInputContainer}>
+                <View style={styles.rangeInputGroup}>
+                  <Text style={styles.rangeLabel}>Từ</Text>
+                  <TextInput
+                    style={styles.rangeInput}
+                    value={rangeStartStr}
+                    onChangeText={setRangeStartStr}
+                    placeholder="0:00"
+                    placeholderTextColor={COLORS.textMuted}
+                    keyboardType="numbers-and-punctuation"
+                  />
+                </View>
+                <MaterialCommunityIcons
+                  name="arrow-right"
+                  size={20}
+                  color={COLORS.textMuted}
+                />
+                <View style={styles.rangeInputGroup}>
+                  <Text style={styles.rangeLabel}>Đến</Text>
+                  <TextInput
+                    style={styles.rangeInput}
+                    value={rangeEndStr}
+                    onChangeText={setRangeEndStr}
+                    placeholder={
+                      videoDuration ? formatTime(videoDuration) : "cuối"
+                    }
+                    placeholderTextColor={COLORS.textMuted}
+                    keyboardType="numbers-and-punctuation"
+                  />
+                </View>
+              </View>
+            )}
+
+            {videoDuration && (
+              <Text style={styles.durationHint}>
+                Độ dài video: {formatTime(videoDuration)}
+              </Text>
+            )}
+          </View>
+        )}
+
+        {/* Translation Progress */}
+        {isTranslating && (
+          <View style={styles.progressContainer}>
+            <View style={styles.progressHeader}>
+              <View style={styles.progressTitleRow}>
+                <ActivityIndicator size="small" color={COLORS.primary} />
+                <Text style={styles.progressTitle}>{translateStatus}</Text>
+              </View>
+              {batchProgress && batchProgress.totalBatches > 1 && (
+                <Text style={styles.progressCount}>
+                  {batchProgress.completedBatches}/{batchProgress.totalBatches}
+                </Text>
+              )}
+            </View>
+
+            {keyStatus && <Text style={styles.keyStatusText}>{keyStatus}</Text>}
+
+            {batchProgress && batchProgress.totalBatches > 1 && (
+              <View style={styles.batchGrid}>
+                {batchProgress.batchStatuses.map((status, index) => (
+                  <View
+                    key={index}
+                    style={[
+                      styles.batchItem,
+                      status === "completed" && styles.batchCompleted,
+                      status === "processing" && styles.batchProcessing,
+                      status === "error" && styles.batchError,
+                    ]}
+                  >
+                    <Text style={styles.batchItemText}>{index + 1}</Text>
+                    {status === "completed" && (
+                      <MaterialCommunityIcons
+                        name="check"
+                        size={12}
+                        color={COLORS.text}
+                      />
+                    )}
+                    {status === "error" && (
+                      <MaterialCommunityIcons
+                        name="close"
+                        size={12}
+                        color={COLORS.text}
+                      />
+                    )}
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+        )}
+      </ScrollView>
 
       {/* Translate Button */}
       <View style={styles.translateButtonContainer}>
@@ -579,6 +585,7 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
 
 const styles = StyleSheet.create({
   tabContent: { flex: 1 },
+  scrollContent: { flex: 1 },
   warningContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -602,7 +609,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     marginBottom: 8,
   },
-  translationsList: { maxHeight: 140 },
+  translationsList: { maxHeight: 140, overflow: "hidden" },
   translationItem: {
     flexDirection: "row",
     alignItems: "center",

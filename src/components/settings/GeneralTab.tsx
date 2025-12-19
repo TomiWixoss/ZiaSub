@@ -357,12 +357,12 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
 
       <View style={styles.settingGroup}>
         <Text style={styles.settingLabel}>
-          Presub (xem nhanh):{" "}
+          Phần đầu (xem nhanh):{" "}
           {Math.floor((batchSettings.presubDuration ?? 120) / 60)} phút{" "}
           {(batchSettings.presubDuration ?? 120) % 60}s
         </Text>
         <Text style={styles.settingHint}>
-          Độ dài phần đầu khi bật chế độ Presub để xem phụ đề nhanh hơn
+          Độ dài phần đầu khi bật chế độ Xem nhanh để có phụ đề sớm hơn
         </Text>
         <Slider
           style={styles.slider}
