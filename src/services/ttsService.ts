@@ -15,7 +15,7 @@ export const DEFAULT_TTS_SETTINGS: TTSSettings = {
   rate: 1.0,
   pitch: 1.0,
   language: "vi-VN",
-  duckVideo: true,
+  duckVideo: false,
   duckLevel: 0.2,
   autoRate: true,
 };

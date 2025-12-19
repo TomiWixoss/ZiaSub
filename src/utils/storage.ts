@@ -50,7 +50,7 @@ export interface TTSSettings {
   rate: number; // 0.5 - 2.0, default 1.0
   pitch: number; // 0.5 - 2.0, default 1.0
   language: string; // default 'vi-VN'
-  duckVideo: boolean; // Reduce video volume when speaking (default: true)
+  duckVideo: boolean; // Reduce video volume when speaking (default: false)
   duckLevel: number; // Video volume when speaking (0-1, default: 0.2)
   autoRate: boolean; // Auto adjust rate based on subtitle duration (default: true)
 }
@@ -60,7 +60,7 @@ export const DEFAULT_TTS_SETTINGS: TTSSettings = {
   rate: 1.0,
   pitch: 1.0,
   language: "vi-VN",
-  duckVideo: true,
+  duckVideo: false,
   duckLevel: 0.2,
   autoRate: true,
 };
