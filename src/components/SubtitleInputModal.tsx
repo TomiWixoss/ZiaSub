@@ -25,7 +25,11 @@ import {
   getActiveGeminiConfig,
   saveActiveGeminiConfigId,
 } from "@utils/storage";
-import { translateVideoWithGemini } from "@services/geminiService";
+import { BatchProgress } from "@services/geminiService";
+import {
+  translationManager,
+  TranslationJob,
+} from "@services/translationManager";
 import Button3D from "./Button3D";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -47,6 +51,11 @@ interface SubtitleInputModalProps {
   setSrtContent: (text: string) => void;
   onLoadSubtitles: () => void;
   videoUrl?: string;
+  videoDuration?: number;
+  onTranslationStateChange?: (
+    isTranslating: boolean,
+    progress: { completed: number; total: number } | null
+  ) => void;
 }
 
 const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
@@ -56,6 +65,8 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
   setSrtContent,
   onLoadSubtitles,
   videoUrl,
+  videoDuration,
+  onTranslationStateChange,
 }) => {
   const insets = useSafeAreaInsets();
   const slideAnim = useRef(new Animated.Value(SHEET_HEIGHT)).current;
@@ -67,6 +78,87 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
   const [geminiConfigs, setGeminiConfigs] = useState<GeminiConfig[]>([]);
   const [selectedConfigId, setSelectedConfigId] = useState<string>("");
   const [showConfigPicker, setShowConfigPicker] = useState(false);
+  const [batchProgress, setBatchProgress] = useState<BatchProgress | null>(
+    null
+  );
+
+  // Use refs to avoid dependency issues in useEffect
+  const onTranslationStateChangeRef = useRef(onTranslationStateChange);
+  const setSrtContentRef = useRef(setSrtContent);
+
+  useEffect(() => {
+    onTranslationStateChangeRef.current = onTranslationStateChange;
+  }, [onTranslationStateChange]);
+
+  useEffect(() => {
+    setSrtContentRef.current = setSrtContent;
+  }, [setSrtContent]);
+
+  // Subscribe to translation manager
+  useEffect(() => {
+    const unsubscribe = translationManager.subscribe((job: TranslationJob) => {
+      if (job.videoUrl === videoUrl) {
+        setIsTranslating(job.status === "processing");
+        setBatchProgress(job.progress);
+
+        if (job.progress) {
+          if (job.progress.totalBatches > 1) {
+            setTranslateStatus(
+              `Đang dịch batch ${job.progress.completedBatches}/${job.progress.totalBatches}...`
+            );
+          } else {
+            setTranslateStatus("Đang dịch video...");
+          }
+        }
+
+        // Notify parent about translation state
+        onTranslationStateChangeRef.current?.(
+          job.status === "processing",
+          job.progress
+            ? {
+                completed: job.progress.completedBatches,
+                total: job.progress.totalBatches,
+              }
+            : null
+        );
+
+        // Handle completion
+        if (job.status === "completed" && job.result) {
+          setSrtContentRef.current(job.result);
+          setTranslateStatus("Hoàn tất!");
+          setActiveTab("srt");
+          translationManager.clearCompletedJob(videoUrl);
+          Alert.alert(
+            "Thành công",
+            "Đã dịch xong! Kiểm tra tab Nhập SRT để xem kết quả."
+          );
+        }
+
+        // Handle error
+        if (job.status === "error") {
+          setTranslateStatus("");
+          translationManager.clearCompletedJob(videoUrl);
+          Alert.alert("Lỗi dịch", job.error || "Không thể dịch video.");
+        }
+      }
+    });
+
+    return () => unsubscribe();
+  }, [videoUrl]);
+
+  // Check for existing translation job on mount
+  useEffect(() => {
+    if (videoUrl) {
+      const existingJob = translationManager.getJobForUrl(videoUrl);
+      if (existingJob) {
+        setIsTranslating(existingJob.status === "processing");
+        setBatchProgress(existingJob.progress);
+        if (existingJob.status === "processing") {
+          setActiveTab("translate");
+        }
+      }
+    }
+  }, [videoUrl]);
 
   useEffect(() => {
     if (visible) {
@@ -87,9 +179,13 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
     } else {
       slideAnim.setValue(SHEET_HEIGHT);
       fadeAnim.setValue(0);
-      setTranslateStatus("");
+      // Don't clear status if still translating
+      if (!isTranslating) {
+        setTranslateStatus("");
+        setBatchProgress(null);
+      }
     }
-  }, [visible]);
+  }, [visible, isTranslating]);
 
   const loadConfigs = async () => {
     const configs = await getGeminiConfigs();
@@ -101,10 +197,7 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
   };
 
   const handleClose = () => {
-    if (isTranslating) {
-      Alert.alert("Đang dịch", "Vui lòng đợi quá trình dịch hoàn tất.");
-      return;
-    }
+    // Allow closing even when translating (it continues in background)
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 0,
@@ -190,38 +283,23 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
       return;
     }
 
+    // Check if already translating
+    if (translationManager.isTranslatingUrl(videoUrl)) {
+      Alert.alert("Thông báo", "Video này đang được dịch.");
+      return;
+    }
+
     try {
-      setIsTranslating(true);
       setTranslateStatus("Đang kết nối với Gemini AI...");
       await saveActiveGeminiConfigId(selectedConfigId);
 
-      let hasStartedStreaming = false;
+      // Start translation via manager (runs in background)
+      translationManager.startTranslation(videoUrl, config, videoDuration);
 
-      const result = await translateVideoWithGemini(
-        videoUrl,
-        config,
-        (text: string) => {
-          if (!hasStartedStreaming) {
-            hasStartedStreaming = true;
-            setTranslateStatus("Đang nhận dữ liệu...");
-          }
-        }
-      );
-
-      // Set result to SRT content
-      setSrtContent(result);
-      setTranslateStatus("Hoàn tất!");
-      setActiveTab("srt");
-
-      Alert.alert(
-        "Thành công",
-        "Đã dịch xong! Kiểm tra tab Nhập SRT để xem kết quả."
-      );
+      // Close modal - translation continues in background
+      handleClose();
     } catch (error: any) {
-      setTranslateStatus("");
-      Alert.alert("Lỗi dịch", error.message || "Không thể dịch video.");
-    } finally {
-      setIsTranslating(false);
+      Alert.alert("Lỗi", error.message || "Không thể bắt đầu dịch.");
     }
   };
 
@@ -347,6 +425,54 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
         <View style={styles.statusContainer}>
           <ActivityIndicator size="small" color={COLORS.primary} />
           <Text style={styles.statusText}>{translateStatus}</Text>
+        </View>
+      )}
+
+      {/* Batch Progress */}
+      {batchProgress && batchProgress.totalBatches > 1 && (
+        <View style={styles.batchProgressContainer}>
+          <View style={styles.batchProgressHeader}>
+            <Text style={styles.batchProgressTitle}>Tiến trình batch</Text>
+            <Text style={styles.batchProgressCount}>
+              {batchProgress.completedBatches}/{batchProgress.totalBatches}
+            </Text>
+          </View>
+          <View style={styles.batchGrid}>
+            {batchProgress.batchStatuses.map((status, index) => (
+              <View
+                key={index}
+                style={[
+                  styles.batchItem,
+                  status === "completed" && styles.batchCompleted,
+                  status === "processing" && styles.batchProcessing,
+                  status === "error" && styles.batchError,
+                ]}
+              >
+                <Text style={styles.batchItemText}>{index + 1}</Text>
+                {status === "processing" && (
+                  <ActivityIndicator
+                    size={10}
+                    color={COLORS.text}
+                    style={styles.batchSpinner}
+                  />
+                )}
+                {status === "completed" && (
+                  <MaterialCommunityIcons
+                    name="check"
+                    size={12}
+                    color={COLORS.text}
+                  />
+                )}
+                {status === "error" && (
+                  <MaterialCommunityIcons
+                    name="close"
+                    size={12}
+                    color={COLORS.text}
+                  />
+                )}
+              </View>
+            ))}
+          </View>
         </View>
       )}
 
@@ -662,6 +788,62 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: "center",
     lineHeight: 18,
+  },
+  batchProgressContainer: {
+    backgroundColor: COLORS.surfaceLight,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  batchProgressHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  batchProgressTitle: {
+    color: COLORS.text,
+    fontSize: 13,
+    fontWeight: "500",
+  },
+  batchProgressCount: {
+    color: COLORS.primary,
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  batchGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  batchItem: {
+    width: 44,
+    height: 36,
+    borderRadius: 8,
+    backgroundColor: COLORS.surfaceElevated,
+    justifyContent: "center",
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 4,
+  },
+  batchCompleted: {
+    backgroundColor: COLORS.success,
+  },
+  batchProcessing: {
+    backgroundColor: COLORS.primary,
+  },
+  batchError: {
+    backgroundColor: COLORS.error,
+  },
+  batchItemText: {
+    color: COLORS.text,
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  batchSpinner: {
+    marginLeft: 2,
   },
 });
 

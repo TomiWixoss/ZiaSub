@@ -359,6 +359,57 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
           />
         </View>
 
+        {/* Max Video Duration */}
+        <View style={styles.settingGroup}>
+          <Text style={styles.settingLabel}>
+            Thời lượng tối đa mỗi batch:{" "}
+            {Math.floor((editingConfig.maxVideoDuration || 600) / 60)} phút
+          </Text>
+          <Text style={styles.settingHint}>
+            Video dài hơn sẽ được chia thành nhiều phần và dịch song song
+          </Text>
+          <Slider
+            style={styles.slider}
+            minimumValue={300}
+            maximumValue={1800}
+            step={60}
+            value={editingConfig.maxVideoDuration || 600}
+            onValueChange={(value) =>
+              setEditingConfig({ ...editingConfig, maxVideoDuration: value })
+            }
+            minimumTrackTintColor={COLORS.primary}
+            maximumTrackTintColor={COLORS.border}
+            thumbTintColor={COLORS.primary}
+          />
+        </View>
+
+        {/* Max Concurrent Batches */}
+        <View style={styles.settingGroup}>
+          <Text style={styles.settingLabel}>
+            Số batch đồng thời: {editingConfig.maxConcurrentBatches || 2}
+          </Text>
+          <Text style={styles.settingHint}>
+            Số lượng API call chạy song song (cao hơn = nhanh hơn nhưng tốn
+            quota)
+          </Text>
+          <Slider
+            style={styles.slider}
+            minimumValue={1}
+            maximumValue={5}
+            step={1}
+            value={editingConfig.maxConcurrentBatches || 2}
+            onValueChange={(value) =>
+              setEditingConfig({
+                ...editingConfig,
+                maxConcurrentBatches: value,
+              })
+            }
+            minimumTrackTintColor={COLORS.primary}
+            maximumTrackTintColor={COLORS.border}
+            thumbTintColor={COLORS.primary}
+          />
+        </View>
+
         {/* System Prompt */}
         <View style={styles.settingGroup}>
           <Text style={styles.settingLabel}>System Prompt</Text>
@@ -589,6 +640,11 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     fontSize: 14,
     fontWeight: "500",
+    marginBottom: 8,
+  },
+  settingHint: {
+    color: COLORS.textMuted,
+    fontSize: 12,
     marginBottom: 8,
   },
   slider: {

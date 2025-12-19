@@ -60,6 +60,8 @@ export const INJECTED_JAVASCRIPT = `
     }
 
     // 3. Time Polling using requestAnimationFrame for smoother performance
+    let lastDurationSent = 0;
+    
     function startTimePolling() {
       if (isPolling) return;
       isPolling = true;
@@ -73,11 +75,19 @@ export const INJECTED_JAVASCRIPT = `
         if (timestamp - lastPollTime >= POLL_INTERVAL) {
           lastPollTime = timestamp;
           const video = getVideo();
-          if (video && !video.paused) {
-            const t = video.currentTime;
-            if (Math.abs(t - lastTime) > 0.2) {
-              lastTime = t;
-              window.ReactNativeWebView.postMessage('{"type":"currentTime","payload":' + t + '}');
+          if (video) {
+            // Send video duration when available
+            if (video.duration && !isNaN(video.duration) && video.duration !== lastDurationSent) {
+              lastDurationSent = video.duration;
+              window.ReactNativeWebView.postMessage('{"type":"videoDuration","payload":' + video.duration + '}');
+            }
+            
+            if (!video.paused) {
+              const t = video.currentTime;
+              if (Math.abs(t - lastTime) > 0.2) {
+                lastTime = t;
+                window.ReactNativeWebView.postMessage('{"type":"currentTime","payload":' + t + '}');
+              }
             }
           }
         }

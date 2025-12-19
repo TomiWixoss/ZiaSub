@@ -47,6 +47,14 @@ const HomeScreen = () => {
   const [subtitleSettings, setSubtitleSettings] = useState<SubtitleSettings>(
     DEFAULT_SUBTITLE_SETTINGS
   );
+  const [isTranslating, setIsTranslating] = useState(false);
+  const [translationProgress, setTranslationProgress] = useState<{
+    completed: number;
+    total: number;
+  } | null>(null);
+  const [videoDuration, setVideoDuration] = useState<number | undefined>(
+    undefined
+  );
 
   const webViewRef = useRef<WebView>(null);
   const insets = useSafeAreaInsets();
@@ -104,6 +112,8 @@ const HomeScreen = () => {
       const data = JSON.parse(event.nativeEvent.data);
       if (data.type === "currentTime") {
         findSubtitle(data.payload);
+      } else if (data.type === "videoDuration") {
+        setVideoDuration(data.payload);
       } else if (data.type === "fullscreen_open") {
         onFullScreenOpen();
       } else if (data.type === "fullscreen_close") {
@@ -121,10 +131,12 @@ const HomeScreen = () => {
     if (isWatchPage) {
       if (navState.url !== currentUrl) {
         setCurrentUrl(navState.url);
+        setVideoDuration(undefined); // Reset duration for new video
       }
     } else {
       if (currentUrl !== "") {
         setCurrentUrl("");
+        setVideoDuration(undefined);
       }
     }
   };
@@ -254,6 +266,8 @@ const HomeScreen = () => {
         onPress={() => setModalVisible(true)}
         onSettingsPress={() => setSettingsVisible(true)}
         hasSubtitles={subtitles.length > 0}
+        isTranslating={isTranslating}
+        translationProgress={translationProgress}
       />
 
       <SubtitleInputModal
@@ -263,6 +277,11 @@ const HomeScreen = () => {
         setSrtContent={setSrtContent}
         onLoadSubtitles={handleLoadSubtitles}
         videoUrl={currentUrl}
+        videoDuration={videoDuration}
+        onTranslationStateChange={(translating, progress) => {
+          setIsTranslating(translating);
+          setTranslationProgress(progress);
+        }}
       />
 
       <SettingsModal

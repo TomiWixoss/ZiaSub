@@ -23,6 +23,7 @@ export const COLORS = {
 
   // States
   success: "#7ED99B",
+  error: "#E57373",
   overlay: "rgba(13,13,26,0.85)",
   transparent: "transparent",
 

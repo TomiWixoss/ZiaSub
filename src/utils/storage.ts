@@ -79,6 +79,8 @@ export interface GeminiConfig {
   model: string;
   temperature: number;
   systemPrompt: string;
+  maxVideoDuration: number; // Max duration per batch in seconds (default: 600 = 10 minutes)
+  maxConcurrentBatches: number; // Max concurrent API calls (default: 2)
 }
 
 export const DEFAULT_SYSTEM_PROMPT = `Act as an expert translator and subtitler specializing in Japanese RPGs and anime. You must process all Japanese content—both spoken dialogue and on-screen text—and create a Vietnamese SRT subtitle file that preserves the original Japanese honorifics.
@@ -97,6 +99,8 @@ export const createDefaultGeminiConfig = (): GeminiConfig => ({
   model: "gemini-3-flash-preview",
   temperature: 0.7,
   systemPrompt: DEFAULT_SYSTEM_PROMPT,
+  maxVideoDuration: 600, // 10 minutes default
+  maxConcurrentBatches: 2, // 2 concurrent batches default
 });
 
 // Save all Gemini configs
