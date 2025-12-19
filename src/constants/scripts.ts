@@ -308,6 +308,12 @@ export const INJECTED_JAVASCRIPT = `
           
           queuedVideoIds = newQueuedIds;
           markVideos();
+        } else if (d.type === 'setVideoVolume') {
+          // Adjust video volume for TTS ducking
+          const video = getVideo();
+          if (video) {
+            video.volume = Math.max(0, Math.min(1, d.payload));
+          }
         }
       } catch (e) {}
     }, 16);

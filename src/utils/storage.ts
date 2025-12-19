@@ -44,11 +44,33 @@ export interface ApiKeysSettings {
   keys: string[]; // List of API keys
 }
 
+// TTS (Text-to-Speech) settings
+export interface TTSSettings {
+  enabled: boolean;
+  rate: number; // 0.5 - 2.0, default 1.0
+  pitch: number; // 0.5 - 2.0, default 1.0
+  language: string; // default 'vi-VN'
+  duckVideo: boolean; // Reduce video volume when speaking (default: true)
+  duckLevel: number; // Video volume when speaking (0-1, default: 0.2)
+  autoRate: boolean; // Auto adjust rate based on subtitle duration (default: true)
+}
+
+export const DEFAULT_TTS_SETTINGS: TTSSettings = {
+  enabled: false,
+  rate: 1.0,
+  pitch: 1.0,
+  language: "vi-VN",
+  duckVideo: true,
+  duckLevel: 0.2,
+  autoRate: true,
+};
+
 // Combined app settings
 export interface AppSettings {
   subtitle: SubtitleSettings;
   batch: BatchSettings;
   apiKeys: ApiKeysSettings;
+  tts: TTSSettings;
 }
 
 export const DEFAULT_SUBTITLE_SETTINGS: SubtitleSettings = {
@@ -76,6 +98,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   subtitle: DEFAULT_SUBTITLE_SETTINGS,
   batch: DEFAULT_BATCH_SETTINGS,
   apiKeys: DEFAULT_API_KEYS_SETTINGS,
+  tts: DEFAULT_TTS_SETTINGS,
 };
 
 export const saveAppSettings = async (settings: AppSettings): Promise<void> => {
@@ -96,6 +119,7 @@ export const getAppSettings = async (): Promise<AppSettings> => {
         subtitle: { ...DEFAULT_SUBTITLE_SETTINGS, ...parsed.subtitle },
         batch: { ...DEFAULT_BATCH_SETTINGS, ...parsed.batch },
         apiKeys: { ...DEFAULT_API_KEYS_SETTINGS, ...parsed.apiKeys },
+        tts: { ...DEFAULT_TTS_SETTINGS, ...parsed.tts },
       };
     }
     return DEFAULT_APP_SETTINGS;
@@ -141,6 +165,17 @@ export const saveApiKeys = async (keys: string[]): Promise<void> => {
 export const getApiKeys = async (): Promise<string[]> => {
   const appSettings = await getAppSettings();
   return appSettings.apiKeys?.keys || [];
+};
+
+export const saveTTSSettings = async (settings: TTSSettings): Promise<void> => {
+  const appSettings = await getAppSettings();
+  appSettings.tts = settings;
+  await saveAppSettings(appSettings);
+};
+
+export const getTTSSettings = async (): Promise<TTSSettings> => {
+  const appSettings = await getAppSettings();
+  return appSettings.tts;
 };
 
 export const saveSRT = async (

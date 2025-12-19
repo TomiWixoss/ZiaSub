@@ -15,6 +15,7 @@ import { COLORS } from "@constants/colors";
 import {
   SubtitleSettings,
   BatchSettings,
+  TTSSettings,
   GeminiConfig,
   getGeminiConfigs,
   saveGeminiConfigs,
@@ -36,6 +37,8 @@ interface SettingsModalProps {
   onBatchSettingsChange: (settings: BatchSettings) => void;
   apiKeys: string[];
   onApiKeysChange: (keys: string[]) => void;
+  ttsSettings: TTSSettings;
+  onTTSSettingsChange: (settings: TTSSettings) => void;
 }
 
 const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -47,6 +50,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   onBatchSettingsChange,
   apiKeys,
   onApiKeysChange,
+  ttsSettings,
+  onTTSSettingsChange,
 }) => {
   const insets = useSafeAreaInsets();
   const slideAnim = useRef(new Animated.Value(SHEET_HEIGHT)).current;
@@ -154,6 +159,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
           onBatchChange={onBatchSettingsChange}
           apiKeys={apiKeys}
           onApiKeysChange={onApiKeysChange}
+          ttsSettings={ttsSettings}
+          onTTSChange={onTTSSettingsChange}
         />
       );
     }

@@ -24,16 +24,21 @@ import {
   removeSRT,
   SubtitleSettings,
   BatchSettings,
+  TTSSettings,
   DEFAULT_SUBTITLE_SETTINGS,
   DEFAULT_BATCH_SETTINGS,
+  DEFAULT_TTS_SETTINGS,
   getSubtitleSettings,
   saveSubtitleSettings,
   getBatchSettings,
   saveBatchSettings,
+  getTTSSettings,
+  saveTTSSettings,
   getApiKeys,
   getAllTranslatedVideoUrls,
   getActiveTranslation,
 } from "@utils/storage";
+import { ttsService } from "@services/ttsService";
 import { keyManager } from "@services/keyManager";
 import { queueManager, QueueItem } from "@services/queueManager";
 import { translationManager } from "@services/translationManager";
@@ -61,6 +66,8 @@ const HomeScreen = () => {
   const [batchSettings, setBatchSettings] = useState<BatchSettings>(
     DEFAULT_BATCH_SETTINGS
   );
+  const [ttsSettings, setTTSSettings] =
+    useState<TTSSettings>(DEFAULT_TTS_SETTINGS);
   const [isTranslating, setIsTranslating] = useState(false);
   const [translationProgress, setTranslationProgress] = useState<{
     completed: number;
@@ -135,17 +142,30 @@ const HomeScreen = () => {
 
   useEffect(() => {
     const loadSettings = async () => {
-      const [subtitleS, batchS, keys] = await Promise.all([
+      const [subtitleS, batchS, keys, ttsS] = await Promise.all([
         getSubtitleSettings(),
         getBatchSettings(),
         getApiKeys(),
+        getTTSSettings(),
       ]);
       setSubtitleSettings(subtitleS);
       setBatchSettings(batchS);
       setApiKeys(keys);
       keyManager.initialize(keys);
+      setTTSSettings(ttsS);
+      ttsService.setSettings(ttsS);
     };
     loadSettings();
+
+    // Set up TTS speaking callback for video ducking
+    ttsService.setSpeakingCallback((isSpeaking) => {
+      if (webViewRef.current) {
+        const volume = isSpeaking ? ttsService.getSettings().duckLevel : 1.0;
+        webViewRef.current.postMessage(
+          JSON.stringify({ type: "setVideoVolume", payload: volume })
+        );
+      }
+    });
 
     // Initialize queue manager
     queueManager.initialize();
@@ -307,6 +327,9 @@ const HomeScreen = () => {
         setVideoDuration(undefined);
         setVideoTitle("");
         setCurrentVideoInQueue(undefined);
+        // Stop TTS when leaving video
+        ttsService.stop();
+        ttsService.resetLastSpoken();
       }
       // Sync all data when on list/home page with retry to handle back navigation
       syncAllToWebView();
@@ -363,11 +386,24 @@ const HomeScreen = () => {
     saveBatchSettings(newSettings);
   };
 
+  const handleTTSSettingsChange = (newSettings: TTSSettings) => {
+    setTTSSettings(newSettings);
+    ttsService.setSettings(newSettings);
+    saveTTSSettings(newSettings);
+    // Stop TTS if disabled
+    if (!newSettings.enabled) {
+      ttsService.stop();
+    }
+  };
+
   const findSubtitle = (seconds: number) => {
     const sub = subtitles.find(
       (s) => seconds >= s.startTime && seconds <= s.endTime
     );
     const text = sub ? sub.text : "";
+
+    // Create unique subtitle ID based on timing
+    const subtitleId = sub ? `${sub.startTime}-${sub.endTime}` : "";
 
     // Always send subtitle if it changed OR if we have subtitles but haven't sent any yet
     // This handles the case when video quality changes and WebView resets
@@ -378,9 +414,21 @@ const HomeScreen = () => {
     if (shouldSend) {
       setCurrentSubtitle(text);
       lastSentSubtitleRef.current = text;
+
+      // TTS: Speak the subtitle if enabled
+      if (ttsSettings.enabled && text && sub) {
+        // Calculate available duration (time until subtitle ends)
+        const availableDuration = sub.endTime - seconds;
+        ttsService.speakSubtitle(text, subtitleId, availableDuration);
+      }
+
+      // Send subtitle to WebView (hide text if TTS enabled)
       if (webViewRef.current) {
         webViewRef.current.postMessage(
-          JSON.stringify({ type: "setSubtitle", payload: text })
+          JSON.stringify({
+            type: "setSubtitle",
+            payload: ttsSettings.enabled ? "" : text,
+          })
         );
       }
     }
@@ -529,6 +577,8 @@ const HomeScreen = () => {
         onBatchSettingsChange={handleBatchSettingsChange}
         apiKeys={apiKeys}
         onApiKeysChange={setApiKeys}
+        ttsSettings={ttsSettings}
+        onTTSSettingsChange={handleTTSSettingsChange}
       />
 
       <TranslationQueueModal
