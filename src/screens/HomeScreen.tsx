@@ -33,10 +33,12 @@ import {
   getApiKeys,
 } from "@utils/storage";
 import { keyManager } from "@services/keyManager";
+import { queueManager, QueueItem } from "@services/queueManager";
 import YouTubePlayer from "@components/YouTubePlayer";
 import SubtitleInputModal from "@components/SubtitleInputModal";
 import SettingsModal from "@components/SettingsModal";
 import FloatingButton from "@components/FloatingButton";
+import TranslationQueueModal from "@components/TranslationQueueModal";
 
 import { COLORS } from "@constants/colors";
 
@@ -65,6 +67,11 @@ const HomeScreen = () => {
     undefined
   );
   const [apiKeys, setApiKeys] = useState<string[]>([]);
+  const [queueModalVisible, setQueueModalVisible] = useState(false);
+  const [queueCount, setQueueCount] = useState(0);
+  const [currentVideoInQueue, setCurrentVideoInQueue] = useState<
+    QueueItem | undefined
+  >();
 
   const webViewRef = useRef<WebView>(null);
   const insets = useSafeAreaInsets();
@@ -82,6 +89,14 @@ const HomeScreen = () => {
       keyManager.initialize(keys);
     };
     loadSettings();
+
+    // Initialize queue manager
+    queueManager.initialize();
+    const unsubscribe = queueManager.subscribe(() => {
+      const counts = queueManager.getCounts();
+      setQueueCount(counts.pending + counts.translating);
+    });
+    return () => unsubscribe();
   }, []);
 
   useEffect(() => {
@@ -149,11 +164,14 @@ const HomeScreen = () => {
       if (navState.url !== currentUrl) {
         setCurrentUrl(navState.url);
         setVideoDuration(undefined); // Reset duration for new video
+        // Check if video is in queue
+        setCurrentVideoInQueue(queueManager.isInQueue(navState.url));
       }
     } else {
       if (currentUrl !== "") {
         setCurrentUrl("");
         setVideoDuration(undefined);
+        setCurrentVideoInQueue(undefined);
       }
     }
   };
@@ -236,6 +254,40 @@ const HomeScreen = () => {
     }
   };
 
+  const handleAddToQueue = async () => {
+    if (!currentUrl) return;
+
+    const existing = queueManager.isInQueue(currentUrl);
+    if (existing) {
+      Alert.alert("Thông báo", "Video này đã có trong danh sách dịch.");
+      return;
+    }
+
+    // Get video title from page if possible
+    const title = `Video YouTube`; // Could be enhanced to get actual title
+    const item = await queueManager.addToQueue(
+      currentUrl,
+      title,
+      videoDuration
+    );
+
+    if (item) {
+      setCurrentVideoInQueue(item);
+      Alert.alert("Đã thêm", "Video đã được thêm vào danh sách dịch.", [
+        { text: "OK" },
+        { text: "Xem danh sách", onPress: () => setQueueModalVisible(true) },
+      ]);
+    }
+  };
+
+  const handleSelectVideoFromQueue = (videoUrl: string) => {
+    if (webViewRef.current) {
+      webViewRef.current.injectJavaScript(
+        `window.location.href = "${videoUrl}"; true;`
+      );
+    }
+  };
+
   return (
     <View style={[styles.container, { paddingBottom: insets.bottom }]}>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.surface} />
@@ -288,9 +340,13 @@ const HomeScreen = () => {
         visible={isVideoPlaying}
         onPress={() => setModalVisible(true)}
         onSettingsPress={() => setSettingsVisible(true)}
+        onQueuePress={() => setQueueModalVisible(true)}
+        onAddToQueuePress={currentUrl ? handleAddToQueue : undefined}
         hasSubtitles={subtitles.length > 0}
         isTranslating={isTranslating}
         translationProgress={translationProgress}
+        queueCount={queueCount}
+        isInQueue={!!currentVideoInQueue}
       />
 
       <SubtitleInputModal
@@ -317,6 +373,12 @@ const HomeScreen = () => {
         onBatchSettingsChange={handleBatchSettingsChange}
         apiKeys={apiKeys}
         onApiKeysChange={setApiKeys}
+      />
+
+      <TranslationQueueModal
+        visible={queueModalVisible}
+        onClose={() => setQueueModalVisible(false)}
+        onSelectVideo={handleSelectVideoFromQueue}
       />
     </View>
   );

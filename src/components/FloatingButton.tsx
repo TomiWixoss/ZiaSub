@@ -6,10 +6,14 @@ import { COLORS } from "@constants/colors";
 interface FloatingButtonProps {
   onPress: () => void;
   onSettingsPress: () => void;
+  onQueuePress: () => void;
+  onAddToQueuePress?: () => void;
   visible: boolean;
   hasSubtitles?: boolean;
   isTranslating?: boolean;
   translationProgress?: { completed: number; total: number } | null;
+  queueCount?: number;
+  isInQueue?: boolean;
 }
 
 const SHADOW_HEIGHT = 4;
@@ -182,16 +186,49 @@ const TranslatingFab: React.FC<TranslatingFabProps> = ({
 const FloatingButton: React.FC<FloatingButtonProps> = ({
   onPress,
   onSettingsPress,
+  onQueuePress,
+  onAddToQueuePress,
   visible,
   hasSubtitles = false,
   isTranslating = false,
   translationProgress = null,
+  queueCount = 0,
+  isInQueue = false,
 }) => {
   if (!visible) return null;
 
   return (
     <View style={styles.fabContainer}>
       <Fab3D onPress={onSettingsPress} icon="cog" size={40} iconSize={20} />
+
+      {/* Queue button with badge */}
+      <View style={styles.queueBtnWrapper}>
+        <Fab3D
+          onPress={onQueuePress}
+          icon="playlist-play"
+          size={40}
+          iconSize={20}
+        />
+        {queueCount > 0 && (
+          <View style={styles.queueBadge}>
+            <Animated.Text style={styles.queueBadgeText}>
+              {queueCount}
+            </Animated.Text>
+          </View>
+        )}
+      </View>
+
+      {/* Add to queue button */}
+      {onAddToQueuePress && (
+        <Fab3D
+          onPress={onAddToQueuePress}
+          icon={isInQueue ? "playlist-check" : "playlist-plus"}
+          size={40}
+          iconSize={20}
+          active={isInQueue}
+        />
+      )}
+
       {isTranslating ? (
         <TranslatingFab onPress={onPress} progress={translationProgress} />
       ) : (
@@ -216,6 +253,20 @@ const styles = StyleSheet.create({
     gap: 10,
     zIndex: 20,
   },
+  queueBtnWrapper: { position: "relative" },
+  queueBadge: {
+    position: "absolute",
+    top: -4,
+    right: -4,
+    backgroundColor: COLORS.primary,
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 4,
+  },
+  queueBadgeText: { color: COLORS.background, fontSize: 10, fontWeight: "700" },
   fab3dContainer: { position: "relative" },
   fabShadow: { position: "absolute", bottom: 0 },
   fabWrapper: { position: "absolute", top: 0 },
