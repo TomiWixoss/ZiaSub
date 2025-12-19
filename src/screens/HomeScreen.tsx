@@ -529,7 +529,17 @@ const HomeScreen = () => {
               <Text style={styles.titleAccent}>Sub</Text>
             </View>
 
-            <View style={styles.headerBtn} />
+            <TouchableOpacity
+              style={styles.headerBtn}
+              onPress={() => webViewRef.current?.reload()}
+              activeOpacity={0.7}
+            >
+              <MaterialCommunityIcons
+                name="reload"
+                size={20}
+                color={COLORS.text}
+              />
+            </TouchableOpacity>
           </View>
         </LinearGradient>
       )}
