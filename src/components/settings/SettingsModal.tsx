@@ -11,6 +11,7 @@ import { alert, confirmDestructive } from "../common/CustomAlert";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { COLORS } from "@constants/colors";
 import type {
   SubtitleSettings,
@@ -53,6 +54,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   ttsSettings,
   onTTSSettingsChange,
 }) => {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const slideAnim = useRef(new Animated.Value(SHEET_HEIGHT)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -107,7 +109,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   const handleAddConfig = () => {
     const newConfig = {
       id: Date.now().toString(),
-      name: `Kiểu dịch ${geminiConfigs.length + 1}`,
+      name: `${t("settings.gemini")} ${geminiConfigs.length + 1}`,
       model: "models/gemini-3-flash-preview",
       temperature: 0.7,
       systemPrompt: "",
@@ -117,12 +119,15 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
   const handleDeleteConfig = (id: string) => {
     if (geminiConfigs.length <= 1) {
-      alert("Không xóa được", "Cần giữ lại ít nhất một kiểu dịch.");
+      alert(
+        t("settings.geminiConfig.cannotDelete"),
+        t("settings.geminiConfig.cannotDeleteMessage")
+      );
       return;
     }
     confirmDestructive(
-      "Xóa kiểu dịch",
-      "Bạn muốn xóa kiểu dịch này?",
+      t("settings.geminiConfig.deleteTitle"),
+      t("settings.geminiConfig.deleteConfirm"),
       async () => {
         const newConfigs = geminiConfigs.filter((c) => c.id !== id);
         setGeminiConfigs(newConfigs);
@@ -198,7 +203,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
           <View style={styles.sheetHeader}>
             <View style={styles.dragHandle} />
             <Text style={styles.title}>
-              {editingConfig ? "Chỉnh kiểu dịch" : "Cài đặt"}
+              {editingConfig ? t("settings.editConfig") : t("settings.title")}
             </Text>
             <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
               <MaterialCommunityIcons
@@ -231,7 +236,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                     activeTab === "general" && styles.tabTextActive,
                   ]}
                 >
-                  Cài đặt chung
+                  {t("settings.general")}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -251,7 +256,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                     activeTab === "gemini" && styles.tabTextActive,
                   ]}
                 >
-                  Kiểu dịch
+                  {t("settings.gemini")}
                 </Text>
               </TouchableOpacity>
             </View>

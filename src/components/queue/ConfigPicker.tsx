@@ -2,6 +2,7 @@ import React from "react";
 import { View, TouchableOpacity } from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { COLORS } from "@constants/colors";
 import type { GeminiConfig } from "@src/types";
 import { queueStyles as styles } from "./queueStyles";
@@ -21,6 +22,7 @@ const ConfigPicker: React.FC<ConfigPickerProps> = ({
   onToggleDropdown,
   onSelectConfig,
 }) => {
+  const { t } = useTranslation();
   const selectedConfig = configs.find((c) => c.id === selectedConfigId);
 
   return (
@@ -33,7 +35,7 @@ const ConfigPicker: React.FC<ConfigPickerProps> = ({
             color={COLORS.primary}
           />
           <Text style={styles.configPickerText} numberOfLines={1}>
-            {selectedConfig?.name || "Chọn kiểu dịch"}
+            {selectedConfig?.name || t("settings.geminiConfig.selectType")}
           </Text>
         </View>
         <MaterialCommunityIcons

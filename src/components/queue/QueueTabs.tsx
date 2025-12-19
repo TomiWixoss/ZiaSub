@@ -1,6 +1,7 @@
 import React from "react";
 import { View, TouchableOpacity } from "react-native";
 import { Text } from "react-native-paper";
+import { useTranslation } from "react-i18next";
 import { queueStyles as styles } from "./queueStyles";
 
 export type TabType = "pending" | "translating" | "completed";
@@ -21,6 +22,7 @@ const QueueTabs: React.FC<QueueTabsProps> = ({
   onTabChange,
   counts,
 }) => {
+  const { t } = useTranslation();
   const pendingCount = counts.pending + counts.error;
 
   return (
@@ -35,7 +37,7 @@ const QueueTabs: React.FC<QueueTabsProps> = ({
             activeTab === "pending" && styles.tabTextActive,
           ]}
         >
-          Chưa dịch
+          {t("queue.tabs.pending")}
         </Text>
         {pendingCount > 0 && (
           <View
@@ -59,7 +61,7 @@ const QueueTabs: React.FC<QueueTabsProps> = ({
             activeTab === "translating" && styles.tabTextActive,
           ]}
         >
-          Đang dịch
+          {t("queue.tabs.translating")}
         </Text>
         {counts.translating > 0 && (
           <View
@@ -84,7 +86,7 @@ const QueueTabs: React.FC<QueueTabsProps> = ({
             activeTab === "completed" && styles.tabTextActive,
           ]}
         >
-          Đã dịch
+          {t("queue.tabs.completed")}
         </Text>
         {counts.completed > 0 && (
           <View

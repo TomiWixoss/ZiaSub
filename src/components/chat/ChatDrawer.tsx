@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { COLORS } from "@constants/colors";
 import type { ChatSession } from "@src/types";
 import { updateChatSession } from "@utils/storage";
@@ -37,6 +38,7 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({
   onUpdateSessions,
   onUpdateCurrentSession,
 }) => {
+  const { t } = useTranslation();
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -63,7 +65,7 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({
   };
 
   const handleDelete = (sessionId: string) => {
-    confirmDestructive("Xóa cuộc trò chuyện", "Bạn có chắc muốn xóa?", () => {
+    confirmDestructive(t("chat.deleteChat"), t("chat.deleteConfirm"), () => {
       onDeleteSession(sessionId);
     });
   };
@@ -105,7 +107,7 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({
         />
         <TextInput
           style={styles.searchInput}
-          placeholder="Tìm kiếm cuộc trò chuyện"
+          placeholder={t("chat.searchPlaceholder")}
           placeholderTextColor={COLORS.textMuted}
           value={searchQuery}
           onChangeText={setSearchQuery}
@@ -128,11 +130,11 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({
           size={20}
           color={COLORS.text}
         />
-        <Text style={styles.newChatText}>Cuộc trò chuyện mới</Text>
+        <Text style={styles.newChatText}>{t("chat.newChat")}</Text>
       </TouchableOpacity>
 
       {/* Section Title */}
-      <Text style={styles.drawerSectionTitle}>Lịch sử</Text>
+      <Text style={styles.drawerSectionTitle}>{t("chat.history")}</Text>
 
       {/* Session List */}
       <ScrollView
@@ -141,7 +143,7 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({
       >
         {filteredSessions.length === 0 ? (
           <Text style={styles.emptyText}>
-            {searchQuery ? "Không tìm thấy kết quả" : "Chưa có cuộc trò chuyện"}
+            {searchQuery ? t("chat.noSearchResults") : t("chat.noHistory")}
           </Text>
         ) : (
           filteredSessions.map((session) => (

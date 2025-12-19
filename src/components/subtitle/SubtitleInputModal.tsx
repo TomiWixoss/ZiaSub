@@ -13,6 +13,7 @@ import { alert, confirm } from "../common/CustomAlert";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import * as Clipboard from "expo-clipboard";
 import { COLORS } from "@constants/colors";
 import type { BatchSettings, BatchProgress, TranslationJob } from "@src/types";
@@ -61,6 +62,7 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
   onBatchSettingsChange,
   onTranslationStateChange,
 }) => {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const slideAnim = useRef(new Animated.Value(SHEET_HEIGHT)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -233,15 +235,15 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
       const clipboardContent = await Clipboard.getStringAsync();
       if (clipboardContent && isSRTFormat(clipboardContent) && !srtContent) {
         confirm(
-          "Phát hiện phụ đề",
-          "Bạn vừa sao chép nội dung phụ đề. Muốn dán vào không?",
+          t("subtitleModal.srt.detected"),
+          t("subtitleModal.srt.detectedConfirm"),
           () => setSrtContent(clipboardContent),
-          "Dán",
-          "Không"
+          t("common.paste"),
+          t("common.no")
         );
       }
     } catch {}
-  }, [srtContent, setSrtContent]);
+  }, [srtContent, setSrtContent, t]);
 
   useEffect(() => {
     if (visible && activeTab === "srt") checkClipboard();
@@ -279,7 +281,7 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
           >
             <View style={styles.sheetHeader}>
               <View style={styles.dragHandle} />
-              <Text style={styles.title}>Phụ đề</Text>
+              <Text style={styles.title}>{t("subtitleModal.title")}</Text>
               <TouchableOpacity
                 style={styles.closeButton}
                 onPress={handleClose}
@@ -315,7 +317,7 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
                     activeTab === "translate" && styles.tabTextActive,
                   ]}
                 >
-                  Dịch tự động
+                  {t("subtitleModal.tabs.translate")}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -335,7 +337,7 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
                     activeTab === "srt" && styles.tabTextActive,
                   ]}
                 >
-                  Dán phụ đề
+                  {t("subtitleModal.tabs.srt")}
                 </Text>
               </TouchableOpacity>
             </View>

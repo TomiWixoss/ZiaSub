@@ -2,13 +2,30 @@ import React from "react";
 import { View, StyleSheet, TouchableOpacity } from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { COLORS } from "@constants/colors";
 
 const QUICK_ACTIONS = [
-  { id: "summary", label: "Tóm tắt video", icon: "text-box-outline" },
-  { id: "analyze", label: "Phân tích nội dung", icon: "chart-box-outline" },
-  { id: "keypoints", label: "Điểm chính", icon: "format-list-bulleted" },
-  { id: "translate", label: "Dịch video", icon: "translate" },
+  {
+    id: "summary",
+    labelKey: "chat.quickActions.summarize",
+    icon: "text-box-outline",
+  },
+  {
+    id: "analyze",
+    labelKey: "chat.quickActions.analyze",
+    icon: "chart-box-outline",
+  },
+  {
+    id: "keypoints",
+    labelKey: "chat.quickActions.keyPoints",
+    icon: "format-list-bulleted",
+  },
+  {
+    id: "translate",
+    labelKey: "chat.quickActions.translate",
+    icon: "translate",
+  },
 ];
 
 interface QuickActionsProps {
@@ -17,6 +34,7 @@ interface QuickActionsProps {
 }
 
 const QuickActions: React.FC<QuickActionsProps> = ({ onAction, disabled }) => {
+  const { t } = useTranslation();
   return (
     <View style={styles.container}>
       {QUICK_ACTIONS.map((action) => (
@@ -31,7 +49,7 @@ const QuickActions: React.FC<QuickActionsProps> = ({ onAction, disabled }) => {
             size={18}
             color={COLORS.text}
           />
-          <Text style={styles.actionLabel}>{action.label}</Text>
+          <Text style={styles.actionLabel}>{t(action.labelKey)}</Text>
         </TouchableOpacity>
       ))}
     </View>

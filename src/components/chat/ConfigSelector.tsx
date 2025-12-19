@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { COLORS } from "@constants/colors";
 import type { GeminiConfig } from "@src/types";
 
@@ -27,6 +28,7 @@ const ConfigSelector: React.FC<ConfigSelectorProps> = ({
   onSelect,
   onClose,
 }) => {
+  const { t } = useTranslation();
   return (
     <Modal
       visible={visible}
@@ -39,7 +41,7 @@ const ConfigSelector: React.FC<ConfigSelectorProps> = ({
           <TouchableWithoutFeedback>
             <View style={styles.container}>
               <View style={styles.header}>
-                <Text style={styles.title}>Chọn cấu hình AI</Text>
+                <Text style={styles.title}>{t("chat.selectConfig")}</Text>
                 <TouchableOpacity onPress={onClose}>
                   <MaterialCommunityIcons
                     name="close"
@@ -91,9 +93,7 @@ const ConfigSelector: React.FC<ConfigSelectorProps> = ({
                 })}
               </ScrollView>
 
-              <Text style={styles.hint}>
-                Vào Cài đặt → Gemini để thêm hoặc chỉnh sửa cấu hình
-              </Text>
+              <Text style={styles.hint}>{t("chat.configHint")}</Text>
             </View>
           </TouchableWithoutFeedback>
         </View>

@@ -5,6 +5,7 @@ import { alert, confirmDestructive } from "../../common/CustomAlert";
 import Button3D from "../../common/Button3D";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { COLORS } from "@constants/colors";
 import { saveApiKeys } from "@utils/storage";
 import { keyManager } from "@services/keyManager";
@@ -23,6 +24,7 @@ const ApiKeysSection: React.FC<ApiKeysSectionProps> = ({
   apiKeys,
   onApiKeysChange,
 }) => {
+  const { t } = useTranslation();
   const [showKeys, setShowKeys] = useState(false);
   const [isAddingKey, setIsAddingKey] = useState(false);
 
@@ -36,22 +38,25 @@ const ApiKeysSection: React.FC<ApiKeysSectionProps> = ({
 
       if (!key) {
         alert(
-          "Clipboard trống",
-          "Hãy copy API key vào clipboard trước khi bấm nút này."
+          t("settings.apiKeys.clipboardEmpty"),
+          t("settings.apiKeys.clipboardEmptyMessage")
         );
         return;
       }
 
       if (!key.startsWith("AIza") || key.length < 30) {
         alert(
-          "Key không hợp lệ",
-          "Clipboard không chứa API key hợp lệ. Key Gemini thường bắt đầu bằng 'AIza...'"
+          t("settings.apiKeys.invalid"),
+          t("settings.apiKeys.invalidMessage")
         );
         return;
       }
 
       if (apiKeys.includes(key)) {
-        alert("Trùng key", "Key này đã có trong danh sách rồi.");
+        alert(
+          t("settings.apiKeys.duplicate"),
+          t("settings.apiKeys.duplicateMessage")
+        );
         return;
       }
 
@@ -59,36 +64,40 @@ const ApiKeysSection: React.FC<ApiKeysSectionProps> = ({
       onApiKeysChange(newKeys);
       await saveApiKeys(newKeys);
       keyManager.initialize(newKeys);
-      alert("Thành công", "Đã thêm API key từ clipboard!");
+      alert(t("common.success"), t("settings.apiKeys.added"));
     } catch (error) {
-      alert("Lỗi", "Không thể đọc clipboard. Hãy thử lại.");
+      alert(t("common.error"), t("settings.apiKeys.clipboardError"));
     } finally {
       setIsAddingKey(false);
     }
   };
 
   const handleDeleteKey = (index: number) => {
-    confirmDestructive("Xóa key", "Bạn muốn xóa key này?", async () => {
-      const newKeys = apiKeys.filter((_, i) => i !== index);
-      onApiKeysChange(newKeys);
-      await saveApiKeys(newKeys);
-      keyManager.initialize(newKeys);
-    });
+    confirmDestructive(
+      t("settings.apiKeys.deleteTitle"),
+      t("settings.apiKeys.deleteConfirm"),
+      async () => {
+        const newKeys = apiKeys.filter((_, i) => i !== index);
+        onApiKeysChange(newKeys);
+        await saveApiKeys(newKeys);
+        keyManager.initialize(newKeys);
+      }
+    );
   };
 
   return (
     <>
-      <Text style={styles.sectionTitle}>API Keys</Text>
+      <Text style={styles.sectionTitle}>{t("settings.apiKeys.title")}</Text>
       <View style={styles.sectionHintRow}>
         <Text style={styles.sectionHint}>
-          Thêm nhiều key để dịch nhanh hơn.{" "}
+          {t("settings.apiKeys.description")}{" "}
         </Text>
         <TouchableOpacity
           onPress={() =>
             Linking.openURL("https://aistudio.google.com/app/apikey")
           }
         >
-          <Text style={styles.linkText}>Lấy key tại đây</Text>
+          <Text style={styles.linkText}>{t("settings.apiKeys.getKey")}</Text>
         </TouchableOpacity>
       </View>
 
@@ -106,7 +115,9 @@ const ApiKeysSection: React.FC<ApiKeysSectionProps> = ({
               </Text>
               {index === keyManager.getCurrentKeyIndex() - 1 && (
                 <View style={styles.activeKeyBadge}>
-                  <Text style={styles.activeKeyText}>Đang dùng</Text>
+                  <Text style={styles.activeKeyText}>
+                    {t("settings.apiKeys.active")}
+                  </Text>
                 </View>
               )}
             </View>
@@ -126,7 +137,11 @@ const ApiKeysSection: React.FC<ApiKeysSectionProps> = ({
         <View style={styles.addKeyRow}>
           <Button3D
             icon="clipboard-plus-outline"
-            title={isAddingKey ? "Đang thêm..." : "Thêm key từ clipboard"}
+            title={
+              isAddingKey
+                ? t("settings.apiKeys.adding")
+                : t("settings.apiKeys.addFromClipboard")
+            }
             variant="primary"
             onPress={handleAddKeyFromClipboard}
             disabled={isAddingKey}
@@ -144,7 +159,7 @@ const ApiKeysSection: React.FC<ApiKeysSectionProps> = ({
           </TouchableOpacity>
         </View>
         <Text style={styles.clipboardHint}>
-          Copy API key trước, sau đó bấm nút để tự động thêm
+          {t("settings.apiKeys.clipboardHint")}
         </Text>
       </View>
     </>

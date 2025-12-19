@@ -2,6 +2,7 @@ import React from "react";
 import { View } from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { COLORS } from "@constants/colors";
 import { queueStyles as styles } from "./queueStyles";
 import type { TabType } from "./QueueTabs";
@@ -11,14 +12,15 @@ interface QueueEmptyProps {
 }
 
 const QueueEmpty: React.FC<QueueEmptyProps> = ({ activeTab }) => {
+  const { t } = useTranslation();
   const getEmptyMessage = () => {
     switch (activeTab) {
       case "pending":
-        return "Chưa có video nào";
+        return t("queue.empty");
       case "translating":
-        return "Không có video nào đang dịch";
+        return t("queue.emptyTranslating");
       case "completed":
-        return "Chưa dịch video nào";
+        return t("queue.emptyCompleted");
     }
   };
 

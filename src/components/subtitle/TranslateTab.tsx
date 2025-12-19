@@ -3,6 +3,7 @@ import { View, StyleSheet, ScrollView } from "react-native";
 import { alert, confirmDestructive } from "../common/CustomAlert";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { COLORS } from "@constants/colors";
 import type {
   GeminiConfig,
@@ -55,6 +56,7 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
   onSelectTranslation,
   onBatchSettingsChange,
 }) => {
+  const { t } = useTranslation();
   const [geminiConfigs, setGeminiConfigs] = useState<GeminiConfig[]>([]);
   const [selectedConfigId, setSelectedConfigId] = useState<string>("");
   const [showConfigPicker, setShowConfigPicker] = useState(false);
@@ -143,10 +145,21 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
 
   const handleTranslate = async () => {
     const config = geminiConfigs.find((c) => c.id === selectedConfigId);
-    if (!config) return alert("Chưa chọn", "Chọn kiểu dịch trước nhé.");
-    if (!videoUrl) return alert("Chưa có video", "Mở video cần dịch trước.");
+    if (!config)
+      return alert(
+        t("subtitleModal.translate.notSelected"),
+        t("subtitleModal.translate.notSelectedMessage")
+      );
+    if (!videoUrl)
+      return alert(
+        t("subtitleModal.translate.noVideo"),
+        t("subtitleModal.translate.noVideoMessage")
+      );
     if (translationManager.isTranslatingUrl(videoUrl)) {
-      return alert("Thông báo", "Video này đang dịch rồi.");
+      return alert(
+        t("common.notice"),
+        t("subtitleModal.translate.alreadyTranslating")
+      );
     }
 
     let rangeStart: number | undefined;
@@ -158,14 +171,14 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
 
       if (start === null) {
         return alert(
-          "Lỗi",
-          "Thời gian bắt đầu không hợp lệ. Dùng mm:ss hoặc để trống"
+          t("common.error"),
+          t("subtitleModal.translate.invalidStartTime")
         );
       }
       if (end === null || end === undefined) {
         return alert(
-          "Lỗi",
-          "Thời gian kết thúc không hợp lệ. Dùng mm:ss hoặc để trống"
+          t("common.error"),
+          t("subtitleModal.translate.invalidEndTime")
         );
       }
 
@@ -174,8 +187,8 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
 
       if (clampedStart >= clampedEnd) {
         return alert(
-          "Lỗi",
-          "Thời gian bắt đầu phải nhỏ hơn thời gian kết thúc"
+          t("common.error"),
+          t("subtitleModal.translate.invalidRange")
         );
       }
 
@@ -194,7 +207,10 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
         rangeEnd
       );
     } catch (error: any) {
-      alert("Không dịch được", error.message || "Có lỗi xảy ra.");
+      alert(
+        t("subtitleModal.translate.error"),
+        error.message || t("errors.generic")
+      );
     }
   };
 
@@ -208,8 +224,8 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
 
   const handleDeleteTranslation = (translation: SavedTranslation) => {
     confirmDestructive(
-      "Xóa bản dịch",
-      "Bạn muốn xóa bản dịch này?",
+      t("subtitleModal.translate.deleteTitle"),
+      t("subtitleModal.translate.deleteConfirm"),
       async () => {
         if (!videoUrl) return;
         await deleteTranslation(videoUrl, translation.id);
@@ -245,7 +261,7 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
               color={COLORS.warning}
             />
             <Text style={translateStyles.warningText}>
-              Chưa có key. Thêm trong Cài đặt nhé
+              {t("subtitleModal.translate.noApiKey")}
             </Text>
           </View>
         )}
@@ -286,7 +302,11 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
         <Button3D
           onPress={handleTranslate}
           icon="translate"
-          title={isTranslating ? "Đang dịch..." : "Dịch mới"}
+          title={
+            isTranslating
+              ? t("subtitleModal.translate.translating")
+              : t("subtitleModal.translate.newTranslation")
+          }
           variant="primary"
           disabled={isTranslating || !videoUrl || !hasApiKey}
         />

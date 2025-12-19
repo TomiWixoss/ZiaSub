@@ -2,6 +2,7 @@ import React from "react";
 import { View, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { COLORS } from "@constants/colors";
 import type { GeminiConfig } from "@src/types";
 import Button3D from "../common/Button3D";
@@ -18,48 +19,51 @@ const GeminiList: React.FC<GeminiListProps> = ({
   onEdit,
   onDelete,
   onAdd,
-}) => (
-  <View style={styles.container}>
-    <ScrollView showsVerticalScrollIndicator={false}>
-      {configs.map((config) => (
-        <TouchableOpacity
-          key={config.id}
-          style={styles.configItem}
-          onPress={() => onEdit(config)}
-        >
-          <View style={styles.configInfo}>
-            <Text style={styles.configName}>{config.name}</Text>
-            <Text style={styles.configModel}>{config.model}</Text>
-          </View>
-          <View style={styles.configActions}>
-            <TouchableOpacity
-              style={styles.configActionBtn}
-              onPress={() => onDelete(config.id)}
-            >
+}) => {
+  const { t } = useTranslation();
+  return (
+    <View style={styles.container}>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {configs.map((config) => (
+          <TouchableOpacity
+            key={config.id}
+            style={styles.configItem}
+            onPress={() => onEdit(config)}
+          >
+            <View style={styles.configInfo}>
+              <Text style={styles.configName}>{config.name}</Text>
+              <Text style={styles.configModel}>{config.model}</Text>
+            </View>
+            <View style={styles.configActions}>
+              <TouchableOpacity
+                style={styles.configActionBtn}
+                onPress={() => onDelete(config.id)}
+              >
+                <MaterialCommunityIcons
+                  name="delete-outline"
+                  size={20}
+                  color={COLORS.textMuted}
+                />
+              </TouchableOpacity>
               <MaterialCommunityIcons
-                name="delete-outline"
+                name="chevron-right"
                 size={20}
                 color={COLORS.textMuted}
               />
-            </TouchableOpacity>
-            <MaterialCommunityIcons
-              name="chevron-right"
-              size={20}
-              color={COLORS.textMuted}
-            />
-          </View>
-        </TouchableOpacity>
-      ))}
-    </ScrollView>
-    <Button3D
-      onPress={onAdd}
-      icon="plus"
-      title="Thêm kiểu dịch"
-      variant="outline"
-      style={{ marginTop: 16 }}
-    />
-  </View>
-);
+            </View>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+      <Button3D
+        onPress={onAdd}
+        icon="plus"
+        title={t("settings.geminiConfig.addNew")}
+        variant="outline"
+        style={{ marginTop: 16 }}
+      />
+    </View>
+  );
+};
 
 const styles = StyleSheet.create({
   container: { flex: 1 },

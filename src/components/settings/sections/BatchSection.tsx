@@ -2,6 +2,7 @@ import React from "react";
 import { View, StyleSheet } from "react-native";
 import { Text } from "react-native-paper";
 import Slider from "@react-native-community/slider";
+import { useTranslation } from "react-i18next";
 import { COLORS } from "@constants/colors";
 import type { BatchSettings } from "@src/types";
 import { saveBatchSettings } from "@utils/storage";
@@ -15,6 +16,7 @@ const BatchSection: React.FC<BatchSectionProps> = ({
   batchSettings,
   onBatchChange,
 }) => {
+  const { t } = useTranslation();
   const handleBatchDurationChange = (value: number) => {
     const newSettings = { ...batchSettings, maxVideoDuration: value };
     onBatchChange(newSettings);
@@ -41,15 +43,16 @@ const BatchSection: React.FC<BatchSectionProps> = ({
 
   return (
     <>
-      <Text style={styles.sectionTitle}>Dịch video</Text>
+      <Text style={styles.sectionTitle}>{t("settings.batch.title")}</Text>
 
       <View style={styles.settingGroup}>
         <Text style={styles.settingLabel}>
-          Độ dài mỗi phần: {Math.floor(batchSettings.maxVideoDuration / 60)}{" "}
-          phút
+          {t("settings.batch.batchDuration", {
+            minutes: Math.floor(batchSettings.maxVideoDuration / 60),
+          })}
         </Text>
         <Text style={styles.settingHint}>
-          Video dài hơn sẽ được chia nhỏ để dịch
+          {t("settings.batch.batchDurationHint")}
         </Text>
         <Slider
           style={styles.slider}
@@ -66,10 +69,12 @@ const BatchSection: React.FC<BatchSectionProps> = ({
 
       <View style={styles.settingGroup}>
         <Text style={styles.settingLabel}>
-          Dịch cùng lúc: {batchSettings.maxConcurrentBatches} phần
+          {t("settings.batch.concurrent", {
+            count: batchSettings.maxConcurrentBatches,
+          })}
         </Text>
         <Text style={styles.settingHint}>
-          Dịch nhiều phần cùng lúc (nhanh hơn nhưng tốn key)
+          {t("settings.batch.concurrentHint")}
         </Text>
         <Slider
           style={styles.slider}
@@ -86,13 +91,12 @@ const BatchSection: React.FC<BatchSectionProps> = ({
 
       <View style={styles.settingGroup}>
         <Text style={styles.settingLabel}>
-          Dung sai thêm: {Math.floor((batchSettings.batchOffset ?? 60) / 60)}{" "}
-          phút {(batchSettings.batchOffset ?? 60) % 60}s
+          {t("settings.batch.offset", {
+            minutes: Math.floor((batchSettings.batchOffset ?? 60) / 60),
+            seconds: (batchSettings.batchOffset ?? 60) % 60,
+          })}
         </Text>
-        <Text style={styles.settingHint}>
-          Video dài hơn một chút vẫn dịch 1 lần (VD: 10p + 1p dung sai = video
-          11p không bị chia nhỏ)
-        </Text>
+        <Text style={styles.settingHint}>{t("settings.batch.offsetHint")}</Text>
         <Slider
           style={styles.slider}
           minimumValue={0}
@@ -108,12 +112,13 @@ const BatchSection: React.FC<BatchSectionProps> = ({
 
       <View style={styles.settingGroup}>
         <Text style={styles.settingLabel}>
-          Phần đầu (xem nhanh):{" "}
-          {Math.floor((batchSettings.presubDuration ?? 120) / 60)} phút{" "}
-          {(batchSettings.presubDuration ?? 120) % 60}s
+          {t("settings.batch.presubDuration", {
+            minutes: Math.floor((batchSettings.presubDuration ?? 120) / 60),
+            seconds: (batchSettings.presubDuration ?? 120) % 60,
+          })}
         </Text>
         <Text style={styles.settingHint}>
-          Độ dài phần đầu khi bật chế độ Xem nhanh để có phụ đề sớm hơn
+          {t("settings.batch.presubDurationHint")}
         </Text>
         <Slider
           style={styles.slider}

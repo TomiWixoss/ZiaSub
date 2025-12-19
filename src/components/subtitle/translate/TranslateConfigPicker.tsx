@@ -2,6 +2,7 @@ import React from "react";
 import { View, TouchableOpacity } from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { COLORS } from "@constants/colors";
 import type { GeminiConfig } from "@src/types";
 import { translateStyles as styles } from "./translateStyles";
@@ -21,6 +22,7 @@ const TranslateConfigPicker: React.FC<TranslateConfigPickerProps> = ({
   onTogglePicker,
   onSelectConfig,
 }) => {
+  const { t } = useTranslation();
   const selectedConfig = configs.find((c) => c.id === selectedConfigId);
 
   return (
@@ -33,7 +35,7 @@ const TranslateConfigPicker: React.FC<TranslateConfigPickerProps> = ({
             color={COLORS.primary}
           />
           <Text style={styles.configPickerText}>
-            {selectedConfig?.name || "Chọn kiểu dịch"}
+            {selectedConfig?.name || t("subtitleModal.translate.selectConfig")}
           </Text>
         </View>
         <MaterialCommunityIcons

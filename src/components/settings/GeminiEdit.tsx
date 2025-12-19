@@ -10,6 +10,7 @@ import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Slider from "@react-native-community/slider";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTranslation } from "react-i18next";
 import { COLORS } from "@constants/colors";
 import type { GeminiConfig } from "@src/types";
 
@@ -34,6 +35,7 @@ const GeminiEdit: React.FC<GeminiEditProps> = ({
   onSave,
   onCancel,
 }) => {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const [showModelPicker, setShowModelPicker] = useState(false);
 
@@ -55,7 +57,7 @@ const GeminiEdit: React.FC<GeminiEditProps> = ({
             color={COLORS.text}
           />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Chỉnh kiểu dịch</Text>
+        <Text style={styles.headerTitle}>{t("settings.editConfig")}</Text>
         <TouchableOpacity style={styles.headerBtn} onPress={onSave}>
           <MaterialCommunityIcons
             name="check"
@@ -71,18 +73,22 @@ const GeminiEdit: React.FC<GeminiEditProps> = ({
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.settingGroup}>
-          <Text style={styles.settingLabel}>Tên kiểu dịch</Text>
+          <Text style={styles.settingLabel}>
+            {t("settings.geminiConfig.name")}
+          </Text>
           <RNTextInput
             style={styles.input}
             value={config.name}
             onChangeText={(text) => onChange({ ...config, name: text })}
-            placeholder="Đặt tên..."
+            placeholder={t("settings.geminiConfig.namePlaceholder")}
             placeholderTextColor={COLORS.textMuted}
           />
         </View>
 
         <View style={styles.settingGroup}>
-          <Text style={styles.settingLabel}>Mô hình AI</Text>
+          <Text style={styles.settingLabel}>
+            {t("settings.geminiConfig.model")}
+          </Text>
           <TouchableOpacity
             style={styles.modelPicker}
             onPress={() => setShowModelPicker(!showModelPicker)}
@@ -125,7 +131,9 @@ const GeminiEdit: React.FC<GeminiEditProps> = ({
 
         <View style={styles.settingGroup}>
           <Text style={styles.settingLabel}>
-            Độ sáng tạo: {config.temperature.toFixed(1)}
+            {t("settings.geminiConfig.temperature", {
+              value: config.temperature.toFixed(1),
+            })}
           </Text>
           <Slider
             style={styles.slider}
@@ -143,12 +151,14 @@ const GeminiEdit: React.FC<GeminiEditProps> = ({
         </View>
 
         <View style={styles.settingGroup}>
-          <Text style={styles.settingLabel}>Hướng dẫn dịch</Text>
+          <Text style={styles.settingLabel}>
+            {t("settings.geminiConfig.systemPrompt")}
+          </Text>
           <RNTextInput
             style={styles.promptInput}
             value={config.systemPrompt}
             onChangeText={(text) => onChange({ ...config, systemPrompt: text })}
-            placeholder="Nhập hướng dẫn cho AI..."
+            placeholder={t("settings.geminiConfig.systemPromptPlaceholder")}
             placeholderTextColor={COLORS.textMuted}
             multiline
             textAlignVertical="top"

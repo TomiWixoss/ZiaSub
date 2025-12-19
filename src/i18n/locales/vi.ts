@@ -1,0 +1,315 @@
+export default {
+  // Common
+  common: {
+    ok: "OK",
+    cancel: "Hủy",
+    save: "Lưu",
+    delete: "Xóa",
+    edit: "Sửa",
+    close: "Đóng",
+    confirm: "Xác nhận",
+    loading: "Đang tải...",
+    error: "Lỗi",
+    success: "Thành công",
+    warning: "Cảnh báo",
+    notice: "Thông báo",
+    retry: "Thử lại",
+    yes: "Có",
+    no: "Không",
+    add: "Thêm",
+    remove: "Xóa",
+    search: "Tìm kiếm",
+    clear: "Xóa",
+    copy: "Copy",
+    copied: "Đã copy",
+    paste: "Dán",
+    select: "Chọn",
+    all: "Tất cả",
+    none: "Không có",
+    back: "Quay lại",
+    next: "Tiếp",
+    done: "Xong",
+    apply: "Áp dụng",
+    reset: "Đặt lại",
+    regenerate: "Tạo lại",
+    processing: "Đang xử lý...",
+    stoppedByUser: "Đã dừng bởi người dùng",
+    file: "File",
+    start: "Bắt đầu",
+  },
+
+  // Home Screen
+  home: {
+    title: "ZiaSub",
+    reload: "Tải lại",
+  },
+
+  // Chat
+  chat: {
+    title: "Trò chuyện",
+    greeting: "Xin chào!",
+    greetingSubtitle: "Tôi có thể giúp gì cho bạn?",
+    noApiKey: "Chưa có API key. Thêm trong Cài đặt nhé",
+    inputPlaceholder: "Hỏi Zia",
+    inputPlaceholderDisabled: "Thêm API key trong Cài đặt để bắt đầu",
+    send: "Gửi",
+    thinking: "Đang suy nghĩ...",
+    stopGeneration: "Dừng",
+    newChat: "Cuộc trò chuyện mới",
+    history: "Lịch sử",
+    noHistory: "Chưa có cuộc trò chuyện",
+    searchPlaceholder: "Tìm kiếm cuộc trò chuyện",
+    noSearchResults: "Không tìm thấy kết quả",
+    deleteChat: "Xóa cuộc trò chuyện",
+    deleteConfirm: "Bạn có chắc muốn xóa?",
+    deleteTask: "Xóa task",
+    deleteTaskConfirm: "Bạn có chắc muốn xóa task này?",
+    selectModel: "Chọn model",
+    selectConfig: "Chọn cấu hình AI",
+    configHint: "Vào Cài đặt → Gemini để thêm hoặc chỉnh sửa cấu hình",
+    video: "Video",
+    quickActions: {
+      summarize: "Tóm tắt video",
+      analyze: "Phân tích nội dung",
+      keyPoints: "Điểm chính",
+      translate: "Dịch video",
+    },
+    quickActionPrompts: {
+      summarize: "Tóm tắt nội dung video này",
+      analyze: "Phân tích chi tiết video này",
+      keyPoints: "Liệt kê các điểm chính trong video",
+      translate: "Dịch nội dung video sang tiếng Việt",
+    },
+  },
+
+  // Settings
+  settings: {
+    title: "Cài đặt",
+    general: "Cài đặt chung",
+    gemini: "Kiểu dịch",
+    language: "Ngôn ngữ",
+    selectLanguage: "Chọn ngôn ngữ",
+    editConfig: "Chỉnh kiểu dịch",
+
+    // API Keys
+    apiKeys: {
+      title: "API Keys",
+      description: "Thêm nhiều key để dịch nhanh hơn.",
+      getKey: "Lấy key tại đây",
+      add: "Thêm API Key",
+      addFromClipboard: "Thêm key từ clipboard",
+      adding: "Đang thêm...",
+      clipboardHint: "Copy API key trước, sau đó bấm nút để tự động thêm",
+      empty: "Chưa có API key nào",
+      deleteConfirm: "Bạn muốn xóa key này?",
+      deleteTitle: "Xóa key",
+      invalid: "Key không hợp lệ",
+      invalidMessage:
+        "Clipboard không chứa API key hợp lệ. Key Gemini thường bắt đầu bằng 'AIza...'",
+      duplicate: "Trùng key",
+      duplicateMessage: "Key này đã có trong danh sách rồi.",
+      clipboardEmpty: "Clipboard trống",
+      clipboardEmptyMessage:
+        "Hãy copy API key vào clipboard trước khi bấm nút này.",
+      clipboardError: "Không thể đọc clipboard. Hãy thử lại.",
+      added: "Đã thêm API key từ clipboard!",
+      active: "Đang dùng",
+    },
+
+    // Subtitle
+    subtitle: {
+      title: "Phụ đề",
+      fontSize: "Cỡ chữ",
+      fontSizeValue: "Cỡ chữ: {{size}}px",
+      preview: "Xem trước phụ đề",
+      bold: "Đậm",
+      italic: "Nghiêng",
+      positionPortrait: "Vị trí (dọc): {{value}}px từ dưới",
+      positionLandscape: "Vị trí (ngang/fullscreen): {{value}}px từ dưới",
+    },
+
+    // Batch Translation
+    batch: {
+      title: "Dịch video",
+      batchDuration: "Độ dài mỗi phần: {{minutes}} phút",
+      batchDurationHint: "Video dài hơn sẽ được chia nhỏ để dịch",
+      concurrent: "Dịch cùng lúc: {{count}} phần",
+      concurrentHint: "Dịch nhiều phần cùng lúc (nhanh hơn nhưng tốn key)",
+      offset: "Dung sai thêm: {{minutes}} phút {{seconds}}s",
+      offsetHint:
+        "Video dài hơn một chút vẫn dịch 1 lần (VD: 10p + 1p dung sai = video 11p không bị chia nhỏ)",
+      presubDuration: "Phần đầu (xem nhanh): {{minutes}} phút {{seconds}}s",
+      presubDurationHint:
+        "Độ dài phần đầu khi bật chế độ Xem nhanh để có phụ đề sớm hơn",
+    },
+
+    // TTS
+    tts: {
+      title: "Thuyết minh",
+      enabled: "Bật thuyết minh",
+      enabledHint: "Đọc phụ đề thành tiếng, ẩn chữ",
+      autoRate: "Tự động tốc độ",
+      autoRateHint: "Điều chỉnh tốc độ theo thời gian phụ đề",
+      baseRate: "Tốc độ cơ bản: {{rate}}x",
+      baseRateHintAuto: "Tốc độ tối thiểu, sẽ tăng nếu cần",
+      baseRateHintFixed: "Tốc độ cố định",
+      pitch: "Cao độ giọng: {{pitch}}",
+      duckVideo: "Giảm âm video",
+      duckVideoHint: "Giảm âm lượng video khi đang đọc",
+      duckLevel: "Âm lượng video khi đọc: {{level}}%",
+    },
+
+    // Gemini Config
+    geminiConfig: {
+      name: "Tên kiểu dịch",
+      namePlaceholder: "Đặt tên...",
+      model: "Mô hình AI",
+      temperature: "Độ sáng tạo: {{value}}",
+      systemPrompt: "Hướng dẫn dịch",
+      systemPromptPlaceholder: "Nhập hướng dẫn cho AI...",
+      addNew: "Thêm kiểu dịch",
+      deleteTitle: "Xóa kiểu dịch",
+      deleteConfirm: "Bạn muốn xóa kiểu dịch này?",
+      cannotDelete: "Không xóa được",
+      cannotDeleteMessage: "Cần giữ lại ít nhất một kiểu dịch.",
+      selectType: "Chọn kiểu dịch",
+    },
+  },
+
+  // Queue
+  queue: {
+    title: "Danh sách chờ dịch",
+    empty: "Chưa có video nào",
+    emptyTranslating: "Không có video nào đang dịch",
+    emptyCompleted: "Chưa dịch video nào",
+
+    tabs: {
+      pending: "Chưa dịch",
+      translating: "Đang dịch",
+      completed: "Đã dịch",
+    },
+
+    status: {
+      added: "Đã thêm: {{date}}",
+      translating: "Đang dịch...",
+      completed: "Dịch xong: {{date}}",
+      error: "Gặp lỗi: {{error}}",
+    },
+
+    actions: {
+      translateAll: "Dịch tất cả",
+      clearAll: "Xóa tất cả",
+    },
+
+    dialogs: {
+      translateOne: "Dịch video này",
+      translateOneConfirm: 'Bắt đầu dịch "{{title}}"?',
+      translateAllTitle: "Dịch tất cả",
+      translateAllConfirm: "Dịch tự động tất cả video trong danh sách?",
+      removeTitle: "Xóa video",
+      removeConfirm: 'Bỏ "{{title}}" khỏi danh sách?',
+      clearPendingTitle: "Xóa tất cả",
+      clearPendingConfirm: "Bỏ hết video chưa dịch khỏi danh sách?",
+      clearCompletedTitle: "Xóa tất cả",
+      clearCompletedConfirm: "Bỏ hết video đã dịch khỏi danh sách?",
+      translate: "Dịch",
+    },
+
+    addedToQueue: "Đã thêm",
+    addedMessage: "Đã thêm video vào danh sách. {{pendingText}}",
+    pendingCount: "Còn {{count}} video đang chờ dịch.",
+    willTranslateNow: "Video sẽ được dịch ngay.",
+    viewQueue: "Xem danh sách",
+    alreadyTranslated: "Video này đã có bản dịch rồi.",
+    alreadyInQueue:
+      "Video này đã có trong danh sách chờ. Còn {{count}} video đang chờ.",
+    currentlyTranslating: "Video này đang được dịch.",
+  },
+
+  // Subtitle Modal
+  subtitleModal: {
+    title: "Phụ đề",
+    tabs: {
+      translate: "Dịch tự động",
+      srt: "Dán phụ đề",
+    },
+
+    srt: {
+      placeholder: "Dán nội dung phụ đề vào đây...",
+      load: "Áp dụng",
+      pasteNothing: "Chưa có gì để dán.",
+      pasteError: "Không thể dán được.",
+      fileError: "Không mở được file này.",
+      detected: "Phát hiện phụ đề",
+      detectedConfirm: "Bạn vừa sao chép nội dung phụ đề. Muốn dán vào không?",
+      fixedErrors: "Đã sửa lỗi phụ đề",
+      fixedErrorsMessage: "Đã tự động sửa {{count}} lỗi trong phụ đề.",
+    },
+
+    translate: {
+      title: "Dịch phụ đề",
+      newTranslation: "Dịch mới",
+      translating: "Đang dịch...",
+      selectConfig: "Chọn kiểu dịch",
+      noApiKey: "Chưa có key. Thêm trong Cài đặt nhé",
+      noVideo: "Chưa có video",
+      noVideoMessage: "Mở video cần dịch trước.",
+      notSelected: "Chưa chọn",
+      notSelectedMessage: "Chọn kiểu dịch trước nhé.",
+      alreadyTranslating: "Video này đang dịch rồi.",
+
+      savedTranslations: "Đã dịch",
+      deleteTitle: "Xóa bản dịch",
+      deleteConfirm: "Bạn muốn xóa bản dịch này?",
+
+      advancedOptions: "Tùy chọn nâng cao",
+      streamingMode: "Dịch từng đợt",
+      streamingModeHint: "Xem phụ đề ngay khi mỗi phần dịch xong",
+      presubMode: "Xem nhanh",
+      presubModeHint: "Phần đầu dịch ngắn hơn để xem ngay (~2 phút)",
+      customRange: "Dịch khoảng thời gian",
+      customRangeHint: "Để trống = từ đầu/tới cuối",
+      rangeFrom: "Từ",
+      rangeTo: "Đến",
+      rangeEnd: "cuối",
+      videoDuration: "Độ dài video: {{duration}}",
+
+      invalidStartTime:
+        "Thời gian bắt đầu không hợp lệ. Dùng mm:ss hoặc để trống",
+      invalidEndTime:
+        "Thời gian kết thúc không hợp lệ. Dùng mm:ss hoặc để trống",
+      invalidRange: "Thời gian bắt đầu phải nhỏ hơn thời gian kết thúc",
+
+      progress: {
+        translatingPart: "Đang dịch phần {{current}}/{{total}}...",
+        translatingVideo: "Đang dịch video...",
+        completed: "Xong rồi!",
+      },
+
+      success: "Dịch xong rồi! Phụ đề đã sẵn sàng.",
+      error: "Không dịch được",
+      errorMessage: "Không thể dịch video này.",
+    },
+  },
+
+  // Errors
+  errors: {
+    networkError: "Lỗi kết nối mạng",
+    apiError: "Lỗi API",
+    unknownError: "Đã xảy ra lỗi không xác định",
+    noInternet: "Không có kết nối internet",
+    timeout: "Hết thời gian chờ",
+    invalidInput: "Dữ liệu không hợp lệ",
+    permissionDenied: "Không có quyền truy cập",
+    fileNotFound: "Không tìm thấy file",
+    quotaExceeded: "Đã vượt quá giới hạn",
+    generic: "Có lỗi xảy ra.",
+  },
+
+  // Languages
+  languages: {
+    vi: "Tiếng Việt",
+    en: "English",
+    auto: "Tự động",
+  },
+};

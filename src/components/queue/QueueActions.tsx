@@ -2,6 +2,7 @@ import React from "react";
 import { View, TouchableOpacity } from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import Button3D from "../common/Button3D";
 import { COLORS } from "@constants/colors";
 import type { GeminiConfig } from "@src/types";
@@ -29,6 +30,7 @@ const QueueActions: React.FC<QueueActionsProps> = ({
   onStartAll,
   onClearPending,
 }) => {
+  const { t } = useTranslation();
   return (
     <View style={styles.actionSection}>
       {/* API Key Warning */}
@@ -39,9 +41,7 @@ const QueueActions: React.FC<QueueActionsProps> = ({
             size={18}
             color={COLORS.warning}
           />
-          <Text style={styles.warningText}>
-            Chưa có API key. Thêm trong Cài đặt nhé
-          </Text>
+          <Text style={styles.warningText}>{t("chat.noApiKey")}</Text>
         </View>
       )}
 
@@ -57,7 +57,7 @@ const QueueActions: React.FC<QueueActionsProps> = ({
       <View style={styles.actionButtons}>
         <View style={styles.actionButtonPrimary}>
           <Button3D
-            title="Dịch tất cả"
+            title={t("queue.actions.translateAll")}
             icon="play-circle"
             variant="primary"
             onPress={onStartAll}

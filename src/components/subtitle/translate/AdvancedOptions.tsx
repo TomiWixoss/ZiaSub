@@ -2,6 +2,7 @@ import React from "react";
 import { View, TouchableOpacity, TextInput, Switch } from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { COLORS } from "@constants/colors";
 import { formatDuration } from "@utils/videoUtils";
 import { translateStyles as styles } from "./translateStyles";
@@ -37,6 +38,7 @@ const AdvancedOptions: React.FC<AdvancedOptionsProps> = ({
   onRangeEndChange,
   videoDuration,
 }) => {
+  const { t } = useTranslation();
   return (
     <>
       <TouchableOpacity
@@ -48,7 +50,9 @@ const AdvancedOptions: React.FC<AdvancedOptionsProps> = ({
           size={18}
           color={COLORS.textMuted}
         />
-        <Text style={styles.advancedToggleText}>Tùy chọn nâng cao</Text>
+        <Text style={styles.advancedToggleText}>
+          {t("subtitleModal.translate.advancedOptions")}
+        </Text>
         <MaterialCommunityIcons
           name={showAdvanced ? "chevron-up" : "chevron-down"}
           size={18}
@@ -67,9 +71,11 @@ const AdvancedOptions: React.FC<AdvancedOptionsProps> = ({
                 color={COLORS.primary}
               />
               <View style={styles.advancedRowInfo}>
-                <Text style={styles.advancedRowTitle}>Dịch từng đợt</Text>
+                <Text style={styles.advancedRowTitle}>
+                  {t("subtitleModal.translate.streamingMode")}
+                </Text>
                 <Text style={styles.advancedRowDesc}>
-                  Xem phụ đề ngay khi mỗi phần dịch xong
+                  {t("subtitleModal.translate.streamingModeHint")}
                 </Text>
               </View>
             </View>
@@ -90,9 +96,11 @@ const AdvancedOptions: React.FC<AdvancedOptionsProps> = ({
                 color={COLORS.warning}
               />
               <View style={styles.advancedRowInfo}>
-                <Text style={styles.advancedRowTitle}>Xem nhanh</Text>
+                <Text style={styles.advancedRowTitle}>
+                  {t("subtitleModal.translate.presubMode")}
+                </Text>
                 <Text style={styles.advancedRowDesc}>
-                  Phần đầu dịch ngắn hơn để xem ngay (~2 phút)
+                  {t("subtitleModal.translate.presubModeHint")}
                 </Text>
               </View>
             </View>
@@ -119,10 +127,10 @@ const AdvancedOptions: React.FC<AdvancedOptionsProps> = ({
               />
               <View style={styles.advancedRowInfo}>
                 <Text style={styles.advancedRowTitle}>
-                  Dịch khoảng thời gian
+                  {t("subtitleModal.translate.customRange")}
                 </Text>
                 <Text style={styles.advancedRowDesc}>
-                  Để trống = từ đầu/tới cuối
+                  {t("subtitleModal.translate.customRangeHint")}
                 </Text>
               </View>
             </View>
@@ -138,7 +146,9 @@ const AdvancedOptions: React.FC<AdvancedOptionsProps> = ({
           {useCustomRange && (
             <View style={styles.rangeInputContainer}>
               <View style={styles.rangeInputGroup}>
-                <Text style={styles.rangeLabel}>Từ</Text>
+                <Text style={styles.rangeLabel}>
+                  {t("subtitleModal.translate.rangeFrom")}
+                </Text>
                 <TextInput
                   style={styles.rangeInput}
                   value={rangeStartStr}
@@ -154,13 +164,17 @@ const AdvancedOptions: React.FC<AdvancedOptionsProps> = ({
                 color={COLORS.textMuted}
               />
               <View style={styles.rangeInputGroup}>
-                <Text style={styles.rangeLabel}>Đến</Text>
+                <Text style={styles.rangeLabel}>
+                  {t("subtitleModal.translate.rangeTo")}
+                </Text>
                 <TextInput
                   style={styles.rangeInput}
                   value={rangeEndStr}
                   onChangeText={onRangeEndChange}
                   placeholder={
-                    videoDuration ? formatDuration(videoDuration) : "cuối"
+                    videoDuration
+                      ? formatDuration(videoDuration)
+                      : t("subtitleModal.translate.rangeEnd")
                   }
                   placeholderTextColor={COLORS.textMuted}
                   keyboardType="numbers-and-punctuation"
@@ -171,7 +185,9 @@ const AdvancedOptions: React.FC<AdvancedOptionsProps> = ({
 
           {videoDuration && (
             <Text style={styles.durationHint}>
-              Độ dài video: {formatDuration(videoDuration)}
+              {t("subtitleModal.translate.videoDuration", {
+                duration: formatDuration(videoDuration),
+              })}
             </Text>
           )}
         </View>

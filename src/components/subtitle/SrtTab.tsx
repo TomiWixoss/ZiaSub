@@ -8,6 +8,7 @@ import {
 } from "react-native";
 import { alert } from "../common/CustomAlert";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import * as DocumentPicker from "expo-document-picker";
 import * as Clipboard from "expo-clipboard";
 import { readAsStringAsync } from "expo-file-system/legacy";
@@ -25,16 +26,17 @@ export const SrtTab: React.FC<SrtTabProps> = ({
   setSrtContent,
   onLoadSubtitles,
 }) => {
+  const { t } = useTranslation();
   const handlePasteFromClipboard = async () => {
     try {
       const clipboardContent = await Clipboard.getStringAsync();
       if (clipboardContent) {
         setSrtContent(clipboardContent);
       } else {
-        alert("Thông báo", "Chưa có gì để dán.");
+        alert(t("common.notice"), t("subtitleModal.srt.pasteNothing"));
       }
     } catch (error) {
-      alert("Lỗi", "Không thể dán được.");
+      alert(t("common.error"), t("subtitleModal.srt.pasteError"));
     }
   };
 
@@ -53,7 +55,7 @@ export const SrtTab: React.FC<SrtTabProps> = ({
         setSrtContent(content);
       }
     } catch (error) {
-      alert("Lỗi", "Không mở được file này.");
+      alert(t("common.error"), t("subtitleModal.srt.fileError"));
     }
   };
 
@@ -63,14 +65,14 @@ export const SrtTab: React.FC<SrtTabProps> = ({
         <Button3D
           onPress={handlePickFile}
           icon="file-document-outline"
-          title="File"
+          title={t("common.file")}
           variant="outline"
           style={styles.rowButton}
         />
         <Button3D
           onPress={handlePasteFromClipboard}
           icon="clipboard-text-outline"
-          title="Dán"
+          title={t("common.paste")}
           variant="outline"
           style={styles.rowButton}
         />
@@ -78,7 +80,7 @@ export const SrtTab: React.FC<SrtTabProps> = ({
 
       <View style={styles.inputContainer}>
         <RNTextInput
-          placeholder="Dán nội dung phụ đề vào đây..."
+          placeholder={t("subtitleModal.srt.placeholder")}
           placeholderTextColor={COLORS.textMuted}
           multiline
           value={srtContent}
@@ -101,7 +103,11 @@ export const SrtTab: React.FC<SrtTabProps> = ({
         )}
       </View>
 
-      <Button3D onPress={onLoadSubtitles} title="Áp dụng" variant="primary" />
+      <Button3D
+        onPress={onLoadSubtitles}
+        title={t("subtitleModal.srt.load")}
+        variant="primary"
+      />
     </View>
   );
 };

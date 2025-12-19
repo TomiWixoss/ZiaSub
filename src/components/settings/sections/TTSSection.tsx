@@ -3,6 +3,7 @@ import { View, StyleSheet, Switch } from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Slider from "@react-native-community/slider";
+import { useTranslation } from "react-i18next";
 import { COLORS } from "@constants/colors";
 import type { TTSSettings } from "@src/types";
 import { saveTTSSettings } from "@utils/storage";
@@ -16,6 +17,7 @@ const TTSSection: React.FC<TTSSectionProps> = ({
   ttsSettings,
   onTTSChange,
 }) => {
+  const { t } = useTranslation();
   const handleTTSEnabledChange = (value: boolean) => {
     const newSettings = { ...ttsSettings, enabled: value };
     onTTSChange(newSettings);
@@ -57,7 +59,7 @@ const TTSSection: React.FC<TTSSectionProps> = ({
 
   return (
     <>
-      <Text style={styles.sectionTitle}>Thuyết minh</Text>
+      <Text style={styles.sectionTitle}>{t("settings.tts.title")}</Text>
 
       <View style={styles.ttsToggleRow}>
         <View style={styles.ttsToggleInfo}>
@@ -67,9 +69,9 @@ const TTSSection: React.FC<TTSSectionProps> = ({
             color={ttsSettings.enabled ? COLORS.success : COLORS.textMuted}
           />
           <View>
-            <Text style={styles.settingLabel}>Bật thuyết minh</Text>
+            <Text style={styles.settingLabel}>{t("settings.tts.enabled")}</Text>
             <Text style={styles.settingHint}>
-              Đọc phụ đề thành tiếng, ẩn chữ
+              {t("settings.tts.enabledHint")}
             </Text>
           </View>
         </View>
@@ -91,9 +93,11 @@ const TTSSection: React.FC<TTSSectionProps> = ({
                 color={ttsSettings.autoRate ? COLORS.success : COLORS.textMuted}
               />
               <View>
-                <Text style={styles.settingLabel}>Tự động tốc độ</Text>
+                <Text style={styles.settingLabel}>
+                  {t("settings.tts.autoRate")}
+                </Text>
                 <Text style={styles.settingHint}>
-                  Điều chỉnh tốc độ theo thời gian phụ đề
+                  {t("settings.tts.autoRateHint")}
                 </Text>
               </View>
             </View>
@@ -107,12 +111,14 @@ const TTSSection: React.FC<TTSSectionProps> = ({
 
           <View style={styles.settingGroup}>
             <Text style={styles.settingLabel}>
-              Tốc độ cơ bản: {ttsSettings.rate.toFixed(1)}x
+              {t("settings.tts.baseRate", {
+                rate: ttsSettings.rate.toFixed(1),
+              })}
             </Text>
             <Text style={styles.settingHint}>
               {ttsSettings.autoRate
-                ? "Tốc độ tối thiểu, sẽ tăng nếu cần"
-                : "Tốc độ cố định"}
+                ? t("settings.tts.baseRateHintAuto")
+                : t("settings.tts.baseRateHintFixed")}
             </Text>
             <Slider
               style={styles.slider}
@@ -129,7 +135,7 @@ const TTSSection: React.FC<TTSSectionProps> = ({
 
           <View style={styles.settingGroup}>
             <Text style={styles.settingLabel}>
-              Cao độ giọng: {ttsSettings.pitch.toFixed(1)}
+              {t("settings.tts.pitch", { pitch: ttsSettings.pitch.toFixed(1) })}
             </Text>
             <Slider
               style={styles.slider}
@@ -154,9 +160,11 @@ const TTSSection: React.FC<TTSSectionProps> = ({
                 }
               />
               <View>
-                <Text style={styles.settingLabel}>Giảm âm video</Text>
+                <Text style={styles.settingLabel}>
+                  {t("settings.tts.duckVideo")}
+                </Text>
                 <Text style={styles.settingHint}>
-                  Giảm âm lượng video khi đang đọc
+                  {t("settings.tts.duckVideoHint")}
                 </Text>
               </View>
             </View>
@@ -171,8 +179,9 @@ const TTSSection: React.FC<TTSSectionProps> = ({
           {ttsSettings.duckVideo && (
             <View style={styles.settingGroup}>
               <Text style={styles.settingLabel}>
-                Âm lượng video khi đọc:{" "}
-                {Math.round((ttsSettings.duckLevel ?? 0.2) * 100)}%
+                {t("settings.tts.duckLevel", {
+                  level: Math.round((ttsSettings.duckLevel ?? 0.2) * 100),
+                })}
               </Text>
               <Slider
                 style={styles.slider}

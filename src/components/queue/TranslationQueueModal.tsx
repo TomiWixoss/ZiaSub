@@ -13,6 +13,7 @@ import { confirm, confirmDestructive } from "../common/CustomAlert";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTranslation } from "react-i18next";
 import { COLORS } from "@constants/colors";
 import type { GeminiConfig, QueueItem, QueueStatus } from "@src/types";
 import { queueManager } from "@services/queueManager";
@@ -43,6 +44,7 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
   onClose,
   onSelectVideo,
 }) => {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   const isPortrait = height > width;
@@ -169,25 +171,27 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
 
   const handleStartTranslation = (item: QueueItem) => {
     confirm(
-      "Dịch video này",
-      `Bắt đầu dịch "${item.title}"?`,
+      t("queue.dialogs.translateOne"),
+      t("queue.dialogs.translateOneConfirm", { title: item.title }),
       () => queueManager.startTranslation(item.id),
-      "Dịch"
+      t("queue.dialogs.translate")
     );
   };
 
   const handleStartAll = () => {
     confirm(
-      "Dịch tất cả",
-      "Dịch tự động tất cả video trong danh sách?",
+      t("queue.dialogs.translateAllTitle"),
+      t("queue.dialogs.translateAllConfirm"),
       () => queueManager.startAutoProcess(),
-      "Bắt đầu"
+      t("common.start")
     );
   };
 
   const handleRemove = (item: QueueItem) => {
-    confirmDestructive("Xóa video", `Bỏ "${item.title}" khỏi danh sách?`, () =>
-      queueManager.removeFromQueue(item.id)
+    confirmDestructive(
+      t("queue.dialogs.removeTitle"),
+      t("queue.dialogs.removeConfirm", { title: item.title }),
+      () => queueManager.removeFromQueue(item.id)
     );
   };
 
@@ -197,16 +201,16 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
 
   const handleClearPending = () => {
     confirmDestructive(
-      "Xóa tất cả",
-      "Bỏ hết video chưa dịch khỏi danh sách?",
+      t("queue.dialogs.clearPendingTitle"),
+      t("queue.dialogs.clearPendingConfirm"),
       () => queueManager.clearPending()
     );
   };
 
   const handleClearCompleted = () => {
     confirmDestructive(
-      "Xóa tất cả",
-      "Bỏ hết video đã dịch khỏi danh sách?",
+      t("queue.dialogs.clearCompletedTitle"),
+      t("queue.dialogs.clearCompletedConfirm"),
       () => queueManager.clearByStatus("completed")
     );
   };
@@ -250,7 +254,7 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
         >
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.headerTitle}>Danh sách chờ dịch</Text>
+            <Text style={styles.headerTitle}>{t("queue.title")}</Text>
             <TouchableOpacity style={styles.closeBtn} onPress={handleClose}>
               <MaterialCommunityIcons
                 name="close"
@@ -295,7 +299,9 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
                   size={20}
                   color={COLORS.error}
                 />
-                <Text style={queueStyles.clearAllText}>Xóa tất cả</Text>
+                <Text style={queueStyles.clearAllText}>
+                  {t("queue.actions.clearAll")}
+                </Text>
               </TouchableOpacity>
             </View>
           )}

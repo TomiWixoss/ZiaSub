@@ -2,6 +2,7 @@ import React from "react";
 import { View, TouchableOpacity } from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { COLORS } from "@constants/colors";
 import type { SavedTranslation } from "@src/types";
 import { translateStyles as styles } from "./translateStyles";
@@ -27,11 +28,14 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
   onSelect,
   onDelete,
 }) => {
+  const { t } = useTranslation();
   if (translations.length === 0) return null;
 
   return (
     <View style={styles.translationsSection}>
-      <Text style={styles.sectionTitle}>Đã dịch</Text>
+      <Text style={styles.sectionTitle}>
+        {t("subtitleModal.translate.savedTranslations")}
+      </Text>
       <View style={styles.translationsList}>
         {translations.map((t) => (
           <View

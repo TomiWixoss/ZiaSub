@@ -2,6 +2,7 @@ import React from "react";
 import { View, StyleSheet, TextInput, TouchableOpacity } from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { COLORS } from "@constants/colors";
 
 interface ChatInputProps {
@@ -33,6 +34,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
   onStop,
   disabled,
 }) => {
+  const { t } = useTranslation();
   return (
     <View style={styles.inputArea}>
       <View style={styles.inputBox}>
@@ -45,13 +47,15 @@ const ChatInput: React.FC<ChatInputProps> = ({
               color={COLORS.error}
             />
             <Text style={styles.attachmentText} numberOfLines={1}>
-              {videoTitle || "Video YouTube"}
+              {videoTitle || t("chat.video")}
             </Text>
             <TouchableOpacity
               style={styles.attachmentCancelBtn}
               onPress={onToggleVideo}
             >
-              <Text style={styles.attachmentCancelText}>Hủy</Text>
+              <Text style={styles.attachmentCancelText}>
+                {t("common.cancel")}
+              </Text>
             </TouchableOpacity>
           </View>
         )}
@@ -62,7 +66,9 @@ const ChatInput: React.FC<ChatInputProps> = ({
           value={inputText}
           onChangeText={onChangeText}
           placeholder={
-            disabled ? "Thêm API key trong Cài đặt để bắt đầu" : "Hỏi Zia"
+            disabled
+              ? t("chat.inputPlaceholderDisabled")
+              : t("chat.inputPlaceholder")
           }
           placeholderTextColor={COLORS.textMuted}
           multiline

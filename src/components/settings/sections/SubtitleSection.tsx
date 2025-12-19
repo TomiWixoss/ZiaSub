@@ -2,6 +2,7 @@ import React from "react";
 import { View, StyleSheet, Text as RNText } from "react-native";
 import { Text } from "react-native-paper";
 import Slider from "@react-native-community/slider";
+import { useTranslation } from "react-i18next";
 import Button3D from "../../common/Button3D";
 import { COLORS } from "@constants/colors";
 import type { SubtitleSettings } from "@src/types";
@@ -16,6 +17,7 @@ const SubtitleSection: React.FC<SubtitleSectionProps> = ({
   subtitleSettings,
   onSubtitleChange,
 }) => {
+  const { t } = useTranslation();
   const handleFontSizeChange = (value: number) => {
     const newSettings = { ...subtitleSettings, fontSize: Math.round(value) };
     onSubtitleChange(newSettings);
@@ -51,7 +53,7 @@ const SubtitleSection: React.FC<SubtitleSectionProps> = ({
 
   return (
     <>
-      <Text style={styles.sectionTitle}>Phụ đề</Text>
+      <Text style={styles.sectionTitle}>{t("settings.subtitle.title")}</Text>
 
       <View style={styles.previewContainer}>
         <RNText
@@ -65,13 +67,15 @@ const SubtitleSection: React.FC<SubtitleSectionProps> = ({
             },
           ]}
         >
-          Xem trước phụ đề
+          {t("settings.subtitle.preview")}
         </RNText>
       </View>
 
       <View style={styles.settingRow}>
         <Text style={styles.settingLabel}>
-          Cỡ chữ: {subtitleSettings.fontSize}px
+          {t("settings.subtitle.fontSizeValue", {
+            size: subtitleSettings.fontSize,
+          })}
         </Text>
         <Slider
           style={styles.slider}
@@ -89,7 +93,7 @@ const SubtitleSection: React.FC<SubtitleSectionProps> = ({
         <Button3D
           onPress={toggleBold}
           icon="format-bold"
-          title="Đậm"
+          title={t("settings.subtitle.bold")}
           variant="secondary"
           active={subtitleSettings.fontWeight === "bold"}
           style={styles.styleButton}
@@ -97,7 +101,7 @@ const SubtitleSection: React.FC<SubtitleSectionProps> = ({
         <Button3D
           onPress={toggleItalic}
           icon="format-italic"
-          title="Nghiêng"
+          title={t("settings.subtitle.italic")}
           variant="secondary"
           active={subtitleSettings.fontStyle === "italic"}
           style={styles.styleButton}
@@ -106,7 +110,9 @@ const SubtitleSection: React.FC<SubtitleSectionProps> = ({
 
       <View style={styles.settingGroup}>
         <Text style={styles.settingLabel}>
-          Vị trí (dọc): {subtitleSettings.portraitBottom ?? 100}px từ dưới
+          {t("settings.subtitle.positionPortrait", {
+            value: subtitleSettings.portraitBottom ?? 100,
+          })}
         </Text>
         <Slider
           style={styles.slider}
@@ -125,8 +131,9 @@ const SubtitleSection: React.FC<SubtitleSectionProps> = ({
 
       <View style={styles.settingGroup}>
         <Text style={styles.settingLabel}>
-          Vị trí (ngang/fullscreen): {subtitleSettings.landscapeBottom ?? 8}px
-          từ dưới
+          {t("settings.subtitle.positionLandscape", {
+            value: subtitleSettings.landscapeBottom ?? 8,
+          })}
         </Text>
         <Slider
           style={styles.slider}

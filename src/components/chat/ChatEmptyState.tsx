@@ -2,6 +2,7 @@ import React from "react";
 import { View, StyleSheet } from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { COLORS } from "@constants/colors";
 import QuickActions from "./QuickActions";
 
@@ -18,10 +19,12 @@ const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
   isLoading,
   onQuickAction,
 }) => {
+  const { t } = useTranslation();
+
   return (
     <View style={styles.container}>
-      <Text style={styles.greeting}>Xin chào!</Text>
-      <Text style={styles.greetingSubtitle}>Tôi có thể giúp gì cho bạn?</Text>
+      <Text style={styles.greeting}>{t("chat.greeting")}</Text>
+      <Text style={styles.greetingSubtitle}>{t("chat.greetingSubtitle")}</Text>
 
       {!hasApiKey && (
         <View style={styles.warningContainer}>
@@ -30,9 +33,7 @@ const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
             size={20}
             color={COLORS.warning}
           />
-          <Text style={styles.warningText}>
-            Chưa có API key. Thêm trong Cài đặt nhé
-          </Text>
+          <Text style={styles.warningText}>{t("chat.noApiKey")}</Text>
         </View>
       )}
 

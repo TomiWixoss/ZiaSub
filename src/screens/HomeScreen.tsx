@@ -11,6 +11,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { WebViewMessageEvent, WebViewNavigation } from "react-native-webview";
+import { useTranslation } from "react-i18next";
 
 import { COLORS } from "@constants/colors";
 import { hasTranslation } from "@utils/storage";
@@ -30,6 +31,7 @@ import { TranslationQueueModal } from "@components/queue";
 import { ChatModal } from "@components/chat";
 
 const HomeScreen = () => {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
 
   // Modal states
@@ -181,7 +183,7 @@ const HomeScreen = () => {
 
     const alreadyTranslated = await hasTranslation(videoUrl);
     if (alreadyTranslated) {
-      alert("Thông báo", "Video này đã có bản dịch rồi.");
+      alert(t("common.notice"), t("queue.alreadyTranslated"));
       return;
     }
 
@@ -190,18 +192,25 @@ const HomeScreen = () => {
     if (result.isExisting) {
       const statusText =
         result.item.status === "translating"
-          ? "Video này đang được dịch."
-          : `Video này đã có trong danh sách chờ. Còn ${result.pendingCount} video đang chờ.`;
-      alert("Thông báo", statusText);
+          ? t("queue.currentlyTranslating")
+          : t("queue.alreadyInQueue", { count: result.pendingCount });
+      alert(t("common.notice"), statusText);
     } else {
       const pendingText =
         result.pendingCount > 1
-          ? `Còn ${result.pendingCount} video đang chờ dịch.`
-          : "Video sẽ được dịch ngay.";
-      showAlert("Đã thêm", `Đã thêm video vào danh sách. ${pendingText}`, [
-        { text: "OK" },
-        { text: "Xem danh sách", onPress: () => setQueueModalVisible(true) },
-      ]);
+          ? t("queue.pendingCount", { count: result.pendingCount })
+          : t("queue.willTranslateNow");
+      showAlert(
+        t("queue.addedToQueue"),
+        t("queue.addedMessage", { pendingText }),
+        [
+          { text: t("common.ok") },
+          {
+            text: t("queue.viewQueue"),
+            onPress: () => setQueueModalVisible(true),
+          },
+        ]
+      );
     }
   };
 
@@ -235,20 +244,20 @@ const HomeScreen = () => {
 
     if (fixCount > 0) {
       alert(
-        "Đã sửa lỗi phụ đề",
-        `Đã tự động sửa ${fixCount} lỗi trong phụ đề.`
+        t("subtitleModal.srt.fixedErrors"),
+        t("subtitleModal.srt.fixedErrorsMessage", { count: fixCount })
       );
     }
 
     setModalVisible(false);
-  }, [srtContent, currentUrl, applySrtContent]);
+  }, [srtContent, currentUrl, applySrtContent, t]);
 
   const handleAddToQueue = useCallback(async () => {
     if (!currentUrl) return;
 
     const alreadyTranslated = await hasTranslation(currentUrl);
     if (alreadyTranslated) {
-      alert("Thông báo", "Video này đã có bản dịch rồi.");
+      alert(t("common.notice"), t("queue.alreadyTranslated"));
       return;
     }
 
@@ -264,20 +273,27 @@ const HomeScreen = () => {
     if (result.isExisting) {
       const statusText =
         result.item.status === "translating"
-          ? "Video này đang được dịch."
-          : `Video này đã có trong danh sách chờ. Còn ${result.pendingCount} video đang chờ.`;
-      alert("Thông báo", statusText);
+          ? t("queue.currentlyTranslating")
+          : t("queue.alreadyInQueue", { count: result.pendingCount });
+      alert(t("common.notice"), statusText);
     } else {
       const pendingText =
         result.pendingCount > 1
-          ? `Còn ${result.pendingCount} video đang chờ dịch.`
-          : "Video sẽ được dịch ngay.";
-      showAlert("Đã thêm", `Đã thêm video vào danh sách. ${pendingText}`, [
-        { text: "OK" },
-        { text: "Xem danh sách", onPress: () => setQueueModalVisible(true) },
-      ]);
+          ? t("queue.pendingCount", { count: result.pendingCount })
+          : t("queue.willTranslateNow");
+      showAlert(
+        t("queue.addedToQueue"),
+        t("queue.addedMessage", { pendingText }),
+        [
+          { text: t("common.ok") },
+          {
+            text: t("queue.viewQueue"),
+            onPress: () => setQueueModalVisible(true),
+          },
+        ]
+      );
     }
-  }, [currentUrl, videoTitle, videoDuration, setCurrentVideoInQueue]);
+  }, [currentUrl, videoTitle, videoDuration, setCurrentVideoInQueue, t]);
 
   const handleSelectVideoFromQueue = useCallback(
     (videoUrl: string) => {

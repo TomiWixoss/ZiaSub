@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import Markdown from "react-native-markdown-display";
 import * as Clipboard from "expo-clipboard";
 import { COLORS } from "@constants/colors";
@@ -39,6 +40,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
   onRegenerate,
   onDelete,
 }) => {
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState(defaultExpanded);
   const [copied, setCopied] = useState(false);
   // 1 = expanded (chevron-up pointing up), 0 = collapsed (chevron-up rotated to point down)
@@ -153,7 +155,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
               <Text
                 style={[styles.actionText, copied && styles.actionTextSuccess]}
               >
-                {copied ? "Đã copy" : "Copy"}
+                {copied ? t("common.copied") : t("common.copy")}
               </Text>
             </TouchableOpacity>
 
@@ -166,15 +168,15 @@ const TaskCard: React.FC<TaskCardProps> = ({
                 size={16}
                 color={COLORS.textMuted}
               />
-              <Text style={styles.actionText}>Tạo lại</Text>
+              <Text style={styles.actionText}>{t("common.regenerate")}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.actionBtn}
               onPress={() => {
                 confirmDestructive(
-                  "Xóa task",
-                  "Bạn có chắc muốn xóa task này?",
+                  t("chat.deleteTask"),
+                  t("chat.deleteTaskConfirm"),
                   () => onDelete?.(task.id)
                 );
               }}
@@ -185,7 +187,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
                 color={COLORS.error}
               />
               <Text style={[styles.actionText, styles.actionTextDelete]}>
-                Xóa
+                {t("common.delete")}
               </Text>
             </TouchableOpacity>
           </View>
@@ -195,7 +197,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
       {task.status === "pending" && !task.result && (
         <View style={styles.taskLoading}>
           <ActivityIndicator size="small" color={COLORS.primary} />
-          <Text style={styles.loadingText}>Đang xử lý...</Text>
+          <Text style={styles.loadingText}>{t("common.processing")}</Text>
         </View>
       )}
     </View>

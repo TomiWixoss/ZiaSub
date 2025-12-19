@@ -2,6 +2,7 @@ import React from "react";
 import { View, TouchableOpacity, Image } from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { COLORS } from "@constants/colors";
 import type { QueueItem } from "@src/types";
 import { queueStyles as styles } from "./queueStyles";
@@ -39,6 +40,7 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
   onRequeue,
   onRemove,
 }) => {
+  const { t } = useTranslation();
   return (
     <TouchableOpacity style={styles.queueItem} onPress={() => onSelect(item)}>
       <Image source={{ uri: item.thumbnail }} style={styles.thumbnail} />
@@ -68,17 +70,19 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
         <View style={styles.itemFooter}>
           {item.status === "pending" && (
             <Text style={styles.dateText}>
-              Đã thêm: {formatDate(item.addedAt)}
+              {t("queue.status.added", { date: formatDate(item.addedAt) })}
             </Text>
           )}
           {item.status === "translating" && (
             <Text style={[styles.dateText, { color: COLORS.primary }]}>
-              Đang dịch...
+              {t("queue.status.translating")}
             </Text>
           )}
           {item.status === "completed" && (
             <Text style={[styles.dateText, { color: COLORS.success }]}>
-              Dịch xong: {formatDate(item.completedAt)}
+              {t("queue.status.completed", {
+                date: formatDate(item.completedAt),
+              })}
             </Text>
           )}
           {item.status === "error" && (
@@ -86,7 +90,7 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
               style={[styles.dateText, { color: COLORS.error }]}
               numberOfLines={1}
             >
-              Gặp lỗi: {item.error}
+              {t("queue.status.error", { error: item.error })}
             </Text>
           )}
         </View>
