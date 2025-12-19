@@ -8,10 +8,10 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  Modal,
 } from "react-native";
 import { Text } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Markdown from "react-native-markdown-display";
 import { COLORS } from "@constants/colors";
@@ -28,12 +28,17 @@ import {
 import { ChatMessage, sendChatMessage } from "@services/chatService";
 import ConfigSelector from "@components/chat/ConfigSelector";
 
-interface ChatScreenProps {
-  onBack: () => void;
+interface ChatModalProps {
+  visible: boolean;
+  onClose: () => void;
   videoUrl?: string;
 }
 
-const ChatScreen: React.FC<ChatScreenProps> = ({ onBack, videoUrl }) => {
+const ChatModal: React.FC<ChatModalProps> = ({
+  visible,
+  onClose,
+  videoUrl,
+}) => {
   const insets = useSafeAreaInsets();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState("");
@@ -46,10 +51,11 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ onBack, videoUrl }) => {
   const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
-    loadData();
-  }, []);
+    if (visible) {
+      loadData();
+    }
+  }, [visible]);
 
-  // Save chat history when messages change
   useEffect(() => {
     if (messages.length > 0 && activeConfig) {
       saveChatHistory({
@@ -69,7 +75,6 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ onBack, videoUrl }) => {
     setConfigs(allConfigs);
     setActiveConfig(active);
 
-    // Restore chat history
     if (history.messages.length > 0) {
       setMessages(history.messages);
       setAttachedVideoUrl(history.videoUrl);
@@ -96,7 +101,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ onBack, videoUrl }) => {
       role: "user",
       content: inputText.trim(),
       timestamp: Date.now(),
-      hasVideo: attachedVideoUrl !== null && messages.length === 0, // Video chỉ attach vào tin đầu tiên
+      hasVideo: attachedVideoUrl !== null && messages.length === 0,
     };
 
     const newMessages = [...messages, userMessage];
@@ -106,7 +111,6 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ onBack, videoUrl }) => {
     setStreamingText("");
     scrollToBottom();
 
-    // Clear attached video sau khi gửi tin đầu tiên
     const currentVideoUrl = attachedVideoUrl;
     if (userMessage.hasVideo) {
       setAttachedVideoUrl(null);
@@ -208,19 +212,19 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ onBack, videoUrl }) => {
   const canAttachVideo = videoUrl && messages.length === 0 && !attachedVideoUrl;
 
   return (
-    <View style={[styles.container, { paddingBottom: insets.bottom }]}>
-      {/* Header */}
-      <LinearGradient
-        colors={["#1E1E3A", "#141428"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={[styles.headerGradient, { paddingTop: insets.top }]}
+    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
+      <View
+        style={[
+          styles.container,
+          { paddingTop: insets.top, paddingBottom: insets.bottom },
+        ]}
       >
+        {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity style={styles.headerBtn} onPress={onBack}>
+          <TouchableOpacity style={styles.headerBtn} onPress={onClose}>
             <MaterialCommunityIcons
-              name="arrow-left"
-              size={20}
+              name="close"
+              size={22}
               color={COLORS.text}
             />
           </TouchableOpacity>
@@ -252,111 +256,110 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ onBack, videoUrl }) => {
             />
           </TouchableOpacity>
         </View>
-      </LinearGradient>
 
-      {/* Attached Video Banner */}
-      {attachedVideoUrl && messages.length === 0 && (
-        <View style={styles.attachedBanner}>
-          <MaterialCommunityIcons
-            name="youtube"
-            size={18}
-            color={COLORS.error}
-          />
-          <Text style={styles.attachedText} numberOfLines={1}>
-            Video sẽ được đính kèm
-          </Text>
-          <TouchableOpacity onPress={handleRemoveVideo}>
+        {/* Attached Video Banner */}
+        {attachedVideoUrl && messages.length === 0 && (
+          <View style={styles.attachedBanner}>
             <MaterialCommunityIcons
-              name="close"
+              name="youtube"
               size={18}
-              color={COLORS.textMuted}
+              color={COLORS.error}
             />
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {/* Messages */}
-      <FlatList
-        ref={flatListRef}
-        data={messages}
-        renderItem={renderMessage}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.messageList}
-        ListFooterComponent={renderStreamingMessage}
-        onContentSizeChange={scrollToBottom}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <MaterialCommunityIcons
-              name="robot-happy"
-              size={48}
-              color={COLORS.textMuted}
-            />
-            <Text style={styles.emptyText}>Bắt đầu cuộc trò chuyện</Text>
-            {videoUrl && !attachedVideoUrl && (
-              <Text style={styles.emptyHint}>
-                Nhấn nút YouTube để đính kèm video hiện tại
-              </Text>
-            )}
-          </View>
-        }
-      />
-
-      {/* Input */}
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
-        <View style={styles.inputContainer}>
-          {canAttachVideo && (
-            <TouchableOpacity
-              style={styles.videoButton}
-              onPress={handleAttachVideo}
-            >
+            <Text style={styles.attachedText} numberOfLines={1}>
+              Video sẽ được đính kèm
+            </Text>
+            <TouchableOpacity onPress={handleRemoveVideo}>
               <MaterialCommunityIcons
-                name="youtube"
-                size={22}
-                color={COLORS.error}
+                name="close"
+                size={18}
+                color={COLORS.textMuted}
               />
             </TouchableOpacity>
-          )}
-          <TextInput
-            style={styles.input}
-            value={inputText}
-            onChangeText={setInputText}
-            placeholder="Nhập tin nhắn..."
-            placeholderTextColor={COLORS.textMuted}
-            multiline
-            maxLength={4000}
-          />
-          <TouchableOpacity
-            style={[
-              styles.sendButton,
-              (!inputText.trim() || isLoading) && styles.sendButtonDisabled,
-            ]}
-            onPress={handleSend}
-            disabled={!inputText.trim() || isLoading}
-          >
-            {isLoading ? (
-              <ActivityIndicator size="small" color={COLORS.text} />
-            ) : (
-              <MaterialCommunityIcons
-                name="send"
-                size={20}
-                color={COLORS.text}
-              />
-            )}
-          </TouchableOpacity>
-        </View>
-      </KeyboardAvoidingView>
+          </View>
+        )}
 
-      {/* Config Selector Modal */}
-      <ConfigSelector
-        visible={showConfigSelector}
-        configs={configs}
-        activeConfig={activeConfig}
-        onSelect={handleSelectConfig}
-        onClose={() => setShowConfigSelector(false)}
-      />
-    </View>
+        {/* Messages */}
+        <FlatList
+          ref={flatListRef}
+          data={messages}
+          renderItem={renderMessage}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.messageList}
+          ListFooterComponent={renderStreamingMessage}
+          onContentSizeChange={scrollToBottom}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <MaterialCommunityIcons
+                name="robot-happy"
+                size={48}
+                color={COLORS.textMuted}
+              />
+              <Text style={styles.emptyText}>Bắt đầu cuộc trò chuyện</Text>
+              {videoUrl && !attachedVideoUrl && (
+                <Text style={styles.emptyHint}>
+                  Nhấn nút YouTube để đính kèm video hiện tại
+                </Text>
+              )}
+            </View>
+          }
+        />
+
+        {/* Input */}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+        >
+          <View style={styles.inputContainer}>
+            {canAttachVideo && (
+              <TouchableOpacity
+                style={styles.videoButton}
+                onPress={handleAttachVideo}
+              >
+                <MaterialCommunityIcons
+                  name="youtube"
+                  size={22}
+                  color={COLORS.error}
+                />
+              </TouchableOpacity>
+            )}
+            <TextInput
+              style={styles.input}
+              value={inputText}
+              onChangeText={setInputText}
+              placeholder="Nhập tin nhắn..."
+              placeholderTextColor={COLORS.textMuted}
+              multiline
+              maxLength={4000}
+            />
+            <TouchableOpacity
+              style={[
+                styles.sendButton,
+                (!inputText.trim() || isLoading) && styles.sendButtonDisabled,
+              ]}
+              onPress={handleSend}
+              disabled={!inputText.trim() || isLoading}
+            >
+              {isLoading ? (
+                <ActivityIndicator size="small" color={COLORS.text} />
+              ) : (
+                <MaterialCommunityIcons
+                  name="send"
+                  size={20}
+                  color={COLORS.text}
+                />
+              )}
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+
+        <ConfigSelector
+          visible={showConfigSelector}
+          configs={configs}
+          activeConfig={activeConfig}
+          onSelect={handleSelectConfig}
+          onClose={() => setShowConfigSelector(false)}
+        />
+      </View>
+    </Modal>
   );
 };
 
@@ -365,20 +368,19 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
-  headerGradient: {
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(155,126,217,0.3)",
-  },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 8,
-    height: 44,
+    height: 50,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+    backgroundColor: COLORS.surface,
   },
   headerBtn: {
-    width: 36,
-    height: 36,
+    width: 40,
+    height: 40,
     borderRadius: 8,
     justifyContent: "center",
     alignItems: "center",
@@ -518,11 +520,7 @@ const styles = StyleSheet.create({
 });
 
 const markdownStyles = {
-  body: {
-    color: COLORS.text,
-    fontSize: 15,
-    lineHeight: 22,
-  },
+  body: { color: COLORS.text, fontSize: 15, lineHeight: 22 },
   heading1: {
     color: COLORS.text,
     fontSize: 22,
@@ -541,13 +539,8 @@ const markdownStyles = {
     fontWeight: "600" as const,
     marginVertical: 4,
   },
-  paragraph: {
-    color: COLORS.text,
-    marginVertical: 4,
-  },
-  link: {
-    color: COLORS.accent,
-  },
+  paragraph: { color: COLORS.text, marginVertical: 4 },
+  link: { color: COLORS.accent },
   blockquote: {
     backgroundColor: COLORS.surfaceLight,
     borderLeftColor: COLORS.primary,
@@ -580,46 +573,12 @@ const markdownStyles = {
     fontSize: 13,
     color: COLORS.text,
   },
-  list_item: {
-    color: COLORS.text,
-    marginVertical: 2,
-  },
-  bullet_list: {
-    marginVertical: 4,
-  },
-  ordered_list: {
-    marginVertical: 4,
-  },
-  strong: {
-    color: COLORS.text,
-    fontWeight: "bold" as const,
-  },
-  em: {
-    color: COLORS.text,
-    fontStyle: "italic" as const,
-  },
-  hr: {
-    backgroundColor: COLORS.border,
-    height: 1,
-    marginVertical: 12,
-  },
-  table: {
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 8,
-    marginVertical: 8,
-  },
-  th: {
-    backgroundColor: COLORS.surfaceLight,
-    padding: 8,
-    borderBottomWidth: 1,
-    borderColor: COLORS.border,
-  },
-  td: {
-    padding: 8,
-    borderBottomWidth: 1,
-    borderColor: COLORS.border,
-  },
+  list_item: { color: COLORS.text, marginVertical: 2 },
+  bullet_list: { marginVertical: 4 },
+  ordered_list: { marginVertical: 4 },
+  strong: { color: COLORS.text, fontWeight: "bold" as const },
+  em: { color: COLORS.text, fontStyle: "italic" as const },
+  hr: { backgroundColor: COLORS.border, height: 1, marginVertical: 12 },
 };
 
-export default ChatScreen;
+export default ChatModal;

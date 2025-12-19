@@ -48,6 +48,7 @@ import SubtitleInputModal from "@components/SubtitleInputModal";
 import SettingsModal from "@components/SettingsModal";
 import FloatingButton from "@components/FloatingButton";
 import TranslationQueueModal from "@components/TranslationQueueModal";
+import ChatModal from "@components/ChatModal";
 
 import { COLORS } from "@constants/colors";
 
@@ -84,6 +85,7 @@ const HomeScreen = () => {
     QueueItem | undefined
   >();
   const [videoTitle, setVideoTitle] = useState<string>("");
+  const [chatModalVisible, setChatModalVisible] = useState(false);
 
   const webViewRef = useRef<WebView>(null);
   const currentUrlRef = useRef<string>("");
@@ -618,7 +620,7 @@ const HomeScreen = () => {
         onPress={() => setModalVisible(true)}
         onSettingsPress={() => setSettingsVisible(true)}
         onQueuePress={() => setQueueModalVisible(true)}
-        onChatPress={() => {}}
+        onChatPress={() => setChatModalVisible(true)}
         onAddToQueuePress={currentUrl ? handleAddToQueue : undefined}
         hasSubtitles={subtitles.length > 0}
         isTranslating={isTranslating}
@@ -660,6 +662,12 @@ const HomeScreen = () => {
         visible={queueModalVisible}
         onClose={() => setQueueModalVisible(false)}
         onSelectVideo={handleSelectVideoFromQueue}
+      />
+
+      <ChatModal
+        visible={chatModalVisible}
+        onClose={() => setChatModalVisible(false)}
+        videoUrl={currentUrl}
       />
     </View>
   );

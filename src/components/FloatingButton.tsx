@@ -202,8 +202,8 @@ const FloatingButton: React.FC<FloatingButtonProps> = ({
 
   return (
     <>
-      {/* Left side: Settings, Queue & Chat - always visible */}
-      <View style={[styles.fabContainerLeft, { bottom: bottomPosition }]}>
+      {/* Bottom row: Settings (left), Queue + Add (center-left) */}
+      <View style={[styles.fabRowBottom, { bottom: bottomPosition }]}>
         <Fab3D onPress={onSettingsPress} icon="cog" size={40} iconSize={20} />
         <View style={styles.queueBtnWrapper}>
           <Fab3D
@@ -220,27 +220,27 @@ const FloatingButton: React.FC<FloatingButtonProps> = ({
             </View>
           )}
         </View>
+        {isVideoPage && onAddToQueuePress && (
+          <Fab3D
+            onPress={onAddToQueuePress}
+            icon={isInQueue ? "playlist-check" : "playlist-plus"}
+            size={40}
+            iconSize={20}
+            active={isInQueue}
+          />
+        )}
+      </View>
+
+      {/* Right side column: Chat on top, Subtitle below */}
+      <View style={[styles.fabColumnRight, { bottom: bottomPosition }]}>
         <Fab3D
           onPress={onChatPress}
           icon="robot-outline"
           size={40}
           iconSize={20}
         />
-      </View>
-
-      {/* Right side: Add to queue & Subtitle/Translate - only on video page */}
-      {isVideoPage && (
-        <View style={styles.fabContainerRight}>
-          {onAddToQueuePress && (
-            <Fab3D
-              onPress={onAddToQueuePress}
-              icon={isInQueue ? "playlist-check" : "playlist-plus"}
-              size={40}
-              iconSize={20}
-              active={isInQueue}
-            />
-          )}
-          {isTranslating ? (
+        {isVideoPage &&
+          (isTranslating ? (
             <TranslatingFab onPress={onPress} progress={translationProgress} />
           ) : (
             <Fab3D
@@ -250,23 +250,23 @@ const FloatingButton: React.FC<FloatingButtonProps> = ({
               iconSize={26}
               active={hasSubtitles}
             />
-          )}
-        </View>
-      )}
+          ))}
+      </View>
     </>
   );
 };
 
 const styles = StyleSheet.create({
-  fabContainerLeft: {
+  fabRowBottom: {
     position: "absolute",
     bottom: 20,
     left: 16,
-    alignItems: "center",
+    flexDirection: "row",
+    alignItems: "flex-end",
     gap: 10,
     zIndex: 20,
   },
-  fabContainerRight: {
+  fabColumnRight: {
     position: "absolute",
     bottom: 20,
     right: 16,
