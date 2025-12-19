@@ -103,12 +103,7 @@ const FloatingButton: React.FC<FloatingButtonProps> = ({
 
   return (
     <View style={styles.fabContainer}>
-      <Fab3D
-        onPress={onSettingsPress}
-        icon="format-size"
-        size={40}
-        iconSize={20}
-      />
+      <Fab3D onPress={onSettingsPress} icon="cog" size={40} iconSize={20} />
       <Fab3D
         onPress={onPress}
         icon={hasSubtitles ? "subtitles" : "subtitles-outline"}

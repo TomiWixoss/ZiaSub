@@ -29,16 +29,14 @@ import {
 } from "@utils/storage";
 import YouTubePlayer from "@components/YouTubePlayer";
 import SubtitleInputModal from "@components/SubtitleInputModal";
-import SubtitleSettingsModal from "@components/SubtitleSettingsModal";
-import GeminiSettingsModal from "@components/GeminiSettingsModal";
+import SettingsModal from "@components/SettingsModal";
 import FloatingButton from "@components/FloatingButton";
 
 import { COLORS } from "@constants/colors";
 
 const HomeScreen = () => {
   const [modalVisible, setModalVisible] = useState(false);
-  const [settingsModalVisible, setSettingsModalVisible] = useState(false);
-  const [geminiSettingsVisible, setGeminiSettingsVisible] = useState(false);
+  const [settingsVisible, setSettingsVisible] = useState(false);
   const [srtContent, setSrtContent] = useState("");
   const [subtitles, setSubtitles] = useState<SubtitleItem[]>([]);
   const [currentSubtitle, setCurrentSubtitle] = useState("");
@@ -53,7 +51,6 @@ const HomeScreen = () => {
   const webViewRef = useRef<WebView>(null);
   const insets = useSafeAreaInsets();
 
-  // Load subtitle settings on mount
   useEffect(() => {
     const loadSettings = async () => {
       const settings = await getSubtitleSettings();
@@ -62,10 +59,8 @@ const HomeScreen = () => {
     loadSettings();
   }, []);
 
-  // Apply subtitle style when video starts playing
   useEffect(() => {
     if (isVideoPlaying && webViewRef.current) {
-      // Small delay to ensure WebView is ready
       const timer = setTimeout(() => {
         webViewRef.current?.postMessage(
           JSON.stringify({
@@ -80,18 +75,13 @@ const HomeScreen = () => {
 
   useEffect(() => {
     const loadSavedSRT = async () => {
-      // Reset subtitles when URL changes
       setSrtContent("");
       setSubtitles([]);
       setCurrentSubtitle("");
 
-      // Clear subtitle on WebView
       if (webViewRef.current) {
         webViewRef.current.postMessage(
-          JSON.stringify({
-            type: "setSubtitle",
-            payload: "",
-          })
+          JSON.stringify({ type: "setSubtitle", payload: "" })
         );
       }
 
@@ -100,7 +90,6 @@ const HomeScreen = () => {
       const savedSRT = await getSRT(currentUrl);
       if (savedSRT) {
         setSrtContent(savedSRT);
-        // Auto parse saved SRT
         const { fixedData } = fixSRT(savedSRT);
         const parsed = parseSRT(fixedData);
         setSubtitles(parsed);
@@ -134,14 +123,12 @@ const HomeScreen = () => {
         setCurrentUrl(navState.url);
       }
     } else {
-      // If we are not watching a video, clear the current URL
       if (currentUrl !== "") {
         setCurrentUrl("");
       }
     }
   };
 
-  // Handle Fullscreen
   const onFullScreenOpen = async () => {
     setIsFullscreen(true);
     await ScreenOrientation.lockAsync(
@@ -162,23 +149,17 @@ const HomeScreen = () => {
     }
   };
 
-  // Apply subtitle style to WebView
   const applySubtitleStyle = (settings: SubtitleSettings) => {
     if (webViewRef.current) {
       webViewRef.current.postMessage(
-        JSON.stringify({
-          type: "setSubtitleStyle",
-          payload: settings,
-        })
+        JSON.stringify({ type: "setSubtitleStyle", payload: settings })
       );
     }
   };
 
-  // Handle settings change
-  const handleSettingsChange = async (newSettings: SubtitleSettings) => {
+  const handleSubtitleSettingsChange = (newSettings: SubtitleSettings) => {
     setSubtitleSettings(newSettings);
     applySubtitleStyle(newSettings);
-    await saveSubtitleSettings(newSettings);
   };
 
   const findSubtitle = (seconds: number) => {
@@ -191,32 +172,26 @@ const HomeScreen = () => {
       setCurrentSubtitle(text);
       if (webViewRef.current) {
         webViewRef.current.postMessage(
-          JSON.stringify({
-            type: "setSubtitle",
-            payload: text,
-          })
+          JSON.stringify({ type: "setSubtitle", payload: text })
         );
       }
     }
   };
 
   const handleLoadSubtitles = async () => {
-    // 1. Auto-fix format and get stats
     const { fixedData, fixCount } = fixSRT(srtContent);
 
     if (fixCount > 0) {
       Alert.alert(
         "Đã sửa lỗi SRT",
-        `Đã tự động khắc phục ${fixCount} lỗi định dạng thời gian để hiển thị đúng.`
+        `Đã tự động khắc phục ${fixCount} lỗi định dạng.`
       );
     }
 
-    // 2. Parse the fixed content
     const parsed = parseSRT(fixedData);
     setSubtitles(parsed);
     setModalVisible(false);
 
-    // 3. Save or remove from storage
     if (currentUrl) {
       if (fixedData) {
         await saveSRT(currentUrl, fixedData);
@@ -277,7 +252,7 @@ const HomeScreen = () => {
       <FloatingButton
         visible={isVideoPlaying}
         onPress={() => setModalVisible(true)}
-        onSettingsPress={() => setSettingsModalVisible(true)}
+        onSettingsPress={() => setSettingsVisible(true)}
         hasSubtitles={subtitles.length > 0}
       />
 
@@ -287,22 +262,14 @@ const HomeScreen = () => {
         srtContent={srtContent}
         setSrtContent={setSrtContent}
         onLoadSubtitles={handleLoadSubtitles}
-        onOpenGeminiSettings={() => {
-          setModalVisible(false);
-          setTimeout(() => setGeminiSettingsVisible(true), 300);
-        }}
+        videoUrl={currentUrl}
       />
 
-      <SubtitleSettingsModal
-        visible={settingsModalVisible}
-        onClose={() => setSettingsModalVisible(false)}
-        settings={subtitleSettings}
-        onSettingsChange={handleSettingsChange}
-      />
-
-      <GeminiSettingsModal
-        visible={geminiSettingsVisible}
-        onClose={() => setGeminiSettingsVisible(false)}
+      <SettingsModal
+        visible={settingsVisible}
+        onClose={() => setSettingsVisible(false)}
+        subtitleSettings={subtitleSettings}
+        onSubtitleSettingsChange={handleSubtitleSettingsChange}
       />
     </View>
   );

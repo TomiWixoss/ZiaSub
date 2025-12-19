@@ -2,7 +2,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const SRT_STORAGE_KEY_PREFIX = "srt_";
 const SUBTITLE_SETTINGS_KEY = "subtitle_settings";
-const GEMINI_CONFIG_KEY = "gemini_config";
+const GEMINI_CONFIGS_KEY = "gemini_configs";
+const ACTIVE_GEMINI_CONFIG_KEY = "active_gemini_config";
 
 export interface SubtitleSettings {
   fontSize: number;
@@ -70,48 +71,96 @@ export const removeSRT = async (url: string): Promise<void> => {
   }
 };
 
-// Gemini Config
+// Gemini Config with multiple profiles
 export interface GeminiConfig {
+  id: string;
+  name: string;
   apiKey: string;
   model: string;
   temperature: number;
   systemPrompt: string;
 }
 
-export const DEFAULT_GEMINI_CONFIG: GeminiConfig = {
+export const DEFAULT_SYSTEM_PROMPT = `Act as an expert translator and subtitler specializing in Japanese RPGs and anime. You must process all Japanese content—both spoken dialogue and on-screen text—and create a Vietnamese SRT subtitle file that preserves the original Japanese honorifics.
+
+Critical Rules:
+1. Localize for Fans: Translate into natural Vietnamese suitable for anime fans.
+2. Honorifics and Pronouns Policy: Keep name suffixes (e.g., -chan, -sama); translate personal pronouns naturally.
+3. Non-Dialogue Formatting: Use parentheses ( ) for on-screen text and internal monologues.
+4. Line Limit: Each subtitle block must have a maximum of 2 lines.
+5. Strict SRT Output: Output ONLY raw SRT content, no commentary.`;
+
+export const createDefaultGeminiConfig = (): GeminiConfig => ({
+  id: Date.now().toString(),
+  name: "Mặc định",
   apiKey: "",
   model: "gemini-3-flash-preview",
   temperature: 0.7,
-  systemPrompt: `Act as an expert translator and subtitler specializing in Japanese RPGs and anime. Your task is to analyze this video clip from the "Princess Connect! Re: Dive" franchise (game cutscene or anime). You must process all Japanese content—both spoken dialogue and on-screen text—and create a Vietnamese SRT subtitle file that preserves the original Japanese honorifics.
+  systemPrompt: DEFAULT_SYSTEM_PROMPT,
+});
 
-Critical Rules:
-1. Localize for Fans: Translate into natural Vietnamese suitable for anime fans. Capture the original tone and character personalities (e.g., Pecorine's energy, Kyaru's "tsundere" style).
-2. Honorifics and Pronouns Policy: Keep name suffixes (e.g., -chan, -sama); MUST translate personal pronouns (e.g., watashi, boku) into natural Vietnamese.
-3. Non-Dialogue Formatting: Use parentheses \`( )\` to enclose translations of on-screen text (signs, letters) and internal monologues (thoughts).
-4. Dialogue Choice Formatting: For in-game dialogue choice boxes, format them as a list within a single subtitle block. Prefix each option with \`> \` (a greater-than sign followed by a space). Place each option on a new line. This specific format is an exception to the 2-line limit rule if there are more than two choices.
-5. Line Limit: Each subtitle block must have a maximum of 2 lines, unless it is a dialogue choice box as specified in Rule 4.
-6. Readability Pacing: For long or fast-paced sentences, split the dialogue intelligently across multiple, consecutive subtitle blocks to ensure it's easy to read.
-7. Conciseness: Keep each line concise and easy to grasp.
-8. Strict SRT Output: The final output must be ONLY the raw SRT content, perfectly formatted and synchronized. Do not add any commentary.`,
-};
-
-export const saveGeminiConfig = async (config: GeminiConfig): Promise<void> => {
+// Save all Gemini configs
+export const saveGeminiConfigs = async (
+  configs: GeminiConfig[]
+): Promise<void> => {
   try {
-    await AsyncStorage.setItem(GEMINI_CONFIG_KEY, JSON.stringify(config));
+    await AsyncStorage.setItem(GEMINI_CONFIGS_KEY, JSON.stringify(configs));
   } catch (error) {
-    console.error("Error saving Gemini config:", error);
+    console.error("Error saving Gemini configs:", error);
   }
 };
 
-export const getGeminiConfig = async (): Promise<GeminiConfig> => {
+// Get all Gemini configs
+export const getGeminiConfigs = async (): Promise<GeminiConfig[]> => {
   try {
-    const data = await AsyncStorage.getItem(GEMINI_CONFIG_KEY);
+    const data = await AsyncStorage.getItem(GEMINI_CONFIGS_KEY);
     if (data) {
-      return { ...DEFAULT_GEMINI_CONFIG, ...JSON.parse(data) };
+      return JSON.parse(data);
     }
-    return DEFAULT_GEMINI_CONFIG;
+    // Return default config if none exists
+    const defaultConfig = createDefaultGeminiConfig();
+    await saveGeminiConfigs([defaultConfig]);
+    return [defaultConfig];
   } catch (error) {
-    console.error("Error getting Gemini config:", error);
-    return DEFAULT_GEMINI_CONFIG;
+    console.error("Error getting Gemini configs:", error);
+    return [createDefaultGeminiConfig()];
+  }
+};
+
+// Save active config ID
+export const saveActiveGeminiConfigId = async (id: string): Promise<void> => {
+  try {
+    await AsyncStorage.setItem(ACTIVE_GEMINI_CONFIG_KEY, id);
+  } catch (error) {
+    console.error("Error saving active Gemini config:", error);
+  }
+};
+
+// Get active config ID
+export const getActiveGeminiConfigId = async (): Promise<string | null> => {
+  try {
+    return await AsyncStorage.getItem(ACTIVE_GEMINI_CONFIG_KEY);
+  } catch (error) {
+    console.error("Error getting active Gemini config:", error);
+    return null;
+  }
+};
+
+// Get active Gemini config
+export const getActiveGeminiConfig = async (): Promise<GeminiConfig | null> => {
+  try {
+    const configs = await getGeminiConfigs();
+    const activeId = await getActiveGeminiConfigId();
+
+    if (activeId) {
+      const config = configs.find((c) => c.id === activeId);
+      if (config) return config;
+    }
+
+    // Return first config if no active set
+    return configs[0] || null;
+  } catch (error) {
+    console.error("Error getting active Gemini config:", error);
+    return null;
   }
 };
