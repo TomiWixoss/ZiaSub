@@ -168,6 +168,22 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
     queueManager.moveToPending(item.id);
   };
 
+  const handleClearPending = () => {
+    confirmDestructive(
+      "Xóa tất cả",
+      "Xóa tất cả video chưa dịch khỏi danh sách?",
+      () => queueManager.clearPending()
+    );
+  };
+
+  const handleClearCompleted = () => {
+    confirmDestructive(
+      "Xóa tất cả",
+      "Xóa tất cả video đã dịch khỏi danh sách?",
+      () => queueManager.clearByStatus("completed")
+    );
+  };
+
   const handleSelectVideo = (item: QueueItem) => {
     onSelectVideo(item.videoUrl);
     handleClose();
@@ -491,12 +507,43 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
                 </View>
               )}
 
-              <Button3D
-                title="Dịch tự động tất cả"
-                icon="play-circle"
-                variant="primary"
-                onPress={handleStartAll}
-              />
+              <View style={styles.actionButtons}>
+                <View style={styles.actionButtonPrimary}>
+                  <Button3D
+                    title="Dịch tự động tất cả"
+                    icon="play-circle"
+                    variant="primary"
+                    onPress={handleStartAll}
+                  />
+                </View>
+                <TouchableOpacity
+                  style={styles.clearAllBtn}
+                  onPress={handleClearPending}
+                >
+                  <MaterialCommunityIcons
+                    name="delete-sweep"
+                    size={22}
+                    color={COLORS.error}
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+
+          {/* Clear All for Completed Tab */}
+          {activeTab === "completed" && counts.completed > 0 && (
+            <View style={styles.actionSection}>
+              <TouchableOpacity
+                style={styles.clearAllBtnFull}
+                onPress={handleClearCompleted}
+              >
+                <MaterialCommunityIcons
+                  name="delete-sweep"
+                  size={20}
+                  color={COLORS.error}
+                />
+                <Text style={styles.clearAllText}>Xóa tất cả</Text>
+              </TouchableOpacity>
             </View>
           )}
 
@@ -648,16 +695,40 @@ const styles = StyleSheet.create({
   configOptionActive: { backgroundColor: COLORS.surfaceElevated },
   configOptionText: { color: COLORS.text, fontSize: 13 },
   configOptionTextActive: { color: COLORS.primary, fontWeight: "600" },
-  startAllBtn: {
+  actionButtons: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  actionButtonPrimary: {
+    flex: 1,
+  },
+  clearAllBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  clearAllBtnFull: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: COLORS.primary,
-    paddingVertical: 12,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.error,
     borderRadius: 10,
+    paddingVertical: 10,
     gap: 8,
   },
-  startAllText: { color: COLORS.text, fontSize: 14, fontWeight: "600" },
+  clearAllText: {
+    color: COLORS.error,
+    fontSize: 14,
+    fontWeight: "500",
+  },
   list: { paddingHorizontal: 16 },
   emptyList: { flex: 1 },
   queueItem: {

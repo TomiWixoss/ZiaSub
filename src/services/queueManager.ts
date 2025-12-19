@@ -353,6 +353,22 @@ class QueueManager {
       });
     }
   }
+
+  // Clear all items by status
+  async clearByStatus(status: QueueStatus): Promise<void> {
+    this.items = this.items.filter((i) => i.status !== status);
+    await this.save();
+    this.notify();
+  }
+
+  // Clear pending and error items
+  async clearPending(): Promise<void> {
+    this.items = this.items.filter(
+      (i) => i.status !== "pending" && i.status !== "error"
+    );
+    await this.save();
+    this.notify();
+  }
 }
 
 export const queueManager = QueueManager.getInstance();

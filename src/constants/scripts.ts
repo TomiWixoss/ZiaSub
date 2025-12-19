@@ -154,101 +154,84 @@ export const INJECTED_JAVASCRIPT = `
       return 'Video YouTube';
     }
 
-    function addQueueButton(thumbnailContainer, videoId, videoUrl, title) {
+    function addQueueButton(container, videoId, videoUrl, title) {
       const isQueued = queuedVideoIds.has(videoId);
       const isTranslated = translatedVideoIds.has(videoId);
       
-      // Check if button already exists
-      const existingBtn = thumbnailContainer.querySelector('.ziasub-add-queue-btn');
-      if (existingBtn) {
-        // Update existing button state if needed
-        if (isTranslated) {
-          existingBtn.remove();
-          return;
-        }
-        return;
-      }
-      
-      // Don't show add button if already translated
       if (isTranslated) return;
+      if (container.querySelector('.ziasub-queue-btn')) return;
       
       const btn = document.createElement('div');
-      btn.className = 'ziasub-add-queue-btn';
+      btn.className = 'ziasub-queue-btn';
       btn.dataset.videoId = videoId;
-      btn.innerHTML = isQueued ? '✓' : '+';
-      btn.style.cssText = 'position:absolute;top:4px;right:4px;width:24px;height:24px;background:' + (isQueued ? 'linear-gradient(135deg,#4CAF50,#388E3C)' : 'linear-gradient(135deg,#9B7ED9,#7C5CBF)') + ';color:#fff;font-size:16px;font-weight:700;border-radius:6px;z-index:101;display:flex;justify-content:center;align-items:center;box-shadow:0 2px 4px rgba(0,0,0,0.3);cursor:pointer;user-select:none;';
+      btn.textContent = isQueued ? '✓' : '+';
+      btn.style.cssText = 'position:absolute !important;bottom:4px !important;left:4px !important;width:24px !important;height:24px !important;line-height:24px !important;text-align:center !important;font-size:16px !important;font-weight:bold !important;background:' + (isQueued ? 'rgba(76,175,80,0.9)' : 'rgba(0,0,0,0.7)') + ' !important;color:#fff !important;border-radius:6px !important;z-index:1 !important;cursor:pointer !important;font-family:sans-serif !important;';
       
       if (!isQueued) {
-        btn.addEventListener('click', (e) => {
+        btn.onclick = (e) => {
           e.preventDefault();
           e.stopPropagation();
-          // Send message to React Native to add to queue
+          e.stopImmediatePropagation();
           window.ReactNativeWebView.postMessage(JSON.stringify({
             type: 'addToQueue',
             payload: { videoId, videoUrl, title }
           }));
-          // Update button immediately
-          btn.innerHTML = '✓';
-          btn.style.background = 'linear-gradient(135deg,#4CAF50,#388E3C)';
+          btn.textContent = '✓';
+          btn.style.background = 'rgba(76,175,80,0.9) !important';
           queuedVideoIds.add(videoId);
-        }, { capture: true });
+          return false;
+        };
       }
       
-      thumbnailContainer.appendChild(btn);
+      container.appendChild(btn);
     }
 
     function markVideos() {
-      // Only show on list pages, not on watch/shorts pages
       const currentUrl = window.location.href;
       if (currentUrl.includes('/watch') || currentUrl.includes('/shorts/')) {
         return;
       }
       
-      // Find all video item renderers (new YouTube mobile structure)
-      const selectors = [
-        'ytm-rich-item-renderer',
-        'ytm-compact-video-renderer', 
-        'ytm-video-with-context-renderer',
-        'ytm-item-section-renderer a[href*="/watch"]',
-        'a.media-item-thumbnail-container'
-      ];
-      
-      const videoItems = document.querySelectorAll(selectors.join(','));
-      
-      videoItems.forEach(item => {
-        // Find the link with video ID
-        let link = item.tagName === 'A' ? item : item.querySelector('a[href*="/watch?v="], a[href*="/shorts/"]');
-        if (!link) return;
+      // Find all links that contain video thumbnails
+      document.querySelectorAll('a[href*="/watch?v="]').forEach(link => {
+        // Skip if already processed or no thumbnail inside
+        if (link.dataset.ziasubDone) return;
+        
+        // Check if this link contains a thumbnail image
+        const hasThumb = link.querySelector('img[src*="ytimg.com"], img[src*="i.ytimg"], ytm-thumbnail-cover, ytm-compact-thumbnail');
+        if (!hasThumb) return;
         
         const href = link.getAttribute('href') || '';
         const videoId = extractVideoId(href);
         if (!videoId) return;
         
-        const videoUrl = 'https://m.youtube.com' + href;
-        const title = getVideoTitle(item);
+        link.dataset.ziasubDone = '1';
         
-        // Find the thumbnail container
-        let thumbnailContainer = item.querySelector('ytm-compact-thumbnail, .YtmCompactMediaItemImage, a.media-item-thumbnail-container, ytm-thumbnail-cover');
-        if (!thumbnailContainer) {
-          thumbnailContainer = link;
+        const videoUrl = 'https://m.youtube.com/watch?v=' + videoId;
+        
+        // Get title from parent
+        let title = 'Video YouTube';
+        const parent = link.closest('ytm-rich-item-renderer, ytm-video-with-context-renderer, ytm-compact-video-renderer, ytm-video-card-renderer, ytm-playlist-video-renderer, ytm-media-item');
+        if (parent) {
+          const titleEl = parent.querySelector('h3, h4, .media-item-headline, .YtmCompactMediaItemHeadline');
+          if (titleEl) title = titleEl.textContent.trim() || title;
         }
         
-        // Make container relative for positioning
-        if (thumbnailContainer.style.position !== 'relative' && thumbnailContainer.style.position !== 'absolute') {
-          thumbnailContainer.style.position = 'relative';
-        }
+        // Make link relative for absolute positioning
+        link.style.position = 'relative';
+        link.style.display = 'block';
         
-        // Add translated badge if applicable
-        if (translatedVideoIds.has(videoId) && !thumbnailContainer.querySelector('.ziasub-translated-badge')) {
+        // Add translated badge
+        if (translatedVideoIds.has(videoId) && !link.querySelector('.ziasub-badge')) {
           const badge = document.createElement('div');
-          badge.className = 'ziasub-translated-badge';
+          badge.className = 'ziasub-badge';
           badge.textContent = 'Đã dịch';
-          badge.style.cssText = 'position:absolute;top:4px;left:4px;background:linear-gradient(135deg,#9B7ED9,#7C5CBF);color:#fff;font-size:10px;font-weight:600;padding:2px 6px;border-radius:4px;z-index:100;pointer-events:none;box-shadow:0 1px 3px rgba(0,0,0,0.3);';
-          thumbnailContainer.appendChild(badge);
+          badge.style.cssText = 'position:absolute;top:4px;left:4px;background:rgba(155,126,217,0.9);color:#fff;font-size:9px;font-weight:600;padding:2px 5px;border-radius:3px;z-index:10;pointer-events:none;';
+          link.appendChild(badge);
         }
         
         // Add queue button
-        addQueueButton(thumbnailContainer, videoId, videoUrl, title);
+        addQueueButton(link, videoId, videoUrl, title);
       });
     }
 
@@ -277,7 +260,28 @@ export const INJECTED_JAVASCRIPT = `
           markVideos();
         } else if (d.type === 'setQueuedVideos') {
           // Update queued video IDs
-          queuedVideoIds = new Set(d.payload || []);
+          const newQueuedIds = new Set(d.payload || []);
+          
+          // Update existing buttons that changed state
+          document.querySelectorAll('.ziasub-queue-btn').forEach(btn => {
+            const videoId = btn.dataset.videoId;
+            if (!videoId) return;
+            
+            const wasQueued = queuedVideoIds.has(videoId);
+            const isNowQueued = newQueuedIds.has(videoId);
+            
+            if (wasQueued && !isNowQueued) {
+              // Was removed from queue - reset to + button
+              btn.textContent = '+';
+              btn.style.background = 'rgba(0,0,0,0.7) !important';
+            } else if (!wasQueued && isNowQueued) {
+              // Was added to queue - show checkmark
+              btn.textContent = '✓';
+              btn.style.background = 'rgba(76,175,80,0.9) !important';
+            }
+          });
+          
+          queuedVideoIds = newQueuedIds;
           markVideos();
         }
       } catch (e) {}
