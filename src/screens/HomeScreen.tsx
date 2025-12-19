@@ -185,6 +185,19 @@ const HomeScreen = () => {
     return () => unsubscribe();
   }, []);
 
+  // Send subtitle style to WebView whenever settings change or video starts playing
+  useEffect(() => {
+    if (webViewRef.current) {
+      webViewRef.current.postMessage(
+        JSON.stringify({
+          type: "setSubtitleStyle",
+          payload: subtitleSettings,
+        })
+      );
+    }
+  }, [subtitleSettings]);
+
+  // Also send subtitle style when entering video page (with delay to ensure WebView is ready)
   useEffect(() => {
     if (isVideoPlaying && webViewRef.current) {
       const timer = setTimeout(() => {
@@ -194,10 +207,10 @@ const HomeScreen = () => {
             payload: subtitleSettings,
           })
         );
-      }, 500);
+      }, 300);
       return () => clearTimeout(timer);
     }
-  }, [isVideoPlaying, subtitleSettings]);
+  }, [isVideoPlaying]);
 
   // Load saved SRT for current video (check both manual SRT and translations)
   const loadSavedSRT = async (url: string) => {
@@ -373,7 +386,16 @@ const HomeScreen = () => {
     // Delay a bit to ensure DOM is ready
     setTimeout(() => {
       syncAllToWebView();
-    }, 1000);
+      // Also send subtitle style to ensure WebView has correct settings
+      if (webViewRef.current) {
+        webViewRef.current.postMessage(
+          JSON.stringify({
+            type: "setSubtitleStyle",
+            payload: subtitleSettings,
+          })
+        );
+      }
+    }, 500);
   };
 
   const onFullScreenOpen = async () => {

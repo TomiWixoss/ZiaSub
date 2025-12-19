@@ -12,11 +12,11 @@ export const INJECTED_JAVASCRIPT = `
     let isPolling = false;
     let isPortrait = window.innerHeight > window.innerWidth;
     
-    // Subtitle style settings
+    // Subtitle style settings (defaults should match DEFAULT_SUBTITLE_SETTINGS in storage.ts)
     let subtitleFontSize = 15;
     let subtitleFontWeight = 'bold';
     let subtitleFontStyle = 'normal';
-    let portraitBottom = 12;
+    let portraitBottom = 100;
     let landscapeBottom = 8;
 
     const throttle = (fn, delay) => {
