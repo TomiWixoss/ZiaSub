@@ -25,7 +25,7 @@ import {
   getActiveGeminiConfig,
   saveActiveGeminiConfigId,
 } from "@utils/storage";
-import { translateWithGemini } from "@services/geminiService";
+import { translateVideoWithGemini } from "@services/geminiService";
 import Button3D from "./Button3D";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -197,8 +197,8 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
 
       let hasStartedStreaming = false;
 
-      const result = await translateWithGemini(
-        `Video URL: ${videoUrl}\n\nHãy tạo phụ đề SRT tiếng Việt cho video này.`,
+      const result = await translateVideoWithGemini(
+        videoUrl,
         config,
         (text: string) => {
           if (!hasStartedStreaming) {
