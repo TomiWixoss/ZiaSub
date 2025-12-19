@@ -180,8 +180,15 @@ export const INJECTED_JAVASCRIPT = `
       const isQueued = queuedVideoIds.has(videoId);
       const isTranslated = translatedVideoIds.has(videoId);
       
-      if (isTranslated) return;
-      if (container.querySelector('.ziasub-queue-btn')) return;
+      const existingBtn = container.querySelector('.ziasub-queue-btn');
+      
+      // If translated, remove queue button if exists and return
+      if (isTranslated) {
+        if (existingBtn) existingBtn.remove();
+        return;
+      }
+      
+      if (existingBtn) return;
       
       const btn = document.createElement('div');
       btn.className = 'ziasub-queue-btn';
