@@ -47,6 +47,7 @@ import ConfigSelector from "@components/chat/ConfigSelector";
 import TaskCard, { TaskItem } from "@components/chat/TaskCard";
 import ChatDrawer from "@components/chat/ChatDrawer";
 import ChatInput from "@components/chat/ChatInput";
+import ChatEmptyState from "@components/chat/ChatEmptyState";
 
 interface ChatModalProps {
   visible: boolean;
@@ -56,13 +57,12 @@ interface ChatModalProps {
   onLoadingChange?: (isLoading: boolean) => void;
 }
 
-// Quick actions
-const QUICK_ACTIONS = [
-  { id: "summary", label: "Tóm tắt video", icon: "text-box-outline" },
-  { id: "analyze", label: "Phân tích nội dung", icon: "chart-box-outline" },
-  { id: "keypoints", label: "Điểm chính", icon: "format-list-bulleted" },
-  { id: "translate", label: "Dịch video", icon: "translate" },
-];
+const QUICK_ACTION_MAP: Record<string, string> = {
+  summary: "Tóm tắt nội dung video này",
+  analyze: "Phân tích chi tiết video này",
+  keypoints: "Liệt kê các điểm chính trong video",
+  translate: "Dịch nội dung video sang tiếng Việt",
+};
 
 const ChatModal: React.FC<ChatModalProps> = ({
   visible,
@@ -93,7 +93,6 @@ const ChatModal: React.FC<ChatModalProps> = ({
   const flatListRef = useRef<FlatList>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Convert messages to tasks
   const tasks = useMemo((): TaskItem[] => {
     const result: TaskItem[] = [];
     for (let i = 0; i < messages.length; i++) {
@@ -154,7 +153,6 @@ const ChatModal: React.FC<ChatModalProps> = ({
     }
   }, [messages, activeConfig]);
 
-  // Notify parent about loading state changes
   useEffect(() => {
     onLoadingChange?.(isLoading);
   }, [isLoading, onLoadingChange]);
@@ -181,7 +179,6 @@ const ChatModal: React.FC<ChatModalProps> = ({
     setConfigs(allConfigs);
     setHasApiKey(apiKeys.length > 0);
 
-    // Default to chat config
     const chatConfig = allConfigs.find((c) => c.id === DEFAULT_CHAT_CONFIG_ID);
     setActiveConfig(chatConfig || allConfigs[0] || null);
 
@@ -234,7 +231,6 @@ const ChatModal: React.FC<ChatModalProps> = ({
     setIsFromHistory(false);
     scrollToBottom();
 
-    // Create abort controller for this request
     abortControllerRef.current = new AbortController();
     const currentAbort = abortControllerRef.current;
 
@@ -244,9 +240,7 @@ const ChatModal: React.FC<ChatModalProps> = ({
       {
         onChunk: () => scrollToBottom(),
         onComplete: (fullText) => {
-          // Ignore if aborted
           if (currentAbort.signal.aborted) return;
-
           const aiMessage: ChatMessage = {
             id: (Date.now() + 1).toString(),
             role: "model",
@@ -259,9 +253,7 @@ const ChatModal: React.FC<ChatModalProps> = ({
           scrollToBottom();
         },
         onError: (error) => {
-          // Ignore if aborted
           if (currentAbort.signal.aborted) return;
-
           const errorMessage: ChatMessage = {
             id: (Date.now() + 1).toString(),
             role: "model",
@@ -278,13 +270,7 @@ const ChatModal: React.FC<ChatModalProps> = ({
   };
 
   const handleQuickAction = (actionId: string) => {
-    const actionMap: Record<string, string> = {
-      summary: "Tóm tắt nội dung video này",
-      analyze: "Phân tích chi tiết video này",
-      keypoints: "Liệt kê các điểm chính trong video",
-      translate: "Dịch nội dung video sang tiếng Việt",
-    };
-    handleSend(actionMap[actionId], true);
+    handleSend(QUICK_ACTION_MAP[actionId], true);
   };
 
   const handleStop = () => {
@@ -292,7 +278,6 @@ const ChatModal: React.FC<ChatModalProps> = ({
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
     }
-    // Thêm message lỗi cho task đang pending
     const errorMessage: ChatMessage = {
       id: (Date.now() + 1).toString(),
       role: "model",
@@ -304,20 +289,16 @@ const ChatModal: React.FC<ChatModalProps> = ({
   };
 
   const handleNewChat = async () => {
-    // Clear current state first
     setMessages([]);
     setAttachVideo(false);
     setInputText("");
     setIsFromHistory(false);
 
-    // Create new session
     const newSession = await createChatSession(undefined, activeConfig?.id);
     setCurrentSession(newSession);
 
-    // Reload sessions from storage to get fresh list
     const allSessions = await getChatSessions();
     setSessions(allSessions);
-
     toggleDrawer();
   };
 
@@ -359,18 +340,12 @@ const ChatModal: React.FC<ChatModalProps> = ({
     ]).start(() => onClose());
   };
 
-  const handleCopyResult = (text: string) => {
-    // Optional: show toast or feedback
-  };
-
   const handleRegenerateTask = (task: TaskItem) => {
     if (isLoading || !activeConfig) return;
 
-    // Tìm index của task trong messages (user message)
     const taskIndex = messages.findIndex((m) => m.id === task.id);
     if (taskIndex === -1) return;
 
-    // Luôn xóa task cũ (cả user message và response nếu có)
     const hasResponse = messages[taskIndex + 1]?.role === "model";
     const removeCount = hasResponse ? 2 : 1;
     const newMessages = [
@@ -378,19 +353,13 @@ const ChatModal: React.FC<ChatModalProps> = ({
       ...messages.slice(taskIndex + removeCount),
     ];
 
-    // Lưu command, hasVideo và videoTitle trước khi xóa
-    const command = task.command;
-    const hasVideo = task.hasVideo;
-    const taskVideoTitle = task.videoTitle;
-
-    // Tạo task mới với ID mới
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
       role: "user",
-      content: command,
+      content: task.command,
       timestamp: Date.now(),
-      hasVideo: hasVideo,
-      videoTitle: taskVideoTitle,
+      hasVideo: task.hasVideo,
+      videoTitle: task.videoTitle,
     };
 
     const updatedMessages = [...newMessages, userMessage];
@@ -399,7 +368,6 @@ const ChatModal: React.FC<ChatModalProps> = ({
     setIsFromHistory(false);
     scrollToBottom();
 
-    // Create abort controller for this request
     abortControllerRef.current = new AbortController();
     const currentAbort = abortControllerRef.current;
 
@@ -434,16 +402,14 @@ const ChatModal: React.FC<ChatModalProps> = ({
           abortControllerRef.current = null;
         },
       },
-      hasVideo ? videoUrl : undefined
+      task.hasVideo ? videoUrl : undefined
     );
   };
 
   const handleDeleteTask = (taskId: string) => {
-    // Tìm index của task trong messages
     const taskIndex = messages.findIndex((m) => m.id === taskId);
     if (taskIndex === -1) return;
 
-    // Xóa cả user message và response (nếu có)
     const hasResponse = messages[taskIndex + 1]?.role === "model";
     const removeCount = hasResponse ? 2 : 1;
     const newMessages = [
@@ -454,7 +420,6 @@ const ChatModal: React.FC<ChatModalProps> = ({
   };
 
   const renderTask = ({ item, index }: { item: TaskItem; index: number }) => {
-    // Mặc định mở task cuối cùng (đang pending hoặc mới nhất), đóng các task cũ khi load từ history
     const isLastTask = index === tasks.length - 1;
     const shouldExpand =
       isLastTask && (!isFromHistory || item.status === "pending");
@@ -462,56 +427,12 @@ const ChatModal: React.FC<ChatModalProps> = ({
       <TaskCard
         task={item}
         defaultExpanded={shouldExpand}
-        onCopy={handleCopyResult}
+        onCopy={() => {}}
         onRegenerate={handleRegenerateTask}
         onDelete={handleDeleteTask}
       />
     );
   };
-
-  const renderEmptyState = () => (
-    <View style={styles.emptyContainer}>
-      <Text style={styles.greeting}>Xin chào!</Text>
-      <Text style={styles.greetingSubtitle}>Tôi có thể giúp gì cho bạn?</Text>
-
-      {/* API Key Warning */}
-      {!hasApiKey && (
-        <View style={styles.warningContainer}>
-          <MaterialCommunityIcons
-            name="alert-circle-outline"
-            size={20}
-            color={COLORS.warning}
-          />
-          <Text style={styles.warningText}>
-            Chưa có API key. Thêm trong Cài đặt nhé
-          </Text>
-        </View>
-      )}
-
-      {videoUrl && (
-        <View style={styles.quickActionsContainer}>
-          {QUICK_ACTIONS.map((action) => (
-            <TouchableOpacity
-              key={action.id}
-              style={[
-                styles.quickActionBtn,
-                !hasApiKey && styles.quickActionDisabled,
-              ]}
-              onPress={() => handleQuickAction(action.id)}
-              disabled={isLoading || !hasApiKey}
-            >
-              <MaterialCommunityIcons
-                name={action.icon as any}
-                size={18}
-                color={COLORS.text}
-              />
-              <Text style={styles.quickActionLabel}>{action.label}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
-    </View>
-  );
 
   const topPadding = Math.max(insets.top, 24);
   const bottomPadding = Math.max(insets.bottom, 10);
@@ -535,7 +456,6 @@ const ChatModal: React.FC<ChatModalProps> = ({
             },
           ]}
         >
-          {/* Header */}
           <View style={styles.header}>
             <TouchableOpacity style={styles.headerBtn} onPress={toggleDrawer}>
               <MaterialCommunityIcons
@@ -554,17 +474,22 @@ const ChatModal: React.FC<ChatModalProps> = ({
             </TouchableOpacity>
           </View>
 
-          {/* Tasks */}
           <FlatList
             ref={flatListRef}
             data={tasks}
             renderItem={renderTask}
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.taskList}
-            ListEmptyComponent={renderEmptyState}
+            ListEmptyComponent={
+              <ChatEmptyState
+                hasApiKey={hasApiKey}
+                hasVideo={!!videoUrl}
+                isLoading={isLoading}
+                onQuickAction={handleQuickAction}
+              />
+            }
           />
 
-          {/* Input Area */}
           <KeyboardAvoidingView
             behavior={Platform.OS === "ios" ? "padding" : undefined}
           >
@@ -584,7 +509,6 @@ const ChatModal: React.FC<ChatModalProps> = ({
             />
           </KeyboardAvoidingView>
 
-          {/* Drawer Overlay */}
           {drawerOpen && (
             <TouchableOpacity
               style={styles.drawerOverlay}
@@ -593,7 +517,6 @@ const ChatModal: React.FC<ChatModalProps> = ({
             />
           )}
 
-          {/* Drawer */}
           <ChatDrawer
             sessions={sessions}
             currentSession={currentSession}
@@ -651,62 +574,6 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 8,
     flexGrow: 1,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "flex-start",
-    paddingHorizontal: 8,
-    paddingTop: 40,
-  },
-  greeting: {
-    color: COLORS.textSecondary,
-    fontSize: 18,
-    marginBottom: 4,
-  },
-  greetingSubtitle: {
-    color: COLORS.text,
-    fontSize: 26,
-    fontWeight: "600",
-    marginBottom: 32,
-  },
-  quickActionsContainer: {
-    gap: 10,
-    width: "100%",
-  },
-  quickActionBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 18,
-    borderRadius: 24,
-    backgroundColor: COLORS.surfaceLight,
-    alignSelf: "flex-start",
-  },
-  quickActionLabel: {
-    color: COLORS.text,
-    fontSize: 15,
-  },
-  quickActionDisabled: {
-    opacity: 0.5,
-  },
-  warningContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(255,183,77,0.15)",
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 20,
-    gap: 10,
-    borderWidth: 1,
-    borderColor: COLORS.warning,
-    alignSelf: "stretch",
-  },
-  warningText: {
-    color: COLORS.warning,
-    fontSize: 13,
-    flex: 1,
   },
   drawerOverlay: {
     ...StyleSheet.absoluteFillObject,
