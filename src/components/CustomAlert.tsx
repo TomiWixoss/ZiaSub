@@ -131,14 +131,26 @@ const CustomAlert: React.FC<CustomAlertProps> = ({
     setTimeout(() => button.onPress?.(), 100);
   };
 
-  const getButtonStyle = (style?: AlertButton["style"]) => {
+  const getButtonColors = (style?: AlertButton["style"]) => {
     switch (style) {
       case "destructive":
-        return { bg: COLORS.error, text: COLORS.text };
+        return {
+          bg: COLORS.error,
+          shadow: "#8B0000",
+          text: COLORS.text,
+        };
       case "cancel":
-        return { bg: COLORS.surfaceLight, text: COLORS.textSecondary };
+        return {
+          bg: COLORS.surfaceElevated,
+          shadow: COLORS.background,
+          text: COLORS.textSecondary,
+        };
       default:
-        return { bg: COLORS.primary, text: COLORS.text };
+        return {
+          bg: COLORS.primary,
+          shadow: COLORS.primaryDark,
+          text: COLORS.text,
+        };
     }
   };
 
@@ -183,22 +195,33 @@ const CustomAlert: React.FC<CustomAlertProps> = ({
             ]}
           >
             {buttons.map((button, index) => {
-              const btnStyle = getButtonStyle(button.style);
+              const colors = getButtonColors(button.style);
               return (
-                <TouchableOpacity
+                <View
                   key={index}
                   style={[
-                    styles.button,
-                    { backgroundColor: btnStyle.bg },
+                    styles.button3DContainer,
                     buttons.length <= 2 && styles.buttonFlex,
                   ]}
-                  onPress={() => handleButtonPress(button)}
-                  activeOpacity={0.8}
                 >
-                  <Text style={[styles.buttonText, { color: btnStyle.text }]}>
-                    {button.text}
-                  </Text>
-                </TouchableOpacity>
+                  {/* Shadow layer */}
+                  <View
+                    style={[
+                      styles.buttonShadow,
+                      { backgroundColor: colors.shadow },
+                    ]}
+                  />
+                  {/* Button layer */}
+                  <TouchableOpacity
+                    style={[styles.button3D, { backgroundColor: colors.bg }]}
+                    onPress={() => handleButtonPress(button)}
+                    activeOpacity={0.9}
+                  >
+                    <Text style={[styles.buttonText, { color: colors.text }]}>
+                      {button.text}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               );
             })}
           </View>
@@ -286,10 +309,25 @@ const styles = StyleSheet.create({
   buttonContainerVertical: {
     flexDirection: "column",
   },
-  button: {
-    paddingVertical: 12,
-    paddingHorizontal: 20,
+  button3DContainer: {
+    height: 48,
+  },
+  buttonShadow: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 44,
     borderRadius: 12,
+  },
+  button3D: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 44,
+    borderRadius: 12,
+    justifyContent: "center",
     alignItems: "center",
   },
   buttonFlex: {
@@ -297,7 +335,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: "700",
   },
 });
 
