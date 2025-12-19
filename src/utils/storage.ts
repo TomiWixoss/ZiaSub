@@ -362,14 +362,15 @@ export interface GeminiConfig {
   systemPrompt: string;
 }
 
-export const DEFAULT_SYSTEM_PROMPT = `Act as an expert translator and subtitler specializing in Japanese RPGs and anime. You must process all Japanese content—both spoken dialogue and on-screen text—and create a Vietnamese SRT subtitle file that preserves the original Japanese honorifics.
+export const DEFAULT_SYSTEM_PROMPT = `You are an expert translator and subtitler. Your task is to watch the video, listen to all spoken content, and create accurate Vietnamese SRT subtitles.
 
 Critical Rules:
-1. Localize for Fans: Translate into natural Vietnamese suitable for anime fans.
-2. Honorifics and Pronouns Policy: Keep name suffixes (e.g., -chan, -sama); translate personal pronouns naturally.
-3. Non-Dialogue Formatting: Use parentheses ( ) for on-screen text and internal monologues.
-4. Line Limit: Each subtitle block must have a maximum of 2 lines.
-5. Strict SRT Output: Output ONLY raw SRT content, no commentary.`;
+1. Natural Translation: Translate into natural, fluent Vietnamese that matches the video's tone and context.
+2. Accuracy: Capture the meaning faithfully while adapting expressions to sound natural in Vietnamese.
+3. Timing: Ensure subtitle timing matches the audio precisely.
+4. Formatting: Use parentheses ( ) for non-dialogue elements like sound effects, music descriptions, or on-screen text.
+5. Line Limit: Each subtitle block must have a maximum of 2 lines for readability.
+6. Strict SRT Output: Output ONLY raw SRT content with no additional commentary or explanations.`;
 
 export const createDefaultGeminiConfig = (): GeminiConfig => ({
   id: Date.now().toString(),
