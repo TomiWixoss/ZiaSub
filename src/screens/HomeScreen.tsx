@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   StyleSheet,
@@ -10,39 +10,18 @@ import { alert, showAlert } from "@components/CustomAlert";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import * as ScreenOrientation from "expo-screen-orientation";
-import {
-  WebView,
-  WebViewMessageEvent,
-  WebViewNavigation,
-} from "react-native-webview";
+import { WebViewMessageEvent, WebViewNavigation } from "react-native-webview";
 
-import { parseSRT, fixSRT, SubtitleItem } from "@utils/srtParser";
-import {
-  saveSRT,
-  getSRT,
-  removeSRT,
-  SubtitleSettings,
-  BatchSettings,
-  TTSSettings,
-  DEFAULT_SUBTITLE_SETTINGS,
-  DEFAULT_BATCH_SETTINGS,
-  DEFAULT_TTS_SETTINGS,
-  getSubtitleSettings,
-  saveSubtitleSettings,
-  getBatchSettings,
-  saveBatchSettings,
-  getTTSSettings,
-  saveTTSSettings,
-  getApiKeys,
-  getAllTranslatedVideoUrls,
-  getActiveTranslation,
-  hasTranslation,
-} from "@utils/storage";
+import { COLORS } from "@constants/colors";
+import { hasTranslation } from "@utils/storage";
 import { ttsService } from "@services/ttsService";
-import { keyManager } from "@services/keyManager";
-import { queueManager, QueueItem } from "@services/queueManager";
-import { translationManager } from "@services/translationManager";
+import { queueManager } from "@services/queueManager";
+
+import { useAppSettings } from "@hooks/useAppSettings";
+import { useVideoPlayer } from "@hooks/useVideoPlayer";
+import { useSubtitles } from "@hooks/useSubtitles";
+import { useTranslationQueue } from "@hooks/useTranslationQueue";
+
 import YouTubePlayer from "@components/YouTubePlayer";
 import SubtitleInputModal from "@components/SubtitleInputModal";
 import SettingsModal from "@components/SettingsModal";
@@ -50,487 +29,164 @@ import FloatingButton from "@components/FloatingButton";
 import TranslationQueueModal from "@components/TranslationQueueModal";
 import ChatModal from "@components/ChatModal";
 
-import { COLORS } from "@constants/colors";
-
 const HomeScreen = () => {
+  const insets = useSafeAreaInsets();
+
+  // Modal states
   const [modalVisible, setModalVisible] = useState(false);
   const [settingsVisible, setSettingsVisible] = useState(false);
-  const [srtContent, setSrtContent] = useState("");
-  const [subtitles, setSubtitles] = useState<SubtitleItem[]>([]);
-  const [currentSubtitle, setCurrentSubtitle] = useState("");
-  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
-  const [currentUrl, setCurrentUrl] = useState("");
-  const [canGoBack, setCanGoBack] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [subtitleSettings, setSubtitleSettings] = useState<SubtitleSettings>(
-    DEFAULT_SUBTITLE_SETTINGS
-  );
-  const [batchSettings, setBatchSettings] = useState<BatchSettings>(
-    DEFAULT_BATCH_SETTINGS
-  );
-  const [ttsSettings, setTTSSettings] =
-    useState<TTSSettings>(DEFAULT_TTS_SETTINGS);
-  const [isTranslating, setIsTranslating] = useState(false);
-  const [translationProgress, setTranslationProgress] = useState<{
-    completed: number;
-    total: number;
-  } | null>(null);
-  const [videoDuration, setVideoDuration] = useState<number | undefined>(
-    undefined
-  );
-  const [apiKeys, setApiKeys] = useState<string[]>([]);
   const [queueModalVisible, setQueueModalVisible] = useState(false);
-  const [queueCount, setQueueCount] = useState(0);
-  const [currentVideoInQueue, setCurrentVideoInQueue] = useState<
-    QueueItem | undefined
-  >();
-  const [videoTitle, setVideoTitle] = useState<string>("");
   const [chatModalVisible, setChatModalVisible] = useState(false);
   const [isChatLoading, setIsChatLoading] = useState(false);
 
-  const webViewRef = useRef<WebView>(null);
-  const currentUrlRef = useRef<string>("");
-  const lastSentSubtitleRef = useRef<string>("");
-  const insets = useSafeAreaInsets();
+  // App settings hook
+  const {
+    subtitleSettings,
+    batchSettings,
+    ttsSettings,
+    apiKeys,
+    updateSubtitleSettings,
+    updateBatchSettings,
+    updateTTSSettings,
+    updateApiKeys,
+  } = useAppSettings();
 
-  // Extract video ID from URL
-  const extractVideoId = (url: string): string | null => {
-    const patterns = [
-      /youtu\.be\/([a-zA-Z0-9_-]+)/,
-      /[?&]v=([a-zA-Z0-9_-]+)/,
-      /\/shorts\/([a-zA-Z0-9_-]+)/,
-    ];
-    for (const p of patterns) {
-      const m = url.match(p);
-      if (m) return m[1];
-    }
-    return null;
-  };
+  // Video player hook
+  const {
+    webViewRef,
+    currentUrlRef,
+    currentUrl,
+    canGoBack,
+    isVideoPlaying,
+    isFullscreen,
+    videoDuration,
+    videoTitle,
+    currentVideoInQueue,
+    setVideoDuration,
+    setVideoTitle,
+    setCurrentVideoInQueue,
+    onFullScreenOpen,
+    onFullScreenClose,
+    handleGoBack,
+    navigateToVideo,
+    reloadWebView,
+    postMessageToWebView,
+  } = useVideoPlayer();
 
-  // Send translated video IDs to WebView
-  const syncTranslatedVideosToWebView = async () => {
-    const urls = await getAllTranslatedVideoUrls();
-    const videoIds = urls
-      .map((url) => extractVideoId(url))
-      .filter((id): id is string => id !== null);
+  // Subtitles hook
+  const {
+    srtContent,
+    setSrtContent,
+    subtitles,
+    loadSavedSRT,
+    applySrtContent,
+    findSubtitle,
+    updateFromTranslation,
+    hasSubtitles,
+  } = useSubtitles({ webViewRef, ttsSettings });
 
-    if (webViewRef.current) {
-      webViewRef.current.postMessage(
-        JSON.stringify({ type: "setTranslatedVideos", payload: videoIds })
-      );
-    }
-  };
+  // Translation queue hook
+  const { queueCount, isTranslating, translationProgress, syncAllToWebView } =
+    useTranslationQueue({
+      webViewRef,
+      currentUrlRef,
+      onTranslationComplete: updateFromTranslation,
+    });
 
-  // Send queued video IDs to WebView
-  const syncQueuedVideosToWebView = () => {
-    const { items: queueItems } = queueManager.getItemsByStatus("all");
-    const videoIds = queueItems
-      .filter(
-        (item) => item.status === "pending" || item.status === "translating"
-      )
-      .map((item) => extractVideoId(item.videoUrl))
-      .filter((id): id is string => id !== null);
-
-    if (webViewRef.current) {
-      webViewRef.current.postMessage(
-        JSON.stringify({ type: "setQueuedVideos", payload: videoIds })
-      );
-    }
-  };
-
-  // Sync all data to WebView
-  const syncAllToWebView = async () => {
-    await syncTranslatedVideosToWebView();
-    syncQueuedVideosToWebView();
-  };
-
+  // Set up TTS speaking callback for video ducking
   useEffect(() => {
-    const loadSettings = async () => {
-      const [subtitleS, batchS, keys, ttsS] = await Promise.all([
-        getSubtitleSettings(),
-        getBatchSettings(),
-        getApiKeys(),
-        getTTSSettings(),
-      ]);
-      setSubtitleSettings(subtitleS);
-      setBatchSettings(batchS);
-      setApiKeys(keys);
-      keyManager.initialize(keys);
-      setTTSSettings(ttsS);
-      ttsService.setSettings(ttsS);
-    };
-    loadSettings();
-
-    // Set up TTS speaking callback for video ducking
     ttsService.setSpeakingCallback((isSpeaking) => {
       const settings = ttsService.getSettings();
       if (webViewRef.current && settings.duckVideo) {
         const volume = isSpeaking ? settings.duckLevel : 1.0;
-        console.log("[HomeScreen] Setting video volume:", volume);
-        webViewRef.current.postMessage(
-          JSON.stringify({ type: "setVideoVolume", payload: volume })
-        );
+        postMessageToWebView({ type: "setVideoVolume", payload: volume });
       }
     });
+  }, [postMessageToWebView]);
 
-    // Initialize queue manager
-    queueManager.initialize();
-    const unsubscribe = queueManager.subscribe(() => {
-      const counts = queueManager.getCounts();
-      setQueueCount(counts.pending + counts.translating);
-      // Update current video queue status when queue changes
-      if (currentUrlRef.current) {
-        setCurrentVideoInQueue(queueManager.isInQueue(currentUrlRef.current));
-      }
-      // Sync queued videos to WebView
-      syncQueuedVideosToWebView();
-    });
-    return () => unsubscribe();
-  }, []);
-
-  // Send subtitle style to WebView whenever settings change or video starts playing
+  // Send subtitle style to WebView whenever settings change
   useEffect(() => {
-    if (webViewRef.current) {
-      webViewRef.current.postMessage(
-        JSON.stringify({
+    postMessageToWebView({
+      type: "setSubtitleStyle",
+      payload: subtitleSettings,
+    });
+  }, [subtitleSettings, postMessageToWebView]);
+
+  // Send subtitle style when entering video page
+  useEffect(() => {
+    if (isVideoPlaying) {
+      const timer = setTimeout(() => {
+        postMessageToWebView({
           type: "setSubtitleStyle",
           payload: subtitleSettings,
-        })
-      );
-    }
-  }, [subtitleSettings]);
-
-  // Also send subtitle style when entering video page (with delay to ensure WebView is ready)
-  useEffect(() => {
-    if (isVideoPlaying && webViewRef.current) {
-      const timer = setTimeout(() => {
-        webViewRef.current?.postMessage(
-          JSON.stringify({
-            type: "setSubtitleStyle",
-            payload: subtitleSettings,
-          })
-        );
+        });
       }, 300);
       return () => clearTimeout(timer);
     }
-  }, [isVideoPlaying]);
+  }, [isVideoPlaying, subtitleSettings, postMessageToWebView]);
 
-  // Load saved SRT for current video (check both manual SRT and translations)
-  const loadSavedSRT = async (url: string) => {
-    if (!url) {
-      setSrtContent("");
-      setSubtitles([]);
-      setCurrentSubtitle("");
-      lastSentSubtitleRef.current = "";
-      if (webViewRef.current) {
-        webViewRef.current.postMessage(
-          JSON.stringify({ type: "setSubtitle", payload: "" })
-        );
-      }
-      return;
-    }
-
-    // First check manual SRT
-    let srt = await getSRT(url);
-
-    // If no manual SRT, check for active translation
-    if (!srt) {
-      const activeTranslation = await getActiveTranslation(url);
-      if (activeTranslation) {
-        srt = activeTranslation.srtContent;
-      }
-    }
-
-    if (srt) {
-      setSrtContent(srt);
-      const { fixedData } = fixSRT(srt);
-      const parsed = parseSRT(fixedData);
-      setSubtitles(parsed);
-      lastSentSubtitleRef.current = ""; // Reset to force resync
-    } else {
-      setSrtContent("");
-      setSubtitles([]);
-      setCurrentSubtitle("");
-      lastSentSubtitleRef.current = "";
-      if (webViewRef.current) {
-        webViewRef.current.postMessage(
-          JSON.stringify({ type: "setSubtitle", payload: "" })
-        );
-      }
-    }
-  };
-
+  // Load saved SRT when URL changes
   useEffect(() => {
     loadSavedSRT(currentUrl);
-  }, [currentUrl]);
+  }, [currentUrl, loadSavedSRT]);
 
-  // Subscribe to translation manager to auto-apply translations when completed
-  // Also handle streaming mode - apply partial results as each batch completes
+  // Update queue status when URL changes
   useEffect(() => {
-    const unsubscribe = translationManager.subscribe((job) => {
-      // Compare by video ID to handle URL variations
-      const jobVideoId = extractVideoId(job.videoUrl);
-      const currentVideoId = extractVideoId(currentUrlRef.current);
-
-      if (jobVideoId && currentVideoId && jobVideoId === currentVideoId) {
-        // Streaming mode: Apply partial result as each batch completes
-        if (job.status === "processing" && job.partialResult) {
-          setSrtContent(job.partialResult);
-          const { fixedData } = fixSRT(job.partialResult);
-          const parsed = parseSRT(fixedData);
-          setSubtitles(parsed);
-          // Reset lastSentSubtitle to force resync
-          lastSentSubtitleRef.current = "";
-        }
-
-        // Final result when completed
-        if (job.status === "completed" && job.result) {
-          setSrtContent(job.result);
-          const { fixedData } = fixSRT(job.result);
-          const parsed = parseSRT(fixedData);
-          setSubtitles(parsed);
-          // Reset lastSentSubtitle to force resync
-          lastSentSubtitleRef.current = "";
-          // Sync translated videos to WebView
-          syncTranslatedVideosToWebView();
-        }
-      }
-    });
-    return () => unsubscribe();
-  }, []);
-
-  const handleWebViewMessage = async (event: WebViewMessageEvent) => {
-    try {
-      const data = JSON.parse(event.nativeEvent.data);
-      if (data.type === "currentTime") {
-        findSubtitle(data.payload);
-      } else if (data.type === "videoDuration") {
-        setVideoDuration(data.payload);
-      } else if (data.type === "videoTitle") {
-        setVideoTitle(data.payload);
-      } else if (data.type === "fullscreen_open") {
-        onFullScreenOpen();
-      } else if (data.type === "fullscreen_close") {
-        onFullScreenClose();
-      } else if (data.type === "addToQueue") {
-        // Handle add to queue from thumbnail button
-        const { videoUrl, title } = data.payload;
-
-        // Check if video already has translation in storage
-        const alreadyTranslated = await hasTranslation(videoUrl);
-        if (alreadyTranslated) {
-          alert("Thông báo", "Video này đã có bản dịch rồi.");
-          return;
-        }
-
-        const result = await queueManager.addToQueue(videoUrl, title);
-        syncQueuedVideosToWebView();
-
-        // Show notification based on video status
-        if (result.isExisting) {
-          const statusText =
-            result.item.status === "translating"
-              ? "Video này đang được dịch."
-              : `Video này đã có trong danh sách chờ. Còn ${result.pendingCount} video đang chờ.`;
-          alert("Thông báo", statusText);
-        } else {
-          const pendingText =
-            result.pendingCount > 1
-              ? `Còn ${result.pendingCount} video đang chờ dịch.`
-              : "Video sẽ được dịch ngay.";
-          showAlert("Đã thêm", `Đã thêm video vào danh sách. ${pendingText}`, [
-            { text: "OK" },
-            {
-              text: "Xem danh sách",
-              onPress: () => setQueueModalVisible(true),
-            },
-          ]);
-        }
-      }
-    } catch (e) {}
-  };
-
-  const handleNavigationStateChange = (navState: WebViewNavigation) => {
-    setCanGoBack(navState.canGoBack);
-    const isWatchPage =
-      navState.url.includes("/watch") || navState.url.includes("/shorts/");
-    setIsVideoPlaying(isWatchPage);
-
-    if (isWatchPage) {
-      if (navState.url !== currentUrl) {
-        setCurrentUrl(navState.url);
-        currentUrlRef.current = navState.url;
-        setVideoDuration(undefined); // Reset duration for new video
-        setVideoTitle(""); // Reset title for new video
-        // Check if video is in queue
-        setCurrentVideoInQueue(queueManager.isInQueue(navState.url));
-      }
-    } else {
-      if (currentUrl !== "") {
-        setCurrentUrl("");
-        currentUrlRef.current = "";
-        setVideoDuration(undefined);
-        setVideoTitle("");
-        setCurrentVideoInQueue(undefined);
-        // Stop TTS when leaving video
-        ttsService.stop();
-        ttsService.resetLastSpoken();
-      }
-      // Sync all data when on list/home page with retry to handle back navigation
-      syncAllToWebView();
-      // Retry after a short delay to ensure WebView is ready after back navigation
-      setTimeout(() => syncAllToWebView(), 300);
-      setTimeout(() => syncAllToWebView(), 800);
-    }
-  };
-
-  // Sync all data when WebView finishes loading
-  const handleWebViewLoad = () => {
-    // Delay a bit to ensure DOM is ready
-    setTimeout(() => {
-      syncAllToWebView();
-      // Also send subtitle style to ensure WebView has correct settings
-      if (webViewRef.current) {
-        webViewRef.current.postMessage(
-          JSON.stringify({
-            type: "setSubtitleStyle",
-            payload: subtitleSettings,
-          })
-        );
-      }
-    }, 500);
-  };
-
-  const onFullScreenOpen = async () => {
-    setIsFullscreen(true);
-    await ScreenOrientation.lockAsync(
-      ScreenOrientation.OrientationLock.LANDSCAPE
-    );
-  };
-
-  const onFullScreenClose = async () => {
-    setIsFullscreen(false);
-    await ScreenOrientation.lockAsync(
-      ScreenOrientation.OrientationLock.PORTRAIT_UP
-    );
-  };
-
-  const handleGoBack = () => {
-    if (webViewRef.current && canGoBack) {
-      webViewRef.current.goBack();
-    }
-  };
-
-  const applySubtitleStyle = (settings: SubtitleSettings) => {
-    if (webViewRef.current) {
-      webViewRef.current.postMessage(
-        JSON.stringify({ type: "setSubtitleStyle", payload: settings })
-      );
-    }
-  };
-
-  const handleSubtitleSettingsChange = (newSettings: SubtitleSettings) => {
-    setSubtitleSettings(newSettings);
-    applySubtitleStyle(newSettings);
-    saveSubtitleSettings(newSettings);
-  };
-
-  const handleBatchSettingsChange = (newSettings: BatchSettings) => {
-    setBatchSettings(newSettings);
-    saveBatchSettings(newSettings);
-  };
-
-  const handleTTSSettingsChange = (newSettings: TTSSettings) => {
-    setTTSSettings(newSettings);
-    ttsService.setSettings(newSettings);
-    saveTTSSettings(newSettings);
-    // Stop TTS if disabled
-    if (!newSettings.enabled) {
-      ttsService.stop();
-    }
-  };
-
-  const findSubtitle = (seconds: number) => {
-    const sub = subtitles.find(
-      (s) => seconds >= s.startTime && seconds <= s.endTime
-    );
-    const text = sub ? sub.text : "";
-
-    // Create unique subtitle ID based on timing
-    const subtitleId = sub ? `${sub.startTime}-${sub.endTime}` : "";
-
-    // Always send subtitle if it changed OR if we have subtitles but haven't sent any yet
-    // This handles the case when video quality changes and WebView resets
-    const shouldSend =
-      text !== currentSubtitle ||
-      (subtitles.length > 0 && text && lastSentSubtitleRef.current !== text);
-
-    if (shouldSend) {
-      setCurrentSubtitle(text);
-      lastSentSubtitleRef.current = text;
-
-      // TTS: Speak the subtitle if enabled
-      if (ttsSettings.enabled && text && sub) {
-        // Calculate available duration (time until subtitle ends)
-        const availableDuration = sub.endTime - seconds;
-        ttsService.speakSubtitle(text, subtitleId, availableDuration);
-      }
-
-      // Send subtitle to WebView (hide text if TTS enabled)
-      if (webViewRef.current) {
-        webViewRef.current.postMessage(
-          JSON.stringify({
-            type: "setSubtitle",
-            payload: ttsSettings.enabled ? "" : text,
-          })
-        );
-      }
-    }
-  };
-
-  const handleLoadSubtitles = async () => {
-    const { fixedData, fixCount } = fixSRT(srtContent);
-
-    if (fixCount > 0) {
-      alert(
-        "Đã sửa lỗi phụ đề",
-        `Đã tự động sửa ${fixCount} lỗi trong phụ đề.`
-      );
-    }
-
-    const parsed = parseSRT(fixedData);
-    setSubtitles(parsed);
-    setModalVisible(false);
-
     if (currentUrl) {
-      if (fixedData) {
-        await saveSRT(currentUrl, fixedData);
-      } else {
-        await removeSRT(currentUrl);
-      }
+      setCurrentVideoInQueue(queueManager.isInQueue(currentUrl));
     }
-  };
+  }, [currentUrl, setCurrentVideoInQueue]);
 
-  const handleAddToQueue = async () => {
-    if (!currentUrl) return;
+  const handleWebViewMessage = useCallback(
+    async (event: WebViewMessageEvent) => {
+      try {
+        const data = JSON.parse(event.nativeEvent.data);
 
-    // Check if video already has translation in storage
-    const alreadyTranslated = await hasTranslation(currentUrl);
+        switch (data.type) {
+          case "currentTime":
+            findSubtitle(data.payload);
+            break;
+          case "videoDuration":
+            setVideoDuration(data.payload);
+            break;
+          case "videoTitle":
+            setVideoTitle(data.payload);
+            break;
+          case "fullscreen_open":
+            onFullScreenOpen();
+            break;
+          case "fullscreen_close":
+            onFullScreenClose();
+            break;
+          case "addToQueue":
+            await handleAddToQueueFromThumbnail(data.payload);
+            break;
+        }
+      } catch (e) {}
+    },
+    [
+      findSubtitle,
+      setVideoDuration,
+      setVideoTitle,
+      onFullScreenOpen,
+      onFullScreenClose,
+    ]
+  );
+
+  const handleAddToQueueFromThumbnail = async (payload: {
+    videoUrl: string;
+    title: string;
+  }) => {
+    const { videoUrl, title } = payload;
+
+    const alreadyTranslated = await hasTranslation(videoUrl);
     if (alreadyTranslated) {
       alert("Thông báo", "Video này đã có bản dịch rồi.");
       return;
     }
 
-    const title = videoTitle || "Video YouTube";
-    const result = await queueManager.addToQueue(
-      currentUrl,
-      title,
-      videoDuration
-    );
+    const result = await queueManager.addToQueue(videoUrl, title);
 
-    setCurrentVideoInQueue(result.item);
-
-    // Show notification based on video status
     if (result.isExisting) {
       const statusText =
         result.item.status === "translating"
@@ -549,13 +205,86 @@ const HomeScreen = () => {
     }
   };
 
-  const handleSelectVideoFromQueue = (videoUrl: string) => {
-    if (webViewRef.current) {
-      webViewRef.current.injectJavaScript(
-        `window.location.href = "${videoUrl}"; true;`
+  const handleNavigationStateChange = useCallback(
+    (navState: WebViewNavigation) => {
+      const { handleNavigationStateChange: handleNav } = useVideoPlayer();
+      // Simple navigation handling
+      const isWatchPage =
+        navState.url.includes("/watch") || navState.url.includes("/shorts/");
+
+      if (!isWatchPage && currentUrl !== "") {
+        ttsService.stop();
+        ttsService.resetLastSpoken();
+      }
+    },
+    [currentUrl]
+  );
+
+  const handleWebViewLoad = useCallback(() => {
+    setTimeout(() => {
+      syncAllToWebView();
+      postMessageToWebView({
+        type: "setSubtitleStyle",
+        payload: subtitleSettings,
+      });
+    }, 500);
+  }, [syncAllToWebView, postMessageToWebView, subtitleSettings]);
+
+  const handleLoadSubtitles = useCallback(async () => {
+    const { fixCount } = await applySrtContent(srtContent, currentUrl);
+
+    if (fixCount > 0) {
+      alert(
+        "Đã sửa lỗi phụ đề",
+        `Đã tự động sửa ${fixCount} lỗi trong phụ đề.`
       );
     }
-  };
+
+    setModalVisible(false);
+  }, [srtContent, currentUrl, applySrtContent]);
+
+  const handleAddToQueue = useCallback(async () => {
+    if (!currentUrl) return;
+
+    const alreadyTranslated = await hasTranslation(currentUrl);
+    if (alreadyTranslated) {
+      alert("Thông báo", "Video này đã có bản dịch rồi.");
+      return;
+    }
+
+    const title = videoTitle || "Video YouTube";
+    const result = await queueManager.addToQueue(
+      currentUrl,
+      title,
+      videoDuration
+    );
+
+    setCurrentVideoInQueue(result.item);
+
+    if (result.isExisting) {
+      const statusText =
+        result.item.status === "translating"
+          ? "Video này đang được dịch."
+          : `Video này đã có trong danh sách chờ. Còn ${result.pendingCount} video đang chờ.`;
+      alert("Thông báo", statusText);
+    } else {
+      const pendingText =
+        result.pendingCount > 1
+          ? `Còn ${result.pendingCount} video đang chờ dịch.`
+          : "Video sẽ được dịch ngay.";
+      showAlert("Đã thêm", `Đã thêm video vào danh sách. ${pendingText}`, [
+        { text: "OK" },
+        { text: "Xem danh sách", onPress: () => setQueueModalVisible(true) },
+      ]);
+    }
+  }, [currentUrl, videoTitle, videoDuration, setCurrentVideoInQueue]);
+
+  const handleSelectVideoFromQueue = useCallback(
+    (videoUrl: string) => {
+      navigateToVideo(videoUrl);
+    },
+    [navigateToVideo]
+  );
 
   return (
     <View style={[styles.container, { paddingBottom: insets.bottom }]}>
@@ -596,7 +325,7 @@ const HomeScreen = () => {
 
             <TouchableOpacity
               style={styles.headerBtn}
-              onPress={() => webViewRef.current?.reload()}
+              onPress={reloadWebView}
               activeOpacity={0.7}
             >
               <MaterialCommunityIcons
@@ -623,7 +352,7 @@ const HomeScreen = () => {
         onQueuePress={() => setQueueModalVisible(true)}
         onChatPress={() => setChatModalVisible(true)}
         onAddToQueuePress={currentUrl ? handleAddToQueue : undefined}
-        hasSubtitles={subtitles.length > 0}
+        hasSubtitles={hasSubtitles}
         isTranslating={isTranslating}
         translationProgress={translationProgress}
         queueCount={queueCount}
@@ -640,10 +369,9 @@ const HomeScreen = () => {
         videoUrl={currentUrl}
         videoDuration={videoDuration}
         batchSettings={batchSettings}
-        onBatchSettingsChange={handleBatchSettingsChange}
+        onBatchSettingsChange={updateBatchSettings}
         onTranslationStateChange={(translating, progress) => {
-          setIsTranslating(translating);
-          setTranslationProgress(progress);
+          // Handled by useTranslationQueue hook
         }}
       />
 
@@ -651,13 +379,13 @@ const HomeScreen = () => {
         visible={settingsVisible}
         onClose={() => setSettingsVisible(false)}
         subtitleSettings={subtitleSettings}
-        onSubtitleSettingsChange={handleSubtitleSettingsChange}
+        onSubtitleSettingsChange={updateSubtitleSettings}
         batchSettings={batchSettings}
-        onBatchSettingsChange={handleBatchSettingsChange}
+        onBatchSettingsChange={updateBatchSettings}
         apiKeys={apiKeys}
-        onApiKeysChange={setApiKeys}
+        onApiKeysChange={updateApiKeys}
         ttsSettings={ttsSettings}
-        onTTSSettingsChange={handleTTSSettingsChange}
+        onTTSSettingsChange={updateTTSSettings}
       />
 
       <TranslationQueueModal

@@ -10,7 +10,7 @@ import {
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { COLORS } from "@constants/colors";
-import { GeminiConfig } from "@utils/storage";
+import type { GeminiConfig } from "@src/types";
 
 interface ConfigSelectorProps {
   visible: boolean;

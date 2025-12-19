@@ -24,8 +24,14 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const DRAWER_WIDTH = SCREEN_WIDTH * 0.82;
 
 import { COLORS } from "@constants/colors";
-import {
+import { DEFAULT_CHAT_CONFIG_ID } from "@constants/defaults";
+import type {
   GeminiConfig,
+  ChatSession,
+  ChatMessage,
+  StoredChatMessage,
+} from "@src/types";
+import {
   getGeminiConfigs,
   saveActiveGeminiConfigId,
   getChatSessions,
@@ -34,12 +40,9 @@ import {
   updateChatSession,
   deleteChatSession,
   setActiveChatSessionId,
-  ChatSession,
-  StoredChatMessage,
-  DEFAULT_CHAT_CONFIG_ID,
   getApiKeys,
 } from "@utils/storage";
-import { ChatMessage, sendChatMessage } from "@services/chatService";
+import { sendChatMessage } from "@services/chatService";
 import ConfigSelector from "@components/chat/ConfigSelector";
 import TaskCard, { TaskItem } from "@components/chat/TaskCard";
 import ChatDrawer from "@components/chat/ChatDrawer";

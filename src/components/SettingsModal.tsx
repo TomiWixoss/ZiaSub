@@ -12,15 +12,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { COLORS } from "@constants/colors";
-import {
+import type {
   SubtitleSettings,
   BatchSettings,
   TTSSettings,
   GeminiConfig,
-  getGeminiConfigs,
-  saveGeminiConfigs,
-  createDefaultGeminiConfig,
-} from "@utils/storage";
+} from "@src/types";
+import { getGeminiConfigs, saveGeminiConfigs } from "@utils/storage";
 import { GeneralTab, GeminiList, GeminiEdit } from "./settings";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");

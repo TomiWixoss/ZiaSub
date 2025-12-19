@@ -16,9 +16,9 @@ import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { COLORS } from "@constants/colors";
-import { queueManager, QueueItem, QueueStatus } from "@services/queueManager";
+import type { GeminiConfig, QueueItem, QueueStatus } from "@src/types";
+import { queueManager } from "@services/queueManager";
 import {
-  GeminiConfig,
   getGeminiConfigs,
   getActiveGeminiConfig,
   saveActiveGeminiConfigId,

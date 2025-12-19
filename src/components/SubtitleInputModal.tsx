@@ -15,12 +15,8 @@ import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
 import { COLORS } from "@constants/colors";
-import { BatchSettings } from "@utils/storage";
-import { BatchProgress } from "@services/geminiService";
-import {
-  translationManager,
-  TranslationJob,
-} from "@services/translationManager";
+import type { BatchSettings, BatchProgress, TranslationJob } from "@src/types";
+import { translationManager } from "@services/translationManager";
 import { queueManager } from "@services/queueManager";
 import { SrtTab, TranslateTab } from "./subtitle";
 

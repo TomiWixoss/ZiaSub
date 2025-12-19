@@ -1,56 +1,14 @@
 import { ThinkingLevel, MediaResolution } from "@google/genai";
-import {
+import type {
   GeminiConfig,
   BatchSettings,
-  DEFAULT_BATCH_SETTINGS,
-} from "@utils/storage";
+  BatchProgress,
+  VideoTranslateOptions,
+} from "@src/types";
+import { DEFAULT_BATCH_SETTINGS } from "@constants/defaults";
 import { mergeSrtContents } from "@utils/srtParser";
-import { keyManager, KeyStatusCallback } from "./keyManager";
-
-// Extract video ID and convert to standard YouTube URL
-const normalizeYouTubeUrl = (url: string): string => {
-  let videoId = "";
-
-  const shortMatch = url.match(/youtu\.be\/([a-zA-Z0-9_-]+)/);
-  if (shortMatch) videoId = shortMatch[1];
-
-  const watchMatch = url.match(/[?&]v=([a-zA-Z0-9_-]+)/);
-  if (watchMatch) videoId = watchMatch[1];
-
-  const shortsMatch = url.match(/\/shorts\/([a-zA-Z0-9_-]+)/);
-  if (shortsMatch) videoId = shortsMatch[1];
-
-  if (videoId) return `https://www.youtube.com/watch?v=${videoId}`;
-  return url;
-};
-
-// Batch progress info
-export interface BatchProgress {
-  totalBatches: number;
-  completedBatches: number;
-  currentBatch: number;
-  status: "pending" | "processing" | "completed" | "error";
-  batchStatuses: Array<"pending" | "processing" | "completed" | "error">;
-}
-
-// Options for video translation
-export interface VideoTranslateOptions {
-  startOffset?: string;
-  endOffset?: string;
-  videoDuration?: number;
-  batchSettings?: BatchSettings;
-  onBatchProgress?: (progress: BatchProgress) => void;
-  onKeyStatus?: KeyStatusCallback;
-  // Custom range translation (in seconds)
-  rangeStart?: number;
-  rangeEnd?: number;
-  // Streaming mode callback - called when each batch completes with partial SRT
-  onBatchComplete?: (
-    partialSrt: string,
-    batchIndex: number,
-    totalBatches: number
-  ) => void;
-}
+import { normalizeYouTubeUrl } from "@utils/videoUtils";
+import { keyManager } from "./keyManager";
 
 // Run promises with concurrency limit - continues on error, collects partial results
 const runWithConcurrency = async <T>(

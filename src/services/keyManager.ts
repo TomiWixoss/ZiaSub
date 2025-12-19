@@ -3,12 +3,7 @@
  * Thử tất cả keys lần lượt cho đến khi thành công
  */
 import { GoogleGenAI } from "@google/genai";
-
-export type KeyStatusCallback = (status: {
-  currentKey: number;
-  totalKeys: number;
-  message: string;
-}) => void;
+import type { KeyStatusCallback } from "@src/types";
 
 class GeminiKeyManager {
   private keys: string[] = [];

@@ -3,29 +3,15 @@
  * Kiểu MAL: Chưa dịch (Plan to Watch), Đang dịch (Watching), Đã dịch (Completed)
  */
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import type { QueueItem, QueueStatus } from "@src/types";
 import { translationManager } from "./translationManager";
 import { getActiveGeminiConfig, getBatchSettings } from "@utils/storage";
 
+// Re-export types for backward compatibility
+export type { QueueItem, QueueStatus } from "@src/types";
+
 const QUEUE_STORAGE_KEY = "@translation_queue";
 const PAGE_SIZE = 10;
-
-export type QueueStatus = "pending" | "translating" | "completed" | "error";
-
-export interface QueueItem {
-  id: string;
-  videoUrl: string;
-  videoId: string;
-  title: string;
-  thumbnail: string;
-  duration?: number;
-  status: QueueStatus;
-  configName?: string;
-  progress?: { completed: number; total: number };
-  error?: string;
-  addedAt: number;
-  startedAt?: number;
-  completedAt?: number;
-}
 
 type QueueListener = (items: QueueItem[]) => void;
 

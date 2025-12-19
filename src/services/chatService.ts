@@ -1,34 +1,6 @@
-import { GoogleGenAI } from "@google/genai";
-import { GeminiConfig } from "@utils/storage";
+import type { GeminiConfig, ChatMessage, StreamCallbacks } from "@src/types";
+import { normalizeYouTubeUrl } from "@utils/videoUtils";
 import { keyManager } from "./keyManager";
-
-export interface ChatMessage {
-  id: string;
-  role: "user" | "model";
-  content: string;
-  timestamp: number;
-  hasVideo?: boolean; // Flag nếu tin nhắn có kèm video
-  videoTitle?: string; // Tên video đính kèm
-}
-
-export interface StreamCallbacks {
-  onChunk: (text: string) => void;
-  onComplete: (fullText: string) => void;
-  onError: (error: Error) => void;
-}
-
-// Normalize YouTube URL
-const normalizeYouTubeUrl = (url: string): string => {
-  let videoId = "";
-  const shortMatch = url.match(/youtu\.be\/([a-zA-Z0-9_-]+)/);
-  if (shortMatch) videoId = shortMatch[1];
-  const watchMatch = url.match(/[?&]v=([a-zA-Z0-9_-]+)/);
-  if (watchMatch) videoId = watchMatch[1];
-  const shortsMatch = url.match(/\/shorts\/([a-zA-Z0-9_-]+)/);
-  if (shortsMatch) videoId = shortsMatch[1];
-  if (videoId) return `https://www.youtube.com/watch?v=${videoId}`;
-  return url;
-};
 
 // Send message with streaming response (multi-turn)
 export const sendChatMessage = async (

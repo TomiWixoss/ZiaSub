@@ -15,10 +15,8 @@ import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Slider from "@react-native-community/slider";
 import { COLORS } from "@constants/colors";
+import type { SubtitleSettings, BatchSettings, TTSSettings } from "@src/types";
 import {
-  SubtitleSettings,
-  BatchSettings,
-  TTSSettings,
   saveSubtitleSettings,
   saveBatchSettings,
   saveApiKeys,

@@ -10,7 +10,8 @@ import {
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { COLORS } from "@constants/colors";
-import { ChatSession, updateChatSession } from "@utils/storage";
+import type { ChatSession } from "@src/types";
+import { updateChatSession } from "@utils/storage";
 import { confirmDestructive } from "@components/CustomAlert";
 
 interface ChatDrawerProps {

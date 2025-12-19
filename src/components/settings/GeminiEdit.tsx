@@ -11,7 +11,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Slider from "@react-native-community/slider";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { COLORS } from "@constants/colors";
-import { GeminiConfig } from "@utils/storage";
+import type { GeminiConfig } from "@src/types";
 
 const AVAILABLE_MODELS = [
   { id: "models/gemini-3-flash-preview", name: "Gemini 3 Flash (Preview)" },

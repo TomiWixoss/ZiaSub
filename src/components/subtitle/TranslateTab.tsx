@@ -12,10 +12,13 @@ import { alert, confirmDestructive } from "../CustomAlert";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { COLORS } from "@constants/colors";
-import {
+import type {
   GeminiConfig,
   BatchSettings,
   SavedTranslation,
+  BatchProgress,
+} from "@src/types";
+import {
   getGeminiConfigs,
   getActiveGeminiConfig,
   saveActiveGeminiConfigId,
@@ -24,28 +27,9 @@ import {
   deleteTranslation,
   getApiKeys,
 } from "@utils/storage";
-import { BatchProgress } from "@services/geminiService";
 import { translationManager } from "@services/translationManager";
+import { formatDuration, parseTime } from "@utils/videoUtils";
 import Button3D from "../Button3D";
-
-// Helper to format seconds to mm:ss
-const formatTime = (seconds: number): string => {
-  const mins = Math.floor(seconds / 60);
-  const secs = Math.floor(seconds % 60);
-  return `${mins}:${secs.toString().padStart(2, "0")}`;
-};
-
-// Helper to parse mm:ss to seconds
-const parseTime = (timeStr: string): number | null => {
-  const parts = timeStr.split(":").map((p) => parseInt(p, 10));
-  if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
-    return parts[0] * 60 + parts[1];
-  }
-  if (parts.length === 1 && !isNaN(parts[0])) {
-    return parts[0];
-  }
-  return null;
-};
 
 interface TranslateTabProps {
   videoUrl?: string;
@@ -500,7 +484,7 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
                     value={rangeEndStr}
                     onChangeText={setRangeEndStr}
                     placeholder={
-                      videoDuration ? formatTime(videoDuration) : "cuối"
+                      videoDuration ? formatDuration(videoDuration) : "cuối"
                     }
                     placeholderTextColor={COLORS.textMuted}
                     keyboardType="numbers-and-punctuation"
@@ -511,7 +495,7 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
 
             {videoDuration && (
               <Text style={styles.durationHint}>
-                Độ dài video: {formatTime(videoDuration)}
+                Độ dài video: {formatDuration(videoDuration)}
               </Text>
             )}
           </View>

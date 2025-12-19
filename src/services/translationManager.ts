@@ -1,24 +1,12 @@
-import { GeminiConfig, BatchSettings, saveTranslation } from "@utils/storage";
-import { translateVideoWithGemini, BatchProgress } from "./geminiService";
-import { KeyStatusCallback } from "./keyManager";
-
-export interface TranslationJob {
-  id: string;
-  videoUrl: string;
-  configName: string;
-  status: "pending" | "processing" | "completed" | "error";
-  progress: BatchProgress | null;
-  keyStatus: string | null;
-  result: string | null;
-  error: string | null;
-  startedAt: number;
-  completedAt: number | null;
-  // Streaming mode - partial SRT content as batches complete
-  partialResult: string | null;
-  // Custom range
-  rangeStart?: number;
-  rangeEnd?: number;
-}
+import type {
+  GeminiConfig,
+  BatchSettings,
+  BatchProgress,
+  TranslationJob,
+  KeyStatusCallback,
+} from "@src/types";
+import { saveTranslation } from "@utils/storage";
+import { translateVideoWithGemini } from "./geminiService";
 
 type TranslationListener = (job: TranslationJob) => void;
 

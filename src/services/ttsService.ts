@@ -1,24 +1,6 @@
 import * as Speech from "expo-speech";
-
-export interface TTSSettings {
-  enabled: boolean;
-  rate: number; // 0.5 - 2.0, default 1.0
-  pitch: number; // 0.5 - 2.0, default 1.0
-  language: string; // default 'vi-VN'
-  duckVideo: boolean; // Reduce video volume when speaking
-  duckLevel: number; // Video volume when speaking (0-1)
-  autoRate: boolean; // Auto adjust rate based on subtitle duration
-}
-
-export const DEFAULT_TTS_SETTINGS: TTSSettings = {
-  enabled: false,
-  rate: 1.0,
-  pitch: 1.0,
-  language: "vi-VN",
-  duckVideo: false,
-  duckLevel: 0.2,
-  autoRate: true,
-};
+import type { TTSSettings } from "@src/types";
+import { DEFAULT_TTS_SETTINGS } from "@constants/defaults";
 
 type TTSSpeakingCallback = (isSpeaking: boolean) => void;
 
