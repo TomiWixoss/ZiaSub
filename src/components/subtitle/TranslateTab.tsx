@@ -266,58 +266,54 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
         </View>
       )}
 
-      {/* Status */}
+      {/* Translation Progress */}
       {isTranslating && (
-        <View style={styles.statusContainer}>
-          <ActivityIndicator size="small" color={COLORS.primary} />
-          <View style={styles.statusTextContainer}>
-            <Text style={styles.statusText}>{translateStatus}</Text>
-            {keyStatus && <Text style={styles.keyStatusText}>{keyStatus}</Text>}
+        <View style={styles.progressContainer}>
+          <View style={styles.progressHeader}>
+            <View style={styles.progressTitleRow}>
+              <ActivityIndicator size="small" color={COLORS.primary} />
+              <Text style={styles.progressTitle}>{translateStatus}</Text>
+            </View>
+            {batchProgress && batchProgress.totalBatches > 1 && (
+              <Text style={styles.progressCount}>
+                {batchProgress.completedBatches}/{batchProgress.totalBatches}
+              </Text>
+            )}
           </View>
-        </View>
-      )}
 
-      {/* Batch Progress */}
-      {batchProgress && batchProgress.totalBatches > 1 && (
-        <View style={styles.batchProgressContainer}>
-          <View style={styles.batchProgressHeader}>
-            <Text style={styles.batchProgressTitle}>Tiến trình batch</Text>
-            <Text style={styles.batchProgressCount}>
-              {batchProgress.completedBatches}/{batchProgress.totalBatches}
-            </Text>
-          </View>
-          <View style={styles.batchGrid}>
-            {batchProgress.batchStatuses.map((status, index) => (
-              <View
-                key={index}
-                style={[
-                  styles.batchItem,
-                  status === "completed" && styles.batchCompleted,
-                  status === "processing" && styles.batchProcessing,
-                  status === "error" && styles.batchError,
-                ]}
-              >
-                <Text style={styles.batchItemText}>{index + 1}</Text>
-                {status === "processing" && (
-                  <ActivityIndicator size={10} color={COLORS.text} />
-                )}
-                {status === "completed" && (
-                  <MaterialCommunityIcons
-                    name="check"
-                    size={12}
-                    color={COLORS.text}
-                  />
-                )}
-                {status === "error" && (
-                  <MaterialCommunityIcons
-                    name="close"
-                    size={12}
-                    color={COLORS.text}
-                  />
-                )}
-              </View>
-            ))}
-          </View>
+          {keyStatus && <Text style={styles.keyStatusText}>{keyStatus}</Text>}
+
+          {batchProgress && batchProgress.totalBatches > 1 && (
+            <View style={styles.batchGrid}>
+              {batchProgress.batchStatuses.map((status, index) => (
+                <View
+                  key={index}
+                  style={[
+                    styles.batchItem,
+                    status === "completed" && styles.batchCompleted,
+                    status === "processing" && styles.batchProcessing,
+                    status === "error" && styles.batchError,
+                  ]}
+                >
+                  <Text style={styles.batchItemText}>{index + 1}</Text>
+                  {status === "completed" && (
+                    <MaterialCommunityIcons
+                      name="check"
+                      size={12}
+                      color={COLORS.text}
+                    />
+                  )}
+                  {status === "error" && (
+                    <MaterialCommunityIcons
+                      name="close"
+                      size={12}
+                      color={COLORS.text}
+                    />
+                  )}
+                </View>
+              ))}
+            </View>
+          )}
         </View>
       )}
 
@@ -406,41 +402,51 @@ const styles = StyleSheet.create({
   configOptionText: { color: COLORS.text, fontSize: 14 },
   configOptionTextActive: { color: COLORS.primary, fontWeight: "600" },
   configNoKey: { color: COLORS.textMuted, fontSize: 11, marginTop: 2 },
-  statusContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 12,
-    gap: 10,
-  },
-  statusTextContainer: { alignItems: "center" },
-  statusText: { color: COLORS.textSecondary, fontSize: 14 },
-  keyStatusText: { color: COLORS.textMuted, fontSize: 12, marginTop: 2 },
   translateButtonContainer: { marginTop: "auto", marginBottom: 8 },
-  batchProgressContainer: {
+  progressContainer: {
     backgroundColor: COLORS.surfaceLight,
     borderRadius: 12,
     padding: 14,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: COLORS.primary,
   },
-  batchProgressHeader: {
+  progressHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
   },
-  batchProgressTitle: { color: COLORS.text, fontSize: 13, fontWeight: "500" },
-  batchProgressCount: {
+  progressTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    flex: 1,
+  },
+  progressTitle: {
+    color: COLORS.text,
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  progressCount: {
     color: COLORS.primary,
-    fontSize: 13,
-    fontWeight: "600",
+    fontSize: 14,
+    fontWeight: "700",
   },
-  batchGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  keyStatusText: {
+    color: COLORS.textMuted,
+    fontSize: 12,
+    marginTop: 6,
+    marginLeft: 30,
+  },
+  batchGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 12,
+  },
   batchItem: {
     width: 44,
-    height: 36,
+    height: 32,
     borderRadius: 8,
     backgroundColor: COLORS.surfaceElevated,
     justifyContent: "center",

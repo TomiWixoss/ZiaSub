@@ -61,12 +61,25 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
   const [selectedConfigId, setSelectedConfigId] = useState<string>("");
   const [showConfigPicker, setShowConfigPicker] = useState(false);
 
+  // Use ref to track current tab for subscription callback
+  const activeTabRef = useRef<TabType>(activeTab);
+  const pageRef = useRef<number>(page);
+
+  useEffect(() => {
+    activeTabRef.current = activeTab;
+  }, [activeTab]);
+
+  useEffect(() => {
+    pageRef.current = page;
+  }, [page]);
+
   useEffect(() => {
     queueManager.initialize();
     loadConfigs();
     const unsubscribe = queueManager.subscribe(() => {
       setCounts(queueManager.getCounts());
-      loadItems();
+      // Use refs to get current values
+      loadItemsWithParams(activeTabRef.current, pageRef.current);
     });
     return () => unsubscribe();
   }, []);
@@ -109,13 +122,12 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
     }
   }, [visible]);
 
-  const loadItems = () => {
-    const status: QueueStatus =
-      activeTab === "translating" ? "translating" : activeTab;
-    const result = queueManager.getItemsByStatus(status, page);
+  const loadItemsWithParams = (tab: TabType, currentPage: number) => {
+    const status: QueueStatus = tab === "translating" ? "translating" : tab;
+    const result = queueManager.getItemsByStatus(status, currentPage);
 
     // Include error items in pending tab
-    if (activeTab === "pending") {
+    if (tab === "pending") {
       const errorResult = queueManager.getItemsByStatus("error", 1);
       setItems([...errorResult.items, ...result.items]);
       setTotalPages(Math.max(result.totalPages, 1));
@@ -123,6 +135,10 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
       setItems(result.items);
       setTotalPages(result.totalPages);
     }
+  };
+
+  const loadItems = () => {
+    loadItemsWithParams(activeTab, page);
   };
 
   const handleClose = () => {
@@ -557,6 +573,7 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
               items.length === 0 ? styles.emptyList : styles.list
             }
             showsVerticalScrollIndicator={false}
+            extraData={activeTab}
           />
 
           {/* Pagination */}
