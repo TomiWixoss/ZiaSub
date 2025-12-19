@@ -7,6 +7,7 @@ interface FloatingButtonProps {
   onPress: () => void;
   onSettingsPress: () => void;
   onQueuePress: () => void;
+  onChatPress: () => void;
   onAddToQueuePress?: () => void;
   isVideoPage: boolean;
   hasSubtitles?: boolean;
@@ -187,6 +188,7 @@ const FloatingButton: React.FC<FloatingButtonProps> = ({
   onPress,
   onSettingsPress,
   onQueuePress,
+  onChatPress,
   onAddToQueuePress,
   isVideoPage,
   hasSubtitles = false,
@@ -200,7 +202,7 @@ const FloatingButton: React.FC<FloatingButtonProps> = ({
 
   return (
     <>
-      {/* Left side: Settings & Queue - always visible */}
+      {/* Left side: Settings, Queue & Chat - always visible */}
       <View style={[styles.fabContainerLeft, { bottom: bottomPosition }]}>
         <Fab3D onPress={onSettingsPress} icon="cog" size={40} iconSize={20} />
         <View style={styles.queueBtnWrapper}>
@@ -218,6 +220,12 @@ const FloatingButton: React.FC<FloatingButtonProps> = ({
             </View>
           )}
         </View>
+        <Fab3D
+          onPress={onChatPress}
+          icon="robot-outline"
+          size={40}
+          iconSize={20}
+        />
       </View>
 
       {/* Right side: Add to queue & Subtitle/Translate - only on video page */}

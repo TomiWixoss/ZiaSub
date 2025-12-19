@@ -486,3 +486,49 @@ export const getActiveGeminiConfig = async (): Promise<GeminiConfig | null> => {
     return null;
   }
 };
+
+// Chat history storage
+const CHAT_HISTORY_KEY = "chat_history";
+
+export interface StoredChatMessage {
+  id: string;
+  role: "user" | "model";
+  content: string;
+  timestamp: number;
+  hasVideo?: boolean;
+}
+
+export interface ChatHistory {
+  messages: StoredChatMessage[];
+  lastConfigId: string | null;
+  videoUrl: string | null;
+}
+
+export const saveChatHistory = async (history: ChatHistory): Promise<void> => {
+  try {
+    await AsyncStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(history));
+  } catch (error) {
+    console.error("Error saving chat history:", error);
+  }
+};
+
+export const getChatHistory = async (): Promise<ChatHistory> => {
+  try {
+    const data = await AsyncStorage.getItem(CHAT_HISTORY_KEY);
+    if (data) {
+      return JSON.parse(data);
+    }
+    return { messages: [], lastConfigId: null, videoUrl: null };
+  } catch (error) {
+    console.error("Error getting chat history:", error);
+    return { messages: [], lastConfigId: null, videoUrl: null };
+  }
+};
+
+export const clearChatHistory = async (): Promise<void> => {
+  try {
+    await AsyncStorage.removeItem(CHAT_HISTORY_KEY);
+  } catch (error) {
+    console.error("Error clearing chat history:", error);
+  }
+};

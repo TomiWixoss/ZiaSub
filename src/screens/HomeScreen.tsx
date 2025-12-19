@@ -618,6 +618,7 @@ const HomeScreen = () => {
         onPress={() => setModalVisible(true)}
         onSettingsPress={() => setSettingsVisible(true)}
         onQueuePress={() => setQueueModalVisible(true)}
+        onChatPress={() => {}}
         onAddToQueuePress={currentUrl ? handleAddToQueue : undefined}
         hasSubtitles={subtitles.length > 0}
         isTranslating={isTranslating}
