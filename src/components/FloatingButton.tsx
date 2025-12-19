@@ -199,39 +199,42 @@ const FloatingButton: React.FC<FloatingButtonProps> = ({
 }) => {
   // Higher position when on list page to avoid YouTube nav bar
   const bottomPosition = isVideoPage ? 20 : 80;
+  const rowHeight = 44 + 10; // button height + gap
 
   return (
     <>
-      {/* Bottom row: Settings (left), Queue + Add (center-left) */}
-      <View style={[styles.fabRowBottom, { bottom: bottomPosition }]}>
+      {/* Left column: Settings on top, Queue+Add below */}
+      <View style={[styles.fabColumnLeft, { bottom: bottomPosition }]}>
         <Fab3D onPress={onSettingsPress} icon="cog" size={40} iconSize={20} />
-        <View style={styles.queueBtnWrapper}>
-          <Fab3D
-            onPress={onQueuePress}
-            icon="playlist-play"
-            size={40}
-            iconSize={20}
-          />
-          {queueCount > 0 && (
-            <View style={styles.queueBadge}>
-              <Animated.Text style={styles.queueBadgeText}>
-                {queueCount}
-              </Animated.Text>
-            </View>
+        <View style={styles.queueRow}>
+          <View style={styles.queueBtnWrapper}>
+            <Fab3D
+              onPress={onQueuePress}
+              icon="playlist-play"
+              size={40}
+              iconSize={20}
+            />
+            {queueCount > 0 && (
+              <View style={styles.queueBadge}>
+                <Animated.Text style={styles.queueBadgeText}>
+                  {queueCount}
+                </Animated.Text>
+              </View>
+            )}
+          </View>
+          {isVideoPage && onAddToQueuePress && (
+            <Fab3D
+              onPress={onAddToQueuePress}
+              icon={isInQueue ? "playlist-check" : "playlist-plus"}
+              size={40}
+              iconSize={20}
+              active={isInQueue}
+            />
           )}
         </View>
-        {isVideoPage && onAddToQueuePress && (
-          <Fab3D
-            onPress={onAddToQueuePress}
-            icon={isInQueue ? "playlist-check" : "playlist-plus"}
-            size={40}
-            iconSize={20}
-            active={isInQueue}
-          />
-        )}
       </View>
 
-      {/* Right side column: Chat on top, Subtitle below */}
+      {/* Right column: AI (aligned with bottom row when no video, or above Sub when video) */}
       <View style={[styles.fabColumnRight, { bottom: bottomPosition }]}>
         <Fab3D
           onPress={onChatPress}
@@ -257,22 +260,24 @@ const FloatingButton: React.FC<FloatingButtonProps> = ({
 };
 
 const styles = StyleSheet.create({
-  fabRowBottom: {
+  fabColumnLeft: {
     position: "absolute",
-    bottom: 20,
     left: 16,
-    flexDirection: "row",
-    alignItems: "flex-end",
+    alignItems: "flex-start",
     gap: 10,
     zIndex: 20,
   },
   fabColumnRight: {
     position: "absolute",
-    bottom: 20,
     right: 16,
     alignItems: "center",
     gap: 10,
     zIndex: 20,
+  },
+  queueRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
   },
   queueBtnWrapper: { position: "relative" },
   queueBadge: {

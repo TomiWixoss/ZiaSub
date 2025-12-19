@@ -168,6 +168,15 @@ const ChatModal: React.FC<ChatModalProps> = ({
     await clearChatHistory();
   };
 
+  const renderAIHeader = () => (
+    <View style={styles.aiHeader}>
+      <View style={styles.aiAvatar}>
+        <MaterialCommunityIcons name="robot" size={18} color={COLORS.primary} />
+      </View>
+      <Text style={styles.aiName}>Zia</Text>
+    </View>
+  );
+
   const renderMessage = ({ item }: { item: ChatMessage }) => {
     const isUser = item.role === "user";
     return (
@@ -182,6 +191,7 @@ const ChatModal: React.FC<ChatModalProps> = ({
             <Text style={styles.videoIndicatorText}>Video đính kèm</Text>
           </View>
         )}
+        {!isUser && renderAIHeader()}
         <View
           style={[
             styles.messageBubble,
@@ -199,11 +209,19 @@ const ChatModal: React.FC<ChatModalProps> = ({
   };
 
   const renderStreamingMessage = () => {
-    if (!streamingText) return null;
+    if (!isLoading && !streamingText) return null;
     return (
       <View style={styles.messageRow}>
+        {renderAIHeader()}
         <View style={[styles.messageBubble, styles.aiBubble]}>
-          <Markdown style={markdownStyles}>{streamingText}</Markdown>
+          {streamingText ? (
+            <Markdown style={markdownStyles}>{streamingText}</Markdown>
+          ) : (
+            <View style={styles.typingIndicator}>
+              <ActivityIndicator size="small" color={COLORS.primary} />
+              <Text style={styles.typingText}>Đang suy nghĩ...</Text>
+            </View>
+          )}
         </View>
       </View>
     );
@@ -440,6 +458,35 @@ const styles = StyleSheet.create({
   videoIndicatorText: {
     color: COLORS.textMuted,
     fontSize: 11,
+  },
+  aiHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 6,
+  },
+  aiAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: COLORS.surfaceLight,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  aiName: {
+    color: COLORS.text,
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  typingIndicator: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 4,
+  },
+  typingText: {
+    color: COLORS.textMuted,
+    fontSize: 14,
   },
   messageBubble: {
     maxWidth: "85%",

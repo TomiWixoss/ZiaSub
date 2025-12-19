@@ -89,13 +89,25 @@ export const sendChatMessage = async (
 
     let fullText = "";
     for await (const chunk of response) {
-      const text = chunk.text || "";
-      fullText += text;
-      callbacks.onChunk(fullText);
+      const text = chunk.text ?? "";
+      if (text) {
+        fullText += text;
+        callbacks.onChunk(fullText);
+      }
     }
-    callbacks.onComplete(fullText);
+
+    if (fullText) {
+      callbacks.onComplete(fullText);
+    } else {
+      callbacks.onError(new Error("Không nhận được phản hồi từ AI"));
+    }
   } catch (error: any) {
     console.error("[ChatService] Error:", error);
-    callbacks.onError(error);
+    // Handle specific error cases
+    if (error.message?.includes("empty") || error.message?.includes("Empty")) {
+      callbacks.onError(new Error("Phản hồi trống. Thử lại nhé!"));
+    } else {
+      callbacks.onError(error);
+    }
   }
 };

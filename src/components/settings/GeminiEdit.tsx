@@ -40,7 +40,11 @@ const GeminiEdit: React.FC<GeminiEditProps> = ({
   const modelDisplayName = selectedModel?.name || config.model;
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      style={styles.container}
+      showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
+    >
       <View style={styles.settingGroup}>
         <Text style={styles.settingLabel}>Tên kiểu dịch</Text>
         <RNTextInput
