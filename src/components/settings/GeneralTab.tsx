@@ -6,9 +6,9 @@ import {
   ScrollView,
   TextInput,
   TouchableOpacity,
-  Alert,
   Linking,
 } from "react-native";
+import { alert, confirmDestructive } from "../CustomAlert";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Slider from "@react-native-community/slider";
@@ -89,7 +89,7 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
     const key = newKey.trim();
     if (!key) return;
     if (apiKeys.includes(key)) {
-      Alert.alert("Lỗi", "API Key này đã tồn tại.");
+      alert("Lỗi", "API Key này đã tồn tại.");
       return;
     }
     const newKeys = [...apiKeys, key];
@@ -100,19 +100,16 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
   };
 
   const handleDeleteKey = (index: number) => {
-    Alert.alert("Xác nhận", "Bạn có chắc muốn xóa API Key này?", [
-      { text: "Hủy", style: "cancel" },
-      {
-        text: "Xóa",
-        style: "destructive",
-        onPress: async () => {
-          const newKeys = apiKeys.filter((_, i) => i !== index);
-          onApiKeysChange(newKeys);
-          await saveApiKeys(newKeys);
-          keyManager.initialize(newKeys);
-        },
-      },
-    ]);
+    confirmDestructive(
+      "Xác nhận",
+      "Bạn có chắc muốn xóa API Key này?",
+      async () => {
+        const newKeys = apiKeys.filter((_, i) => i !== index);
+        onApiKeysChange(newKeys);
+        await saveApiKeys(newKeys);
+        keyManager.initialize(newKeys);
+      }
+    );
   };
 
   const maskKey = (key: string) => {

@@ -2,6 +2,7 @@ import React from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { PaperProvider, MD3DarkTheme } from "react-native-paper";
 import { COLORS } from "@constants/colors";
+import { AlertProvider } from "@components/CustomAlert";
 import HomeScreen from "@screens/HomeScreen";
 
 const theme = {
@@ -20,7 +21,9 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <PaperProvider theme={theme}>
-        <HomeScreen />
+        <AlertProvider>
+          <HomeScreen />
+        </AlertProvider>
       </PaperProvider>
     </SafeAreaProvider>
   );

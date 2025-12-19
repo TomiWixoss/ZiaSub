@@ -7,9 +7,9 @@ import {
   Platform,
   Dimensions,
   TouchableOpacity,
-  Alert,
   Animated,
 } from "react-native";
+import { alert, confirm } from "./CustomAlert";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -130,7 +130,7 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
             videoTitle
           );
           translationManager.clearCompletedJob(videoUrl);
-          Alert.alert("Thành công", "Đã dịch xong! Phụ đề đã được áp dụng.");
+          alert("Thành công", "Đã dịch xong! Phụ đề đã được áp dụng.");
         }
 
         if (job.status === "error") {
@@ -142,7 +142,7 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
             job.error || "Lỗi không xác định"
           );
           translationManager.clearCompletedJob(videoUrl);
-          Alert.alert("Lỗi dịch", job.error || "Không thể dịch video.");
+          alert("Lỗi dịch", job.error || "Không thể dịch video.");
         }
       }
     });
@@ -204,13 +204,12 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
     try {
       const clipboardContent = await Clipboard.getStringAsync();
       if (clipboardContent && isSRTFormat(clipboardContent) && !srtContent) {
-        Alert.alert(
+        confirm(
           "Phát hiện SRT",
           "Clipboard có nội dung SRT. Bạn có muốn dán vào không?",
-          [
-            { text: "Không", style: "cancel" },
-            { text: "Dán", onPress: () => setSrtContent(clipboardContent) },
-          ]
+          () => setSrtContent(clipboardContent),
+          "Dán",
+          "Không"
         );
       }
     } catch {}

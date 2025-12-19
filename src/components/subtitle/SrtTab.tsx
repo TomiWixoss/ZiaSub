@@ -3,10 +3,10 @@ import {
   View,
   StyleSheet,
   TouchableOpacity,
-  Alert,
   TextInput as RNTextInput,
   Platform,
 } from "react-native";
+import { alert } from "../CustomAlert";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
 import * as Clipboard from "expo-clipboard";
@@ -31,10 +31,10 @@ export const SrtTab: React.FC<SrtTabProps> = ({
       if (clipboardContent) {
         setSrtContent(clipboardContent);
       } else {
-        Alert.alert("Thông báo", "Clipboard trống.");
+        alert("Thông báo", "Clipboard trống.");
       }
     } catch (error) {
-      Alert.alert("Lỗi", "Không thể truy cập clipboard.");
+      alert("Lỗi", "Không thể truy cập clipboard.");
     }
   };
 
@@ -53,7 +53,7 @@ export const SrtTab: React.FC<SrtTabProps> = ({
         setSrtContent(content);
       }
     } catch (error) {
-      Alert.alert("Lỗi", "Không thể đọc file này.");
+      alert("Lỗi", "Không thể đọc file này.");
     }
   };
 

@@ -6,11 +6,11 @@ import {
   TouchableOpacity,
   FlatList,
   Image,
-  Alert,
   Animated,
   Dimensions,
   useWindowDimensions,
 } from "react-native";
+import { confirm, confirmDestructive } from "./CustomAlert";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -140,32 +140,27 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
   };
 
   const handleStartTranslation = (item: QueueItem) => {
-    Alert.alert("Bắt đầu dịch", `Dịch video "${item.title}"?`, [
-      { text: "Hủy", style: "cancel" },
-      { text: "Dịch", onPress: () => queueManager.startTranslation(item.id) },
-    ]);
+    confirm(
+      "Bắt đầu dịch",
+      `Dịch video "${item.title}"?`,
+      () => queueManager.startTranslation(item.id),
+      "Dịch"
+    );
   };
 
   const handleStartAll = () => {
-    Alert.alert(
+    confirm(
       "Dịch tất cả",
       "Bắt đầu dịch tự động tất cả video trong danh sách?",
-      [
-        { text: "Hủy", style: "cancel" },
-        { text: "Bắt đầu", onPress: () => queueManager.startAutoProcess() },
-      ]
+      () => queueManager.startAutoProcess(),
+      "Bắt đầu"
     );
   };
 
   const handleRemove = (item: QueueItem) => {
-    Alert.alert("Xóa", `Xóa "${item.title}" khỏi danh sách?`, [
-      { text: "Hủy", style: "cancel" },
-      {
-        text: "Xóa",
-        style: "destructive",
-        onPress: () => queueManager.removeFromQueue(item.id),
-      },
-    ]);
+    confirmDestructive("Xóa", `Xóa "${item.title}" khỏi danh sách?`, () =>
+      queueManager.removeFromQueue(item.id)
+    );
   };
 
   const handleRequeue = (item: QueueItem) => {

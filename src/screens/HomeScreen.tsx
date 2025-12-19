@@ -2,11 +2,11 @@ import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   StyleSheet,
-  Alert,
   StatusBar,
   Text,
   TouchableOpacity,
 } from "react-native";
+import { alert, showAlert } from "@components/CustomAlert";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -247,7 +247,7 @@ const HomeScreen = () => {
     const { fixedData, fixCount } = fixSRT(srtContent);
 
     if (fixCount > 0) {
-      Alert.alert(
+      alert(
         "Đã sửa lỗi SRT",
         `Đã tự động khắc phục ${fixCount} lỗi định dạng.`
       );
@@ -271,7 +271,7 @@ const HomeScreen = () => {
 
     const existing = queueManager.isInQueue(currentUrl);
     if (existing) {
-      Alert.alert("Thông báo", "Video này đã có trong danh sách dịch.");
+      alert("Thông báo", "Video này đã có trong danh sách dịch.");
       return;
     }
 
@@ -284,7 +284,7 @@ const HomeScreen = () => {
 
     if (item) {
       setCurrentVideoInQueue(item);
-      Alert.alert("Đã thêm", "Video đã được thêm vào danh sách dịch.", [
+      showAlert("Đã thêm", "Video đã được thêm vào danh sách dịch.", [
         { text: "OK" },
         { text: "Xem danh sách", onPress: () => setQueueModalVisible(true) },
       ]);

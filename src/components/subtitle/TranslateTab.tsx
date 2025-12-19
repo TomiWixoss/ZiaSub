@@ -3,10 +3,10 @@ import {
   View,
   StyleSheet,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   ScrollView,
 } from "react-native";
+import { alert, confirmDestructive } from "../CustomAlert";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { COLORS } from "@constants/colors";
@@ -95,10 +95,10 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
 
   const handleTranslate = async () => {
     const config = geminiConfigs.find((c) => c.id === selectedConfigId);
-    if (!config) return Alert.alert("Lỗi", "Vui lòng chọn cấu hình Gemini.");
-    if (!videoUrl) return Alert.alert("Lỗi", "Không tìm thấy URL video.");
+    if (!config) return alert("Lỗi", "Vui lòng chọn cấu hình Gemini.");
+    if (!videoUrl) return alert("Lỗi", "Không tìm thấy URL video.");
     if (translationManager.isTranslatingUrl(videoUrl)) {
-      return Alert.alert("Thông báo", "Video này đang được dịch.");
+      return alert("Thông báo", "Video này đang được dịch.");
     }
 
     try {
@@ -110,7 +110,7 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
         batchSettings
       );
     } catch (error: any) {
-      Alert.alert("Lỗi", error.message || "Không thể bắt đầu dịch.");
+      alert("Lỗi", error.message || "Không thể bắt đầu dịch.");
     }
   };
 
@@ -123,18 +123,15 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
   };
 
   const handleDeleteTranslation = (translation: SavedTranslation) => {
-    Alert.alert("Xác nhận", "Bạn có chắc muốn xóa bản dịch này?", [
-      { text: "Hủy", style: "cancel" },
-      {
-        text: "Xóa",
-        style: "destructive",
-        onPress: async () => {
-          if (!videoUrl) return;
-          await deleteTranslation(videoUrl, translation.id);
-          loadTranslations();
-        },
-      },
-    ]);
+    confirmDestructive(
+      "Xác nhận",
+      "Bạn có chắc muốn xóa bản dịch này?",
+      async () => {
+        if (!videoUrl) return;
+        await deleteTranslation(videoUrl, translation.id);
+        loadTranslations();
+      }
+    );
   };
 
   const formatDate = (timestamp: number) => {

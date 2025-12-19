@@ -6,8 +6,8 @@ import {
   TouchableOpacity,
   Animated,
   Dimensions,
-  Alert,
 } from "react-native";
+import { alert, confirmDestructive } from "./CustomAlert";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -107,21 +107,18 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
   const handleDeleteConfig = (id: string) => {
     if (geminiConfigs.length <= 1) {
-      Alert.alert("Lỗi", "Phải có ít nhất một cấu hình.");
+      alert("Lỗi", "Phải có ít nhất một cấu hình.");
       return;
     }
-    Alert.alert("Xác nhận", "Bạn có chắc muốn xóa cấu hình này?", [
-      { text: "Hủy", style: "cancel" },
-      {
-        text: "Xóa",
-        style: "destructive",
-        onPress: async () => {
-          const newConfigs = geminiConfigs.filter((c) => c.id !== id);
-          setGeminiConfigs(newConfigs);
-          await saveGeminiConfigs(newConfigs);
-        },
-      },
-    ]);
+    confirmDestructive(
+      "Xác nhận",
+      "Bạn có chắc muốn xóa cấu hình này?",
+      async () => {
+        const newConfigs = geminiConfigs.filter((c) => c.id !== id);
+        setGeminiConfigs(newConfigs);
+        await saveGeminiConfigs(newConfigs);
+      }
+    );
   };
 
   const handleSaveConfig = async () => {
