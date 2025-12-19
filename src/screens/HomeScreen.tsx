@@ -301,8 +301,11 @@ const HomeScreen = () => {
         setVideoTitle("");
         setCurrentVideoInQueue(undefined);
       }
-      // Sync all data when on list/home page
+      // Sync all data when on list/home page with retry to handle back navigation
       syncAllToWebView();
+      // Retry after a short delay to ensure WebView is ready after back navigation
+      setTimeout(() => syncAllToWebView(), 300);
+      setTimeout(() => syncAllToWebView(), 800);
     }
   };
 

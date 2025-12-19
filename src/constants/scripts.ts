@@ -216,9 +216,6 @@ export const INJECTED_JAVASCRIPT = `
       
       // Find all links that contain video thumbnails
       document.querySelectorAll('a[href*="/watch?v="]').forEach(link => {
-        // Skip if already processed or no thumbnail inside
-        if (link.dataset.ziasubDone) return;
-        
         // Check if this link contains a thumbnail image
         const hasThumb = link.querySelector('img[src*="ytimg.com"], img[src*="i.ytimg"], ytm-thumbnail-cover, ytm-compact-thumbnail');
         if (!hasThumb) return;
@@ -226,8 +223,6 @@ export const INJECTED_JAVASCRIPT = `
         const href = link.getAttribute('href') || '';
         const videoId = extractVideoId(href);
         if (!videoId) return;
-        
-        link.dataset.ziasubDone = '1';
         
         const videoUrl = 'https://m.youtube.com/watch?v=' + videoId;
         
@@ -243,16 +238,23 @@ export const INJECTED_JAVASCRIPT = `
         link.style.position = 'relative';
         link.style.display = 'block';
         
-        // Add translated badge
-        if (translatedVideoIds.has(videoId) && !link.querySelector('.ziasub-badge')) {
+        // Check and update translated badge
+        const existingBadge = link.querySelector('.ziasub-badge');
+        const shouldHaveBadge = translatedVideoIds.has(videoId);
+        
+        if (shouldHaveBadge && !existingBadge) {
+          // Add badge if video is translated but badge is missing
           const badge = document.createElement('div');
           badge.className = 'ziasub-badge';
           badge.textContent = 'Đã dịch';
           badge.style.cssText = 'position:absolute;top:4px;left:4px;background:rgba(155,126,217,0.9);color:#fff;font-size:9px;font-weight:600;padding:2px 5px;border-radius:3px;z-index:10;pointer-events:none;';
           link.appendChild(badge);
+        } else if (!shouldHaveBadge && existingBadge) {
+          // Remove badge if video is no longer translated
+          existingBadge.remove();
         }
         
-        // Add queue button
+        // Add queue button (function handles its own existence check)
         addQueueButton(link, videoId, videoUrl, title);
       });
     }
@@ -277,8 +279,9 @@ export const INJECTED_JAVASCRIPT = `
           landscapeBottom = d.payload.landscapeBottom || 8;
           updateSubtitleStyle();
         } else if (d.type === 'setTranslatedVideos') {
-          // Update translated video IDs and mark them
+          // Update translated video IDs and refresh all badges
           translatedVideoIds = new Set(d.payload || []);
+          // Force refresh all badges by calling markVideos
           markVideos();
         } else if (d.type === 'setQueuedVideos') {
           // Update queued video IDs
