@@ -3,9 +3,10 @@ import { View, TouchableOpacity, Image } from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { COLORS } from "@constants/colors";
+import { useTheme } from "@src/contexts";
+import { useThemedStyles } from "@hooks/useThemedStyles";
 import type { QueueItem } from "@src/types";
-import { queueStyles as styles } from "./queueStyles";
+import { createQueueStyles } from "./queueStyles";
 
 interface QueueItemCardProps {
   item: QueueItem;
@@ -22,7 +23,6 @@ const formatDuration = (seconds?: number) => {
   const s = seconds % 60;
   return `${m}:${s.toString().padStart(2, "0")}`;
 };
-
 const formatDate = (timestamp?: number) => {
   if (!timestamp) return "";
   const d = new Date(timestamp);
@@ -41,10 +41,12 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
   onRemove,
 }) => {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = useThemedStyles(() => createQueueStyles(colors));
+
   return (
     <TouchableOpacity style={styles.queueItem} onPress={() => onSelect(item)}>
       <Image source={{ uri: item.thumbnail }} style={styles.thumbnail} />
-
       {item.status === "translating" && item.progress && (
         <View style={styles.progressOverlay}>
           <Text style={styles.progressText}>
@@ -52,12 +54,10 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
           </Text>
         </View>
       )}
-
       <View style={styles.itemInfo}>
         <Text style={styles.itemTitle} numberOfLines={2}>
           {item.title}
         </Text>
-
         <View style={styles.itemMeta}>
           {item.duration && (
             <Text style={styles.metaText}>{formatDuration(item.duration)}</Text>
@@ -66,7 +66,6 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
             <Text style={styles.metaText}>• {item.configName}</Text>
           )}
         </View>
-
         <View style={styles.itemFooter}>
           {item.status === "pending" && (
             <Text style={styles.dateText}>
@@ -74,12 +73,12 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
             </Text>
           )}
           {item.status === "translating" && (
-            <Text style={[styles.dateText, { color: COLORS.primary }]}>
+            <Text style={[styles.dateText, { color: colors.primary }]}>
               {t("queue.status.translating")}
             </Text>
           )}
           {item.status === "completed" && (
-            <Text style={[styles.dateText, { color: COLORS.success }]}>
+            <Text style={[styles.dateText, { color: colors.success }]}>
               {t("queue.status.completed", {
                 date: formatDate(item.completedAt),
               })}
@@ -87,7 +86,7 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
           )}
           {item.status === "error" && (
             <Text
-              style={[styles.dateText, { color: COLORS.error }]}
+              style={[styles.dateText, { color: colors.error }]}
               numberOfLines={1}
             >
               {t("queue.status.error", { error: item.error })}
@@ -95,7 +94,6 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
           )}
         </View>
       </View>
-
       <View style={styles.itemActions}>
         {(item.status === "pending" || item.status === "error") && (
           <TouchableOpacity
@@ -106,7 +104,7 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
             <MaterialCommunityIcons
               name="play"
               size={20}
-              color={hasApiKey ? COLORS.primary : COLORS.textMuted}
+              color={hasApiKey ? colors.primary : colors.textMuted}
             />
           </TouchableOpacity>
         )}
@@ -118,7 +116,7 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
             <MaterialCommunityIcons
               name="refresh"
               size={20}
-              color={COLORS.textMuted}
+              color={colors.textMuted}
             />
           </TouchableOpacity>
         )}
@@ -129,7 +127,7 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
           <MaterialCommunityIcons
             name="delete-outline"
             size={20}
-            color={COLORS.error}
+            color={colors.error}
           />
         </TouchableOpacity>
       </View>

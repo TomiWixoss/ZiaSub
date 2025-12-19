@@ -2,8 +2,9 @@ import React from "react";
 import { View, TouchableOpacity } from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { COLORS } from "@constants/colors";
-import { queueStyles as styles } from "./queueStyles";
+import { useTheme } from "@src/contexts";
+import { useThemedStyles } from "@hooks/useThemedStyles";
+import { createQueueStyles } from "./queueStyles";
 
 interface QueuePaginationProps {
   page: number;
@@ -16,6 +17,9 @@ const QueuePagination: React.FC<QueuePaginationProps> = ({
   totalPages,
   onPageChange,
 }) => {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(() => createQueueStyles(colors));
+
   if (totalPages <= 1) return null;
 
   return (
@@ -28,7 +32,7 @@ const QueuePagination: React.FC<QueuePaginationProps> = ({
         <MaterialCommunityIcons
           name="chevron-left"
           size={24}
-          color={page === 1 ? COLORS.textMuted : COLORS.text}
+          color={page === 1 ? colors.textMuted : colors.text}
         />
       </TouchableOpacity>
       <Text style={styles.pageText}>
@@ -42,7 +46,7 @@ const QueuePagination: React.FC<QueuePaginationProps> = ({
         <MaterialCommunityIcons
           name="chevron-right"
           size={24}
-          color={page === totalPages ? COLORS.textMuted : COLORS.text}
+          color={page === totalPages ? colors.textMuted : colors.text}
         />
       </TouchableOpacity>
     </View>

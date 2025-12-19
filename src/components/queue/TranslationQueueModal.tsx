@@ -14,7 +14,8 @@ import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
-import { COLORS } from "@constants/colors";
+import { useTheme } from "@src/contexts";
+import { useThemedStyles, createThemedStyles } from "@hooks/useThemedStyles";
 import type { GeminiConfig, QueueItem, QueueStatus } from "@src/types";
 import { queueManager } from "@services/queueManager";
 import {
@@ -28,7 +29,7 @@ import QueueTabs, { TabType } from "./QueueTabs";
 import QueueActions from "./QueueActions";
 import QueueEmpty from "./QueueEmpty";
 import QueuePagination from "./QueuePagination";
-import { queueStyles } from "./queueStyles";
+import { createQueueStyles } from "./queueStyles";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 const FLOATING_BUTTON_HEIGHT = 80;
@@ -45,10 +46,10 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
   onSelectVideo,
 }) => {
   const { t } = useTranslation();
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   const isPortrait = height > width;
-
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -70,10 +71,12 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
   const activeTabRef = useRef<TabType>(activeTab);
   const pageRef = useRef<number>(page);
 
+  const queueStyles = useThemedStyles(() => createQueueStyles(colors));
+  const themedStyles = useThemedStyles(queueModalThemedStyles);
+
   useEffect(() => {
     activeTabRef.current = activeTab;
   }, [activeTab]);
-
   useEffect(() => {
     pageRef.current = page;
   }, [page]);
@@ -136,7 +139,6 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
   const loadItemsWithParams = (tab: TabType, currentPage: number) => {
     const status: QueueStatus = tab === "translating" ? "translating" : tab;
     const result = queueManager.getItemsByStatus(status, currentPage);
-
     if (tab === "pending") {
       const errorResult = queueManager.getItemsByStatus("error", 1);
       setItems([...errorResult.items, ...result.items]);
@@ -168,7 +170,6 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
     setActiveTab(tab);
     setPage(1);
   };
-
   const handleStartTranslation = (item: QueueItem) => {
     confirm(
       t("queue.dialogs.translateOne"),
@@ -177,7 +178,6 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
       t("queue.dialogs.translate")
     );
   };
-
   const handleStartAll = () => {
     confirm(
       t("queue.dialogs.translateAllTitle"),
@@ -186,7 +186,6 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
       t("common.start")
     );
   };
-
   const handleRemove = (item: QueueItem) => {
     confirmDestructive(
       t("queue.dialogs.removeTitle"),
@@ -194,11 +193,9 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
       () => queueManager.removeFromQueue(item.id)
     );
   };
-
   const handleRequeue = (item: QueueItem) => {
     queueManager.moveToPending(item.id);
   };
-
   const handleClearPending = () => {
     confirmDestructive(
       t("queue.dialogs.clearPendingTitle"),
@@ -206,7 +203,6 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
       () => queueManager.clearPending()
     );
   };
-
   const handleClearCompleted = () => {
     confirmDestructive(
       t("queue.dialogs.clearCompletedTitle"),
@@ -214,7 +210,6 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
       () => queueManager.clearByStatus("completed")
     );
   };
-
   const handleSelectVideo = (item: QueueItem) => {
     onSelectVideo(item.videoUrl);
     handleClose();
@@ -234,17 +229,19 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
       statusBarTranslucent
     >
       <View style={styles.modalOverlay}>
-        <Animated.View style={[styles.modalBackdrop, { opacity: fadeAnim }]}>
+        <Animated.View
+          style={[themedStyles.modalBackdrop, { opacity: fadeAnim }]}
+        >
           <TouchableOpacity
             style={StyleSheet.absoluteFill}
             activeOpacity={1}
             onPress={handleClose}
           />
         </Animated.View>
-
         <Animated.View
           style={[
             styles.container,
+            themedStyles.container,
             {
               marginTop: insets.top + 10,
               paddingBottom: bottomPadding,
@@ -252,26 +249,21 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
             },
           ]}
         >
-          {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.headerTitle}>{t("queue.title")}</Text>
+            <Text style={themedStyles.headerTitle}>{t("queue.title")}</Text>
             <TouchableOpacity style={styles.closeBtn} onPress={handleClose}>
               <MaterialCommunityIcons
                 name="close"
                 size={24}
-                color={COLORS.text}
+                color={colors.text}
               />
             </TouchableOpacity>
           </View>
-
-          {/* Tabs */}
           <QueueTabs
             activeTab={activeTab}
             onTabChange={handleTabChange}
             counts={counts}
           />
-
-          {/* Actions for Pending Tab */}
           {activeTab === "pending" && pendingCount > 0 && (
             <QueueActions
               hasApiKey={hasApiKey}
@@ -286,8 +278,6 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
               onClearPending={handleClearPending}
             />
           )}
-
-          {/* Clear All for Completed Tab */}
           {activeTab === "completed" && counts.completed > 0 && (
             <View style={queueStyles.actionSection}>
               <TouchableOpacity
@@ -297,7 +287,7 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
                 <MaterialCommunityIcons
                   name="delete-sweep"
                   size={20}
-                  color={COLORS.error}
+                  color={colors.error}
                 />
                 <Text style={queueStyles.clearAllText}>
                   {t("queue.actions.clearAll")}
@@ -305,8 +295,6 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
               </TouchableOpacity>
             </View>
           )}
-
-          {/* List */}
           <FlatList
             data={items}
             keyExtractor={(item) => item.id}
@@ -327,8 +315,6 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
             showsVerticalScrollIndicator={false}
             extraData={activeTab}
           />
-
-          {/* Pagination */}
           <QueuePagination
             page={page}
             totalPages={totalPages}
@@ -342,13 +328,8 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
 
 const styles = StyleSheet.create({
   modalOverlay: { flex: 1 },
-  modalBackdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: COLORS.overlay,
-  },
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingTop: 16,
@@ -360,10 +341,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 12,
   },
-  headerTitle: { color: COLORS.text, fontSize: 18, fontWeight: "700" },
   closeBtn: { padding: 4 },
   list: { paddingHorizontal: 16 },
   emptyList: { flex: 1 },
 });
+
+const queueModalThemedStyles = createThemedStyles((colors) => ({
+  modalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: colors.overlay,
+  },
+  container: { backgroundColor: colors.background },
+  headerTitle: { color: colors.text, fontSize: 18, fontWeight: "700" },
+}));
 
 export default TranslationQueueModal;

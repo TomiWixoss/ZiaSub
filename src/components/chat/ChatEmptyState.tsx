@@ -3,7 +3,8 @@ import { View, StyleSheet } from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { COLORS } from "@constants/colors";
+import { useTheme } from "@src/contexts";
+import { useThemedStyles, createThemedStyles } from "@hooks/useThemedStyles";
 import QuickActions from "./QuickActions";
 
 interface ChatEmptyStateProps {
@@ -20,23 +21,25 @@ const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
   onQuickAction,
 }) => {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const themedStyles = useThemedStyles(chatEmptyThemedStyles);
 
   return (
     <View style={styles.container}>
-      <Text style={styles.greeting}>{t("chat.greeting")}</Text>
-      <Text style={styles.greetingSubtitle}>{t("chat.greetingSubtitle")}</Text>
-
+      <Text style={themedStyles.greeting}>{t("chat.greeting")}</Text>
+      <Text style={themedStyles.greetingSubtitle}>
+        {t("chat.greetingSubtitle")}
+      </Text>
       {!hasApiKey && (
-        <View style={styles.warningContainer}>
+        <View style={themedStyles.warningContainer}>
           <MaterialCommunityIcons
             name="alert-circle-outline"
             size={20}
-            color={COLORS.warning}
+            color={colors.warning}
           />
-          <Text style={styles.warningText}>{t("chat.noApiKey")}</Text>
+          <Text style={themedStyles.warningText}>{t("chat.noApiKey")}</Text>
         </View>
       )}
-
       {hasVideo && (
         <QuickActions
           onAction={onQuickAction}
@@ -55,13 +58,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingTop: 40,
   },
-  greeting: {
-    color: COLORS.textSecondary,
-    fontSize: 18,
-    marginBottom: 4,
-  },
+});
+
+const chatEmptyThemedStyles = createThemedStyles((colors) => ({
+  greeting: { color: colors.textSecondary, fontSize: 18, marginBottom: 4 },
   greetingSubtitle: {
-    color: COLORS.text,
+    color: colors.text,
     fontSize: 26,
     fontWeight: "600",
     marginBottom: 32,
@@ -75,14 +77,10 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     gap: 10,
     borderWidth: 1,
-    borderColor: COLORS.warning,
+    borderColor: colors.warning,
     alignSelf: "stretch",
   },
-  warningText: {
-    color: COLORS.warning,
-    fontSize: 13,
-    flex: 1,
-  },
-});
+  warningText: { color: colors.warning, fontSize: 13, flex: 1 },
+}));
 
 export default ChatEmptyState;

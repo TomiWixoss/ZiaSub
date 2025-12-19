@@ -10,7 +10,8 @@ import {
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { COLORS } from "@constants/colors";
+import { useTheme } from "@src/contexts";
+import { useThemedStyles, createThemedStyles } from "@hooks/useThemedStyles";
 import type { GeminiConfig } from "@src/types";
 
 interface ConfigSelectorProps {
@@ -29,6 +30,9 @@ const ConfigSelector: React.FC<ConfigSelectorProps> = ({
   onClose,
 }) => {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const themedStyles = useThemedStyles(configSelectorThemedStyles);
+
   return (
     <Modal
       visible={visible}
@@ -37,20 +41,19 @@ const ConfigSelector: React.FC<ConfigSelectorProps> = ({
       onRequestClose={onClose}
     >
       <TouchableWithoutFeedback onPress={onClose}>
-        <View style={styles.overlay}>
+        <View style={themedStyles.overlay}>
           <TouchableWithoutFeedback>
-            <View style={styles.container}>
+            <View style={themedStyles.container}>
               <View style={styles.header}>
-                <Text style={styles.title}>{t("chat.selectConfig")}</Text>
+                <Text style={themedStyles.title}>{t("chat.selectConfig")}</Text>
                 <TouchableOpacity onPress={onClose}>
                   <MaterialCommunityIcons
                     name="close"
                     size={24}
-                    color={COLORS.textMuted}
+                    color={colors.textMuted}
                   />
                 </TouchableOpacity>
               </View>
-
               <ScrollView
                 style={styles.list}
                 showsVerticalScrollIndicator={false}
@@ -60,40 +63,44 @@ const ConfigSelector: React.FC<ConfigSelectorProps> = ({
                   return (
                     <TouchableOpacity
                       key={config.id}
-                      style={[styles.item, isActive && styles.itemActive]}
+                      style={[
+                        themedStyles.item,
+                        isActive && themedStyles.itemActive,
+                      ]}
                       onPress={() => onSelect(config)}
                     >
                       <View style={styles.itemContent}>
                         <MaterialCommunityIcons
                           name="robot"
                           size={20}
-                          color={isActive ? COLORS.primary : COLORS.textMuted}
+                          color={isActive ? colors.primary : colors.textMuted}
                         />
                         <View style={styles.itemText}>
                           <Text
                             style={[
-                              styles.itemName,
-                              isActive && styles.itemNameActive,
+                              themedStyles.itemName,
+                              isActive && themedStyles.itemNameActive,
                             ]}
                           >
                             {config.name}
                           </Text>
-                          <Text style={styles.itemModel}>{config.model}</Text>
+                          <Text style={themedStyles.itemModel}>
+                            {config.model}
+                          </Text>
                         </View>
                       </View>
                       {isActive && (
                         <MaterialCommunityIcons
                           name="check-circle"
                           size={20}
-                          color={COLORS.primary}
+                          color={colors.primary}
                         />
                       )}
                     </TouchableOpacity>
                   );
                 })}
               </ScrollView>
-
-              <Text style={styles.hint}>{t("chat.configHint")}</Text>
+              <Text style={themedStyles.hint}>{t("chat.configHint")}</Text>
             </View>
           </TouchableWithoutFeedback>
         </View>
@@ -103,9 +110,21 @@ const ConfigSelector: React.FC<ConfigSelectorProps> = ({
 };
 
 const styles = StyleSheet.create({
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  list: { maxHeight: 300 },
+  itemContent: { flexDirection: "row", alignItems: "center", flex: 1, gap: 12 },
+  itemText: { flex: 1 },
+});
+
+const configSelectorThemedStyles = createThemedStyles((colors) => ({
   overlay: {
     flex: 1,
-    backgroundColor: COLORS.overlay,
+    backgroundColor: colors.overlay,
     justifyContent: "center",
     alignItems: "center",
     padding: 24,
@@ -114,24 +133,11 @@ const styles = StyleSheet.create({
     width: "100%",
     maxWidth: 360,
     maxHeight: "70%",
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     borderRadius: 16,
     padding: 16,
   },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  title: {
-    color: COLORS.text,
-    fontSize: 18,
-    fontWeight: "600",
-  },
-  list: {
-    maxHeight: 300,
-  },
+  title: { color: colors.text, fontSize: 18, fontWeight: "600" },
   item: {
     flexDirection: "row",
     alignItems: "center",
@@ -139,42 +145,23 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 12,
     marginBottom: 8,
-    backgroundColor: COLORS.surfaceLight,
+    backgroundColor: colors.surfaceLight,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: colors.border,
   },
   itemActive: {
-    borderColor: COLORS.primary,
-    backgroundColor: "rgba(155, 126, 217, 0.1)",
+    borderColor: colors.primary,
+    backgroundColor: `${colors.primary}15`,
   },
-  itemContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-    gap: 12,
-  },
-  itemText: {
-    flex: 1,
-  },
-  itemName: {
-    color: COLORS.text,
-    fontSize: 15,
-    fontWeight: "500",
-  },
-  itemNameActive: {
-    color: COLORS.primary,
-  },
-  itemModel: {
-    color: COLORS.textMuted,
-    fontSize: 12,
-    marginTop: 2,
-  },
+  itemName: { color: colors.text, fontSize: 15, fontWeight: "500" },
+  itemNameActive: { color: colors.primary },
+  itemModel: { color: colors.textMuted, fontSize: 12, marginTop: 2 },
   hint: {
-    color: COLORS.textMuted,
+    color: colors.textMuted,
     fontSize: 12,
     textAlign: "center",
     marginTop: 12,
   },
-});
+}));
 
 export default ConfigSelector;

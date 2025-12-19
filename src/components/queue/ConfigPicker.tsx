@@ -3,9 +3,10 @@ import { View, TouchableOpacity } from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { COLORS } from "@constants/colors";
+import { useTheme } from "@src/contexts";
+import { useThemedStyles } from "@hooks/useThemedStyles";
 import type { GeminiConfig } from "@src/types";
-import { queueStyles as styles } from "./queueStyles";
+import { createQueueStyles } from "./queueStyles";
 
 interface ConfigPickerProps {
   configs: GeminiConfig[];
@@ -23,6 +24,8 @@ const ConfigPicker: React.FC<ConfigPickerProps> = ({
   onSelectConfig,
 }) => {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = useThemedStyles(() => createQueueStyles(colors));
   const selectedConfig = configs.find((c) => c.id === selectedConfigId);
 
   return (
@@ -32,7 +35,7 @@ const ConfigPicker: React.FC<ConfigPickerProps> = ({
           <MaterialCommunityIcons
             name="robot"
             size={18}
-            color={COLORS.primary}
+            color={colors.primary}
           />
           <Text style={styles.configPickerText} numberOfLines={1}>
             {selectedConfig?.name || t("settings.geminiConfig.selectType")}
@@ -41,10 +44,9 @@ const ConfigPicker: React.FC<ConfigPickerProps> = ({
         <MaterialCommunityIcons
           name={showDropdown ? "chevron-up" : "chevron-down"}
           size={18}
-          color={COLORS.textMuted}
+          color={colors.textMuted}
         />
       </TouchableOpacity>
-
       {showDropdown && (
         <View style={styles.configDropdown}>
           {configs.map((config) => (

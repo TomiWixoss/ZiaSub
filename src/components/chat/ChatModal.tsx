@@ -19,11 +19,8 @@ import {
 import { Text } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
-const DRAWER_WIDTH = SCREEN_WIDTH * 0.82;
-
-import { COLORS } from "@constants/colors";
+import { useTheme } from "@src/contexts";
+import { useThemedStyles, createThemedStyles } from "@hooks/useThemedStyles";
 import { DEFAULT_CHAT_CONFIG_ID } from "@constants/defaults";
 import type {
   GeminiConfig,
@@ -49,6 +46,9 @@ import ChatDrawer from "./ChatDrawer";
 import ChatInput from "./ChatInput";
 import ChatEmptyState from "./ChatEmptyState";
 
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
+const DRAWER_WIDTH = SCREEN_WIDTH * 0.82;
+
 interface ChatModalProps {
   visible: boolean;
   onClose: () => void;
@@ -71,6 +71,8 @@ const ChatModal: React.FC<ChatModalProps> = ({
   videoTitle,
   onLoadingChange,
 }) => {
+  const { colors } = useTheme();
+  const themedStyles = useThemedStyles(chatModalThemedStyles);
   const insets = useSafeAreaInsets();
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -178,10 +180,8 @@ const ChatModal: React.FC<ChatModalProps> = ({
     );
     setConfigs(allConfigs);
     setHasApiKey(apiKeys.length > 0);
-
     const chatConfig = allConfigs.find((c) => c.id === DEFAULT_CHAT_CONFIG_ID);
     setActiveConfig(chatConfig || allConfigs[0] || null);
-
     setSessions(allSessions);
     if (activeSession) {
       setCurrentSession(activeSession);
@@ -194,7 +194,6 @@ const ChatModal: React.FC<ChatModalProps> = ({
     await saveActiveGeminiConfigId(config.id);
     setShowConfigSelector(false);
   };
-
   const scrollToBottom = useCallback(() => {
     setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
   }, []);
@@ -202,9 +201,7 @@ const ChatModal: React.FC<ChatModalProps> = ({
   const handleSend = async (text?: string, withVideo?: boolean) => {
     const messageText = text || inputText.trim();
     if (!messageText || isLoading || !activeConfig) return;
-
     const shouldAttachVideo = withVideo !== undefined ? withVideo : attachVideo;
-
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
       role: "user",
@@ -213,7 +210,6 @@ const ChatModal: React.FC<ChatModalProps> = ({
       hasVideo: shouldAttachVideo && !!videoUrl,
       videoTitle: shouldAttachVideo && !!videoUrl ? videoTitle : undefined,
     };
-
     if (!currentSession) {
       const newSession = await createChatSession(
         messageText.slice(0, 30),
@@ -222,7 +218,6 @@ const ChatModal: React.FC<ChatModalProps> = ({
       setCurrentSession(newSession);
       setSessions((prev) => [newSession, ...prev]);
     }
-
     const newMessages = [...messages, userMessage];
     setMessages(newMessages);
     setInputText("");
@@ -230,10 +225,8 @@ const ChatModal: React.FC<ChatModalProps> = ({
     setIsLoading(true);
     setIsFromHistory(false);
     scrollToBottom();
-
     abortControllerRef.current = new AbortController();
     const currentAbort = abortControllerRef.current;
-
     sendChatMessage(
       newMessages,
       activeConfig,
@@ -293,10 +286,8 @@ const ChatModal: React.FC<ChatModalProps> = ({
     setAttachVideo(false);
     setInputText("");
     setIsFromHistory(false);
-
     const newSession = await createChatSession(undefined, activeConfig?.id);
     setCurrentSession(newSession);
-
     const allSessions = await getChatSessions();
     setSessions(allSessions);
     toggleDrawer();
@@ -342,17 +333,14 @@ const ChatModal: React.FC<ChatModalProps> = ({
 
   const handleRegenerateTask = (task: TaskItem) => {
     if (isLoading || !activeConfig) return;
-
     const taskIndex = messages.findIndex((m) => m.id === task.id);
     if (taskIndex === -1) return;
-
     const hasResponse = messages[taskIndex + 1]?.role === "model";
     const removeCount = hasResponse ? 2 : 1;
     const newMessages = [
       ...messages.slice(0, taskIndex),
       ...messages.slice(taskIndex + removeCount),
     ];
-
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
       role: "user",
@@ -361,16 +349,13 @@ const ChatModal: React.FC<ChatModalProps> = ({
       hasVideo: task.hasVideo,
       videoTitle: task.videoTitle,
     };
-
     const updatedMessages = [...newMessages, userMessage];
     setMessages(updatedMessages);
     setIsLoading(true);
     setIsFromHistory(false);
     scrollToBottom();
-
     abortControllerRef.current = new AbortController();
     const currentAbort = abortControllerRef.current;
-
     sendChatMessage(
       updatedMessages,
       activeConfig,
@@ -409,7 +394,6 @@ const ChatModal: React.FC<ChatModalProps> = ({
   const handleDeleteTask = (taskId: string) => {
     const taskIndex = messages.findIndex((m) => m.id === taskId);
     if (taskIndex === -1) return;
-
     const hasResponse = messages[taskIndex + 1]?.role === "model";
     const removeCount = hasResponse ? 2 : 1;
     const newMessages = [
@@ -449,6 +433,7 @@ const ChatModal: React.FC<ChatModalProps> = ({
         <Animated.View
           style={[
             styles.container,
+            themedStyles.container,
             {
               paddingTop: topPadding,
               paddingBottom: bottomPadding,
@@ -461,19 +446,18 @@ const ChatModal: React.FC<ChatModalProps> = ({
               <MaterialCommunityIcons
                 name="menu"
                 size={24}
-                color={COLORS.text}
+                color={colors.text}
               />
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>Zia</Text>
+            <Text style={themedStyles.headerTitle}>Zia</Text>
             <TouchableOpacity style={styles.headerBtn} onPress={handleClose}>
               <MaterialCommunityIcons
                 name="close"
                 size={24}
-                color={COLORS.text}
+                color={colors.text}
               />
             </TouchableOpacity>
           </View>
-
           <FlatList
             ref={flatListRef}
             data={tasks}
@@ -489,7 +473,6 @@ const ChatModal: React.FC<ChatModalProps> = ({
               />
             }
           />
-
           <KeyboardAvoidingView
             behavior={Platform.OS === "ios" ? "padding" : undefined}
           >
@@ -508,7 +491,6 @@ const ChatModal: React.FC<ChatModalProps> = ({
               disabled={!hasApiKey}
             />
           </KeyboardAvoidingView>
-
           {drawerOpen && (
             <TouchableOpacity
               style={styles.drawerOverlay}
@@ -516,7 +498,6 @@ const ChatModal: React.FC<ChatModalProps> = ({
               onPress={toggleDrawer}
             />
           )}
-
           <ChatDrawer
             sessions={sessions}
             currentSession={currentSession}
@@ -528,7 +509,6 @@ const ChatModal: React.FC<ChatModalProps> = ({
             onUpdateSessions={setSessions}
             onUpdateCurrentSession={setCurrentSession}
           />
-
           <ConfigSelector
             visible={showConfigSelector}
             configs={configs}
@@ -546,7 +526,6 @@ const styles = StyleSheet.create({
   modalOverlay: { flex: 1 },
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     overflow: "hidden",
@@ -565,20 +544,16 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  headerTitle: {
-    color: COLORS.text,
-    fontSize: 20,
-    fontWeight: "600",
-  },
-  taskList: {
-    padding: 16,
-    paddingBottom: 8,
-    flexGrow: 1,
-  },
+  taskList: { padding: 16, paddingBottom: 8, flexGrow: 1 },
   drawerOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0,0,0,0.5)",
   },
 });
+
+const chatModalThemedStyles = createThemedStyles((colors) => ({
+  container: { backgroundColor: colors.background },
+  headerTitle: { color: colors.text, fontSize: 20, fontWeight: "600" },
+}));
 
 export default ChatModal;

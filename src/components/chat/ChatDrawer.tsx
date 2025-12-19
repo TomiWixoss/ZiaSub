@@ -10,7 +10,8 @@ import {
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { COLORS } from "@constants/colors";
+import { useTheme } from "@src/contexts";
+import { useThemedStyles, createThemedStyles } from "@hooks/useThemedStyles";
 import type { ChatSession } from "@src/types";
 import { updateChatSession } from "@utils/storage";
 import { confirmDestructive } from "../common/CustomAlert";
@@ -39,6 +40,8 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({
   onUpdateCurrentSession,
 }) => {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const themedStyles = useThemedStyles(chatDrawerThemedStyles);
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -57,9 +60,8 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({
       onUpdateSessions(
         sessions.map((s) => (s.id === editingSessionId ? updated : s))
       );
-      if (currentSession?.id === editingSessionId) {
+      if (currentSession?.id === editingSessionId)
         onUpdateCurrentSession(updated);
-      }
     }
     setEditingSessionId(null);
   };
@@ -70,7 +72,6 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({
     });
   };
 
-  // Filter sessions by search query
   const filteredSessions = searchQuery.trim()
     ? sessions.filter((s) =>
         s.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -81,34 +82,28 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({
     <Animated.View
       style={[
         styles.drawer,
-        {
-          top: 0,
-          paddingTop,
-          transform: [{ translateX: drawerAnim }],
-        },
+        themedStyles.drawer,
+        { top: 0, paddingTop, transform: [{ translateX: drawerAnim }] },
       ]}
     >
-      {/* Brand */}
       <View style={styles.drawerBrand}>
         <MaterialCommunityIcons
           name="creation"
           size={24}
-          color={COLORS.primary}
+          color={colors.primary}
         />
-        <Text style={styles.drawerBrandText}>ZiaSub</Text>
+        <Text style={themedStyles.drawerBrandText}>ZiaSub</Text>
       </View>
-
-      {/* Search */}
-      <View style={styles.searchBox}>
+      <View style={themedStyles.searchBox}>
         <MaterialCommunityIcons
           name="magnify"
           size={20}
-          color={COLORS.textMuted}
+          color={colors.textMuted}
         />
         <TextInput
-          style={styles.searchInput}
+          style={themedStyles.searchInput}
           placeholder={t("chat.searchPlaceholder")}
-          placeholderTextColor={COLORS.textMuted}
+          placeholderTextColor={colors.textMuted}
           value={searchQuery}
           onChangeText={setSearchQuery}
         />
@@ -117,32 +112,26 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({
             <MaterialCommunityIcons
               name="close"
               size={18}
-              color={COLORS.textMuted}
+              color={colors.textMuted}
             />
           </TouchableOpacity>
         )}
       </View>
-
-      {/* New Chat Button */}
-      <TouchableOpacity style={styles.newChatBtn} onPress={onNewChat}>
+      <TouchableOpacity style={themedStyles.newChatBtn} onPress={onNewChat}>
         <MaterialCommunityIcons
           name="pencil-box-outline"
           size={20}
-          color={COLORS.text}
+          color={colors.text}
         />
-        <Text style={styles.newChatText}>{t("chat.newChat")}</Text>
+        <Text style={themedStyles.newChatText}>{t("chat.newChat")}</Text>
       </TouchableOpacity>
-
-      {/* Section Title */}
-      <Text style={styles.drawerSectionTitle}>{t("chat.history")}</Text>
-
-      {/* Session List */}
+      <Text style={themedStyles.drawerSectionTitle}>{t("chat.history")}</Text>
       <ScrollView
         style={styles.sessionList}
         showsVerticalScrollIndicator={false}
       >
         {filteredSessions.length === 0 ? (
-          <Text style={styles.emptyText}>
+          <Text style={themedStyles.emptyText}>
             {searchQuery ? t("chat.noSearchResults") : t("chat.noHistory")}
           </Text>
         ) : (
@@ -151,13 +140,14 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({
               key={session.id}
               style={[
                 styles.sessionItem,
-                currentSession?.id === session.id && styles.sessionItemActive,
+                currentSession?.id === session.id &&
+                  themedStyles.sessionItemActive,
               ]}
             >
               {editingSessionId === session.id ? (
                 <View style={styles.sessionEditRow}>
                   <TextInput
-                    style={styles.sessionEditInput}
+                    style={themedStyles.sessionEditInput}
                     value={editingName}
                     onChangeText={setEditingName}
                     autoFocus
@@ -168,7 +158,7 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({
                     <MaterialCommunityIcons
                       name="check"
                       size={20}
-                      color={COLORS.success}
+                      color={colors.success}
                     />
                   </TouchableOpacity>
                 </View>
@@ -179,7 +169,7 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({
                 >
                   <Text
                     style={[
-                      styles.sessionName,
+                      themedStyles.sessionName,
                       currentSession?.id === session.id &&
                         styles.sessionNameActive,
                     ]}
@@ -195,7 +185,7 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({
                       <MaterialCommunityIcons
                         name="pencil-outline"
                         size={16}
-                        color={COLORS.textMuted}
+                        color={colors.textMuted}
                       />
                     </TouchableOpacity>
                     <TouchableOpacity
@@ -205,7 +195,7 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({
                       <MaterialCommunityIcons
                         name="delete-outline"
                         size={16}
-                        color={COLORS.textMuted}
+                        color={colors.textMuted}
                       />
                     </TouchableOpacity>
                   </View>
@@ -225,7 +215,6 @@ const styles = StyleSheet.create({
     left: 0,
     bottom: 0,
     width: "82%",
-    backgroundColor: COLORS.surface,
     paddingHorizontal: 16,
   },
   drawerBrand: {
@@ -235,66 +224,8 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     paddingHorizontal: 4,
   },
-  drawerBrandText: {
-    color: COLORS.text,
-    fontSize: 22,
-    fontWeight: "700",
-  },
-  searchBox: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: COLORS.surfaceLight,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginBottom: 16,
-    gap: 8,
-  },
-  searchInput: {
-    flex: 1,
-    color: COLORS.text,
-    fontSize: 14,
-    padding: 0,
-  },
-  newChatBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    backgroundColor: COLORS.surfaceLight,
-    borderRadius: 14,
-    marginBottom: 20,
-  },
-  newChatText: {
-    color: COLORS.text,
-    fontSize: 15,
-    fontWeight: "500",
-  },
-  drawerSectionTitle: {
-    color: COLORS.textMuted,
-    fontSize: 13,
-    fontWeight: "600",
-    marginBottom: 10,
-    paddingHorizontal: 4,
-  },
-  sessionList: {
-    flex: 1,
-  },
-  emptyText: {
-    color: COLORS.textMuted,
-    fontSize: 14,
-    textAlign: "center",
-    paddingVertical: 20,
-  },
-  sessionItem: {
-    borderRadius: 12,
-    marginBottom: 4,
-    overflow: "hidden",
-  },
-  sessionItemActive: {
-    backgroundColor: COLORS.surfaceLight,
-  },
+  sessionList: { flex: 1 },
+  sessionItem: { borderRadius: 12, marginBottom: 4, overflow: "hidden" },
   sessionContent: {
     flexDirection: "row",
     alignItems: "center",
@@ -302,21 +233,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 12,
   },
-  sessionName: {
-    flex: 1,
-    color: COLORS.text,
-    fontSize: 14,
-  },
-  sessionNameActive: {
-    fontWeight: "600",
-  },
-  sessionActions: {
-    flexDirection: "row",
-    gap: 4,
-  },
-  sessionActionBtn: {
-    padding: 6,
-  },
+  sessionNameActive: { fontWeight: "600" },
+  sessionActions: { flexDirection: "row", gap: 4 },
+  sessionActionBtn: { padding: 6 },
   sessionEditRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -324,15 +243,57 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     gap: 8,
   },
+});
+
+const chatDrawerThemedStyles = createThemedStyles((colors) => ({
+  drawer: { backgroundColor: colors.surface },
+  drawerBrandText: { color: colors.text, fontSize: 22, fontWeight: "700" },
+  searchBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.surfaceLight,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 16,
+    gap: 8,
+  },
+  searchInput: { flex: 1, color: colors.text, fontSize: 14, padding: 0 },
+  newChatBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    backgroundColor: colors.surfaceLight,
+    borderRadius: 14,
+    marginBottom: 20,
+  },
+  newChatText: { color: colors.text, fontSize: 15, fontWeight: "500" },
+  drawerSectionTitle: {
+    color: colors.textMuted,
+    fontSize: 13,
+    fontWeight: "600",
+    marginBottom: 10,
+    paddingHorizontal: 4,
+  },
+  emptyText: {
+    color: colors.textMuted,
+    fontSize: 14,
+    textAlign: "center",
+    paddingVertical: 20,
+  },
+  sessionItemActive: { backgroundColor: colors.surfaceLight },
+  sessionName: { flex: 1, color: colors.text, fontSize: 14 },
   sessionEditInput: {
     flex: 1,
-    color: COLORS.text,
+    color: colors.text,
     fontSize: 14,
-    backgroundColor: COLORS.background,
+    backgroundColor: colors.background,
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 6,
   },
-});
+}));
 
 export default ChatDrawer;

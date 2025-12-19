@@ -8,7 +8,7 @@ import {
 } from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { COLORS } from "@constants/colors";
+import { useTheme } from "@src/contexts";
 import Button3D from "./Button3D";
 
 export interface AlertButton {
@@ -30,7 +30,6 @@ interface CustomAlertProps {
   onClose: () => void;
 }
 
-// Singleton state for global alert
 let globalShowAlert: ((config: AlertConfig) => void) | null = null;
 
 export const showAlert = (
@@ -39,9 +38,7 @@ export const showAlert = (
   buttons?: AlertButton[],
   type?: AlertConfig["type"]
 ) => {
-  if (globalShowAlert) {
-    globalShowAlert({ title, message, buttons, type });
-  }
+  if (globalShowAlert) globalShowAlert({ title, message, buttons, type });
 };
 
 export const alert = (title: string, message?: string) => {
@@ -84,6 +81,7 @@ const CustomAlert: React.FC<CustomAlertProps> = ({
   config,
   onClose,
 }) => {
+  const { colors } = useTheme();
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -115,13 +113,13 @@ const CustomAlert: React.FC<CustomAlertProps> = ({
   const getIcon = () => {
     switch (type) {
       case "success":
-        return { name: "check-circle", color: COLORS.success };
+        return { name: "check-circle", color: colors.success };
       case "warning":
-        return { name: "alert-circle", color: COLORS.warning };
+        return { name: "alert-circle", color: colors.warning };
       case "error":
-        return { name: "close-circle", color: COLORS.error };
+        return { name: "close-circle", color: colors.error };
       default:
-        return { name: "information", color: COLORS.primary };
+        return { name: "information", color: colors.primary };
     }
   };
 
@@ -153,7 +151,12 @@ const CustomAlert: React.FC<CustomAlertProps> = ({
       onRequestClose={onClose}
       statusBarTranslucent
     >
-      <Animated.View style={[styles.overlay, { opacity: fadeAnim }]}>
+      <Animated.View
+        style={[
+          styles.overlay,
+          { backgroundColor: colors.overlay, opacity: fadeAnim },
+        ]}
+      >
         <TouchableOpacity
           style={StyleSheet.absoluteFill}
           activeOpacity={1}
@@ -165,20 +168,32 @@ const CustomAlert: React.FC<CustomAlertProps> = ({
         <Animated.View
           style={[
             styles.container,
-            { transform: [{ scale: scaleAnim }], opacity: fadeAnim },
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+              transform: [{ scale: scaleAnim }],
+              opacity: fadeAnim,
+            },
           ]}
         >
-          <View style={styles.iconContainer}>
+          <View
+            style={[
+              styles.iconContainer,
+              { backgroundColor: colors.surfaceLight },
+            ]}
+          >
             <MaterialCommunityIcons
               name={icon.name as any}
               size={40}
               color={icon.color}
             />
           </View>
-
-          <Text style={styles.title}>{title}</Text>
-          {message && <Text style={styles.message}>{message}</Text>}
-
+          <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
+          {message && (
+            <Text style={[styles.message, { color: colors.textSecondary }]}>
+              {message}
+            </Text>
+          )}
           <View
             style={[
               styles.buttonContainer,
@@ -210,7 +225,6 @@ const CustomAlert: React.FC<CustomAlertProps> = ({
   );
 };
 
-// Provider component to wrap app
 export const AlertProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
@@ -242,58 +256,42 @@ export const AlertProvider: React.FC<{ children: React.ReactNode }> = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: COLORS.overlay,
     justifyContent: "center",
     alignItems: "center",
     padding: 32,
   },
   container: {
-    backgroundColor: COLORS.surface,
     borderRadius: 20,
     padding: 24,
     width: "100%",
     maxWidth: 320,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: COLORS.border,
   },
   iconContainer: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: COLORS.surfaceLight,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 16,
   },
   title: {
-    color: COLORS.text,
     fontSize: 18,
     fontWeight: "700",
     textAlign: "center",
     marginBottom: 8,
   },
   message: {
-    color: COLORS.textSecondary,
     fontSize: 14,
     textAlign: "center",
     lineHeight: 20,
     marginBottom: 20,
   },
-  buttonContainer: {
-    flexDirection: "row",
-    gap: 12,
-    width: "100%",
-  },
-  buttonContainerVertical: {
-    flexDirection: "column",
-  },
-  alertButton: {
-    // Use default Button3D height
-  },
-  buttonFlex: {
-    flex: 1,
-  },
+  buttonContainer: { flexDirection: "row", gap: 12, width: "100%" },
+  buttonContainerVertical: { flexDirection: "column" },
+  alertButton: {},
+  buttonFlex: { flex: 1 },
 });
 
 export default CustomAlert;

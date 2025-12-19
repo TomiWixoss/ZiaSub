@@ -7,6 +7,7 @@ import {
   BatchSection,
   TTSSection,
   LanguageSection,
+  ThemeSection,
 } from "./sections";
 
 interface GeneralTabProps {
@@ -32,6 +33,8 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
 }) => {
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      <ThemeSection />
+
       <LanguageSection />
 
       <ApiKeysSection apiKeys={apiKeys} onApiKeysChange={onApiKeysChange} />

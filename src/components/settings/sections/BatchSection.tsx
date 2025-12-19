@@ -3,7 +3,8 @@ import { View, StyleSheet } from "react-native";
 import { Text } from "react-native-paper";
 import Slider from "@react-native-community/slider";
 import { useTranslation } from "react-i18next";
-import { COLORS } from "@constants/colors";
+import { useTheme } from "@src/contexts";
+import { useThemedStyles, createThemedStyles } from "@hooks/useThemedStyles";
 import type { BatchSettings } from "@src/types";
 import { saveBatchSettings } from "@utils/storage";
 
@@ -17,6 +18,9 @@ const BatchSection: React.FC<BatchSectionProps> = ({
   onBatchChange,
 }) => {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const themedStyles = useThemedStyles(batchThemedStyles);
+
   const handleBatchDurationChange = (value: number) => {
     const newSettings = { ...batchSettings, maxVideoDuration: value };
     onBatchChange(newSettings);
@@ -43,15 +47,14 @@ const BatchSection: React.FC<BatchSectionProps> = ({
 
   return (
     <>
-      <Text style={styles.sectionTitle}>{t("settings.batch.title")}</Text>
-
+      <Text style={themedStyles.sectionTitle}>{t("settings.batch.title")}</Text>
       <View style={styles.settingGroup}>
-        <Text style={styles.settingLabel}>
+        <Text style={themedStyles.settingLabel}>
           {t("settings.batch.batchDuration", {
             minutes: Math.floor(batchSettings.maxVideoDuration / 60),
           })}
         </Text>
-        <Text style={styles.settingHint}>
+        <Text style={themedStyles.settingHint}>
           {t("settings.batch.batchDurationHint")}
         </Text>
         <Slider
@@ -61,19 +64,18 @@ const BatchSection: React.FC<BatchSectionProps> = ({
           step={60}
           value={batchSettings.maxVideoDuration}
           onValueChange={handleBatchDurationChange}
-          minimumTrackTintColor={COLORS.primary}
-          maximumTrackTintColor={COLORS.border}
-          thumbTintColor={COLORS.primary}
+          minimumTrackTintColor={colors.primary}
+          maximumTrackTintColor={colors.border}
+          thumbTintColor={colors.primary}
         />
       </View>
-
       <View style={styles.settingGroup}>
-        <Text style={styles.settingLabel}>
+        <Text style={themedStyles.settingLabel}>
           {t("settings.batch.concurrent", {
             count: batchSettings.maxConcurrentBatches,
           })}
         </Text>
-        <Text style={styles.settingHint}>
+        <Text style={themedStyles.settingHint}>
           {t("settings.batch.concurrentHint")}
         </Text>
         <Slider
@@ -83,20 +85,21 @@ const BatchSection: React.FC<BatchSectionProps> = ({
           step={1}
           value={batchSettings.maxConcurrentBatches}
           onValueChange={handleConcurrentChange}
-          minimumTrackTintColor={COLORS.primary}
-          maximumTrackTintColor={COLORS.border}
-          thumbTintColor={COLORS.primary}
+          minimumTrackTintColor={colors.primary}
+          maximumTrackTintColor={colors.border}
+          thumbTintColor={colors.primary}
         />
       </View>
-
       <View style={styles.settingGroup}>
-        <Text style={styles.settingLabel}>
+        <Text style={themedStyles.settingLabel}>
           {t("settings.batch.offset", {
             minutes: Math.floor((batchSettings.batchOffset ?? 60) / 60),
             seconds: (batchSettings.batchOffset ?? 60) % 60,
           })}
         </Text>
-        <Text style={styles.settingHint}>{t("settings.batch.offsetHint")}</Text>
+        <Text style={themedStyles.settingHint}>
+          {t("settings.batch.offsetHint")}
+        </Text>
         <Slider
           style={styles.slider}
           minimumValue={0}
@@ -104,20 +107,19 @@ const BatchSection: React.FC<BatchSectionProps> = ({
           step={30}
           value={batchSettings.batchOffset ?? 60}
           onValueChange={handleOffsetChange}
-          minimumTrackTintColor={COLORS.primary}
-          maximumTrackTintColor={COLORS.border}
-          thumbTintColor={COLORS.primary}
+          minimumTrackTintColor={colors.primary}
+          maximumTrackTintColor={colors.border}
+          thumbTintColor={colors.primary}
         />
       </View>
-
       <View style={styles.settingGroup}>
-        <Text style={styles.settingLabel}>
+        <Text style={themedStyles.settingLabel}>
           {t("settings.batch.presubDuration", {
             minutes: Math.floor((batchSettings.presubDuration ?? 120) / 60),
             seconds: (batchSettings.presubDuration ?? 120) % 60,
           })}
         </Text>
-        <Text style={styles.settingHint}>
+        <Text style={themedStyles.settingHint}>
           {t("settings.batch.presubDurationHint")}
         </Text>
         <Slider
@@ -127,9 +129,9 @@ const BatchSection: React.FC<BatchSectionProps> = ({
           step={30}
           value={batchSettings.presubDuration ?? 120}
           onValueChange={handlePresubDurationChange}
-          minimumTrackTintColor={COLORS.warning}
-          maximumTrackTintColor={COLORS.border}
-          thumbTintColor={COLORS.warning}
+          minimumTrackTintColor={colors.warning}
+          maximumTrackTintColor={colors.border}
+          thumbTintColor={colors.warning}
         />
       </View>
     </>
@@ -137,27 +139,26 @@ const BatchSection: React.FC<BatchSectionProps> = ({
 };
 
 const styles = StyleSheet.create({
+  settingGroup: { marginBottom: 16 },
+  slider: { width: "100%", height: 40 },
+});
+
+const batchThemedStyles = createThemedStyles((colors) => ({
   sectionTitle: {
-    color: COLORS.primary,
+    color: colors.primary,
     fontSize: 13,
     fontWeight: "600",
     marginBottom: 8,
     marginTop: 24,
     textTransform: "uppercase",
   },
-  settingGroup: { marginBottom: 16 },
   settingLabel: {
-    color: COLORS.text,
+    color: colors.text,
     fontSize: 14,
     fontWeight: "500",
     marginBottom: 8,
   },
-  settingHint: {
-    color: COLORS.textMuted,
-    fontSize: 12,
-    marginBottom: 8,
-  },
-  slider: { width: "100%", height: 40 },
-});
+  settingHint: { color: colors.textMuted, fontSize: 12, marginBottom: 8 },
+}));
 
 export default BatchSection;

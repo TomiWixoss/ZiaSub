@@ -6,8 +6,7 @@ import {
   WebViewNavigation,
 } from "react-native-webview";
 import { CUSTOM_USER_AGENT, INJECTED_JAVASCRIPT } from "@constants/scripts";
-
-import { COLORS } from "@constants/colors";
+import { useThemedStyles, createThemedStyles } from "@hooks/useThemedStyles";
 
 interface YouTubePlayerProps {
   onMessage: (event: WebViewMessageEvent) => void;
@@ -17,6 +16,8 @@ interface YouTubePlayerProps {
 
 const YouTubePlayer = React.forwardRef<WebView, YouTubePlayerProps>(
   ({ onMessage, onNavigationStateChange, onLoad }, ref) => {
+    const styles = useThemedStyles(themedStyles);
+
     // Memoize source to prevent re-renders
     const source = useMemo(() => ({ uri: "https://m.youtube.com" }), []);
 
@@ -85,16 +86,16 @@ const YouTubePlayer = React.forwardRef<WebView, YouTubePlayerProps>(
   }
 );
 
-const styles = StyleSheet.create({
+const themedStyles = createThemedStyles((colors) => ({
   videoContainer: {
     flex: 1,
-    position: "relative",
-    overflow: "hidden",
+    position: "relative" as const,
+    overflow: "hidden" as const,
   },
   webview: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: colors.background,
   },
-});
+}));
 
 export default YouTubePlayer;

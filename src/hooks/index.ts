@@ -6,3 +6,4 @@ export { useSubtitles } from "./useSubtitles";
 export { useVideoPlayer } from "./useVideoPlayer";
 export { useTranslationQueue } from "./useTranslationQueue";
 export { useLanguage } from "./useLanguage";
+export { useThemedStyles, createThemedStyles } from "./useThemedStyles";

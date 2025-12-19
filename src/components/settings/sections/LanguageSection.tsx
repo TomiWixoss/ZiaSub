@@ -3,11 +3,14 @@ import { View, StyleSheet, TouchableOpacity } from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { COLORS } from "@constants/colors";
+import { useTheme } from "@src/contexts";
+import { useThemedStyles, createThemedStyles } from "@hooks/useThemedStyles";
 import { useLanguage } from "@hooks/useLanguage";
 
 const LanguageSection: React.FC = () => {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const themedStyles = useThemedStyles(languageThemedStyles);
   const { currentLanguage, setLanguage, supportedLanguages } = useLanguage();
 
   return (
@@ -16,26 +19,26 @@ const LanguageSection: React.FC = () => {
         <MaterialCommunityIcons
           name="translate"
           size={20}
-          color={COLORS.primary}
+          color={colors.primary}
         />
-        <Text style={styles.sectionTitle}>{t("settings.language")}</Text>
+        <Text style={themedStyles.sectionTitle}>{t("settings.language")}</Text>
       </View>
-
-      <View style={styles.languageList}>
+      <View style={themedStyles.languageList}>
         {supportedLanguages.map((lang) => (
           <TouchableOpacity
             key={lang.code}
             style={[
-              styles.languageItem,
-              currentLanguage === lang.code && styles.languageItemActive,
+              themedStyles.languageItem,
+              currentLanguage === lang.code && themedStyles.languageItemActive,
             ]}
             onPress={() => setLanguage(lang.code)}
             activeOpacity={0.7}
           >
             <Text
               style={[
-                styles.languageName,
-                currentLanguage === lang.code && styles.languageNameActive,
+                themedStyles.languageName,
+                currentLanguage === lang.code &&
+                  themedStyles.languageNameActive,
               ]}
             >
               {lang.nativeName}
@@ -44,7 +47,7 @@ const LanguageSection: React.FC = () => {
               <MaterialCommunityIcons
                 name="check"
                 size={20}
-                color={COLORS.primary}
+                color={colors.primary}
               />
             )}
           </TouchableOpacity>
@@ -55,22 +58,19 @@ const LanguageSection: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  section: {
-    marginBottom: 24,
-  },
+  section: { marginBottom: 24 },
   sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
     marginBottom: 12,
   },
-  sectionTitle: {
-    color: COLORS.text,
-    fontSize: 16,
-    fontWeight: "600",
-  },
+});
+
+const languageThemedStyles = createThemedStyles((colors) => ({
+  sectionTitle: { color: colors.text, fontSize: 16, fontWeight: "600" },
   languageList: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     borderRadius: 12,
     overflow: "hidden",
   },
@@ -81,19 +81,11 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    borderBottomColor: colors.border,
   },
-  languageItemActive: {
-    backgroundColor: "rgba(155, 126, 217, 0.1)",
-  },
-  languageName: {
-    color: COLORS.text,
-    fontSize: 15,
-  },
-  languageNameActive: {
-    color: COLORS.primary,
-    fontWeight: "600",
-  },
-});
+  languageItemActive: { backgroundColor: `${colors.primary}15` },
+  languageName: { color: colors.text, fontSize: 15 },
+  languageNameActive: { color: colors.primary, fontWeight: "600" },
+}));
 
 export default LanguageSection;

@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useRef, useMemo } from "react";
 import {
   Animated,
   Pressable,
@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { COLORS } from "@constants/colors";
+import { useTheme } from "@src/contexts";
 
 type ButtonVariant =
   | "primary"
@@ -45,6 +45,7 @@ const Button3D: React.FC<Button3DProps> = ({
   textStyle,
   children,
 }) => {
+  const { colors } = useTheme();
   const animatedValue = useRef(new Animated.Value(0)).current;
 
   const handlePressIn = () => {
@@ -60,13 +61,13 @@ const Button3D: React.FC<Button3DProps> = ({
     outputRange: [0, SHADOW_HEIGHT],
   });
 
-  const getColors = () => {
+  const getColors = useMemo(() => {
     if (disabled) {
       return {
-        bg: COLORS.surfaceLight,
-        shadow: COLORS.border,
-        text: COLORS.textMuted,
-        border: COLORS.border,
+        bg: colors.surfaceLight,
+        shadow: colors.border,
+        text: colors.textMuted,
+        border: colors.border,
       };
     }
 
@@ -75,65 +76,60 @@ const Button3D: React.FC<Button3DProps> = ({
     switch (variant) {
       case "primary":
         return {
-          bg: isActive ? COLORS.primary : COLORS.primary,
-          shadow: isActive ? COLORS.primaryDark : COLORS.primaryDark,
-          text: COLORS.text,
+          bg: isActive ? colors.primary : colors.primary,
+          shadow: isActive ? colors.primaryDark : colors.primaryDark,
+          text: "#FFFFFF",
           border: "transparent",
         };
       case "secondary":
         return {
-          bg: isActive ? COLORS.primaryDark : COLORS.surfaceElevated,
-          shadow: isActive ? COLORS.primaryDark : COLORS.background,
-          text: COLORS.text,
-          border: isActive ? COLORS.primary : COLORS.border,
+          bg: isActive ? colors.primaryDark : colors.surfaceElevated,
+          shadow: isActive ? colors.primaryDark : colors.background,
+          text: colors.text,
+          border: isActive ? colors.primary : colors.border,
         };
       case "outline":
         return {
-          bg: isActive ? COLORS.surfaceLight : COLORS.surface,
-          shadow: COLORS.background,
-          text: isActive ? COLORS.text : COLORS.textSecondary,
-          border: isActive ? COLORS.primary : COLORS.border,
+          bg: isActive ? colors.surfaceLight : colors.surface,
+          shadow: colors.background,
+          text: isActive ? colors.text : colors.textSecondary,
+          border: isActive ? colors.primary : colors.border,
         };
       case "ghost":
         return {
-          bg: isActive ? COLORS.surfaceLight : "transparent",
+          bg: isActive ? colors.surfaceLight : "transparent",
           shadow: "transparent",
-          text: isActive ? COLORS.text : COLORS.textSecondary,
+          text: isActive ? colors.text : colors.textSecondary,
           border: "transparent",
         };
       case "destructive":
         return {
-          bg: COLORS.error,
+          bg: colors.error,
           shadow: "#8B0000",
-          text: COLORS.text,
+          text: "#FFFFFF",
           border: "transparent",
         };
       default:
         return {
-          bg: COLORS.surfaceElevated,
-          shadow: COLORS.background,
-          text: COLORS.text,
-          border: COLORS.border,
+          bg: colors.surfaceElevated,
+          shadow: colors.background,
+          text: colors.text,
+          border: colors.border,
         };
     }
-  };
-
-  const colors = getColors();
+  }, [colors, disabled, active, variant]);
 
   return (
     <View style={[styles.container, style]}>
-      {/* Shadow layer */}
       <View
         style={[
           styles.shadow,
           {
-            backgroundColor: colors.shadow,
-            borderColor: colors.shadow,
+            backgroundColor: getColors.shadow,
+            borderColor: getColors.shadow,
           },
         ]}
       />
-
-      {/* Button layer */}
       <Animated.View
         style={[
           styles.buttonWrapper,
@@ -150,8 +146,8 @@ const Button3D: React.FC<Button3DProps> = ({
           style={[
             styles.button,
             {
-              backgroundColor: colors.bg,
-              borderColor: colors.border,
+              backgroundColor: getColors.bg,
+              borderColor: getColors.border,
             },
           ]}
         >
@@ -163,14 +159,14 @@ const Button3D: React.FC<Button3DProps> = ({
                 <MaterialCommunityIcons
                   name={icon}
                   size={iconSize}
-                  color={colors.text}
+                  color={getColors.text}
                 />
               )}
               {title && (
                 <Text
                   style={[
                     styles.text,
-                    { color: colors.text },
+                    { color: getColors.text },
                     icon && title && styles.textWithIcon,
                     textStyle,
                   ]}

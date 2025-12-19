@@ -11,7 +11,8 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Slider from "@react-native-community/slider";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
-import { COLORS } from "@constants/colors";
+import { useTheme } from "@src/contexts";
+import { useThemedStyles, createThemedStyles } from "@hooks/useThemedStyles";
 import type { GeminiConfig } from "@src/types";
 
 const AVAILABLE_MODELS = [
@@ -36,8 +37,10 @@ const GeminiEdit: React.FC<GeminiEditProps> = ({
   onCancel,
 }) => {
   const { t } = useTranslation();
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const [showModelPicker, setShowModelPicker] = useState(false);
+  const styles = useThemedStyles(themedStyles);
 
   const selectedModel = AVAILABLE_MODELS.find((m) => m.id === config.model);
   const modelDisplayName = selectedModel?.name || config.model;
@@ -54,7 +57,7 @@ const GeminiEdit: React.FC<GeminiEditProps> = ({
           <MaterialCommunityIcons
             name="arrow-left"
             size={22}
-            color={COLORS.text}
+            color={colors.text}
           />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t("settings.editConfig")}</Text>
@@ -62,7 +65,7 @@ const GeminiEdit: React.FC<GeminiEditProps> = ({
           <MaterialCommunityIcons
             name="check"
             size={22}
-            color={COLORS.primary}
+            color={colors.primary}
           />
         </TouchableOpacity>
       </View>
@@ -81,10 +84,9 @@ const GeminiEdit: React.FC<GeminiEditProps> = ({
             value={config.name}
             onChangeText={(text) => onChange({ ...config, name: text })}
             placeholder={t("settings.geminiConfig.namePlaceholder")}
-            placeholderTextColor={COLORS.textMuted}
+            placeholderTextColor={colors.textMuted}
           />
         </View>
-
         <View style={styles.settingGroup}>
           <Text style={styles.settingLabel}>
             {t("settings.geminiConfig.model")}
@@ -97,7 +99,7 @@ const GeminiEdit: React.FC<GeminiEditProps> = ({
             <MaterialCommunityIcons
               name={showModelPicker ? "chevron-up" : "chevron-down"}
               size={20}
-              color={COLORS.textMuted}
+              color={colors.textMuted}
             />
           </TouchableOpacity>
           {showModelPicker && (
@@ -128,7 +130,6 @@ const GeminiEdit: React.FC<GeminiEditProps> = ({
             </View>
           )}
         </View>
-
         <View style={styles.settingGroup}>
           <Text style={styles.settingLabel}>
             {t("settings.geminiConfig.temperature", {
@@ -144,12 +145,11 @@ const GeminiEdit: React.FC<GeminiEditProps> = ({
             onValueChange={(value) =>
               onChange({ ...config, temperature: value })
             }
-            minimumTrackTintColor={COLORS.primary}
-            maximumTrackTintColor={COLORS.border}
-            thumbTintColor={COLORS.primary}
+            minimumTrackTintColor={colors.primary}
+            maximumTrackTintColor={colors.border}
+            thumbTintColor={colors.primary}
           />
         </View>
-
         <View style={styles.settingGroup}>
           <Text style={styles.settingLabel}>
             {t("settings.geminiConfig.systemPrompt")}
@@ -159,7 +159,7 @@ const GeminiEdit: React.FC<GeminiEditProps> = ({
             value={config.systemPrompt}
             onChangeText={(text) => onChange({ ...config, systemPrompt: text })}
             placeholder={t("settings.geminiConfig.systemPromptPlaceholder")}
-            placeholderTextColor={COLORS.textMuted}
+            placeholderTextColor={colors.textMuted}
             multiline
             textAlignVertical="top"
           />
@@ -169,92 +169,88 @@ const GeminiEdit: React.FC<GeminiEditProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const themedStyles = createThemedStyles((colors) => ({
   fullScreen: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     zIndex: 100,
   },
   header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    justifyContent: "space-between" as const,
     paddingHorizontal: 8,
     height: 50,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-    backgroundColor: COLORS.surface,
+    borderBottomColor: colors.border,
+    backgroundColor: colors.surface,
   },
   headerBtn: {
     width: 44,
     height: 44,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: "center" as const,
+    alignItems: "center" as const,
   },
-  headerTitle: {
-    color: COLORS.text,
-    fontSize: 16,
-    fontWeight: "600",
-  },
+  headerTitle: { color: colors.text, fontSize: 16, fontWeight: "600" as const },
   container: { flex: 1 },
   contentContainer: { padding: 20 },
   settingGroup: { marginBottom: 16 },
   settingLabel: {
-    color: COLORS.text,
+    color: colors.text,
     fontSize: 14,
-    fontWeight: "500",
+    fontWeight: "500" as const,
     marginBottom: 8,
   },
-  slider: { width: "100%", height: 40 },
+  slider: { width: "100%" as const, height: 40 },
   input: {
-    backgroundColor: COLORS.surfaceLight,
+    backgroundColor: colors.surfaceLight,
     borderRadius: 12,
     padding: 14,
-    color: COLORS.text,
+    color: colors.text,
     fontSize: 14,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: colors.border,
   },
   promptInput: {
-    backgroundColor: COLORS.surfaceLight,
+    backgroundColor: colors.surfaceLight,
     borderRadius: 12,
     padding: 14,
-    color: COLORS.text,
+    color: colors.text,
     fontSize: 13,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: colors.border,
     minHeight: 200,
     maxHeight: 300,
   },
   modelPicker: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: COLORS.surfaceLight,
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    justifyContent: "space-between" as const,
+    backgroundColor: colors.surfaceLight,
     borderRadius: 12,
     padding: 14,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: colors.border,
   },
-  modelPickerText: { color: COLORS.text, fontSize: 14 },
+  modelPickerText: { color: colors.text, fontSize: 14 },
   modelDropdown: {
-    backgroundColor: COLORS.surfaceLight,
+    backgroundColor: colors.surfaceLight,
     borderRadius: 12,
     marginTop: 8,
     borderWidth: 1,
-    borderColor: COLORS.border,
-    overflow: "hidden",
+    borderColor: colors.border,
+    overflow: "hidden" as const,
   },
   modelOption: {
     padding: 14,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    borderBottomColor: colors.border,
   },
-  modelOptionActive: { backgroundColor: COLORS.surfaceElevated },
-  modelOptionText: { color: COLORS.text, fontSize: 14 },
-  modelOptionTextActive: { color: COLORS.primary, fontWeight: "600" },
-  modelOptionId: { color: COLORS.textMuted, fontSize: 11, marginTop: 2 },
-});
+  modelOptionActive: { backgroundColor: colors.surfaceElevated },
+  modelOptionText: { color: colors.text, fontSize: 14 },
+  modelOptionTextActive: { color: colors.primary, fontWeight: "600" as const },
+  modelOptionId: { color: colors.textMuted, fontSize: 11, marginTop: 2 },
+}));
 
 export { GeminiEdit };
 export default GeminiEdit;

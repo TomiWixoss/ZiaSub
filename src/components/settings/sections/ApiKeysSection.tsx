@@ -6,7 +6,8 @@ import Button3D from "../../common/Button3D";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { COLORS } from "@constants/colors";
+import { useTheme } from "@src/contexts";
+import { useThemedStyles, createThemedStyles } from "@hooks/useThemedStyles";
 import { saveApiKeys } from "@utils/storage";
 import { keyManager } from "@services/keyManager";
 
@@ -25,17 +26,17 @@ const ApiKeysSection: React.FC<ApiKeysSectionProps> = ({
   onApiKeysChange,
 }) => {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const themedStyles = useThemedStyles(apiKeysThemedStyles);
   const [showKeys, setShowKeys] = useState(false);
   const [isAddingKey, setIsAddingKey] = useState(false);
 
   const handleAddKeyFromClipboard = async () => {
     if (isAddingKey) return;
     setIsAddingKey(true);
-
     try {
       const clipboardContent = await Clipboard.getStringAsync();
       const key = clipboardContent?.trim();
-
       if (!key) {
         alert(
           t("settings.apiKeys.clipboardEmpty"),
@@ -43,7 +44,6 @@ const ApiKeysSection: React.FC<ApiKeysSectionProps> = ({
         );
         return;
       }
-
       if (!key.startsWith("AIza") || key.length < 30) {
         alert(
           t("settings.apiKeys.invalid"),
@@ -51,7 +51,6 @@ const ApiKeysSection: React.FC<ApiKeysSectionProps> = ({
         );
         return;
       }
-
       if (apiKeys.includes(key)) {
         alert(
           t("settings.apiKeys.duplicate"),
@@ -59,7 +58,6 @@ const ApiKeysSection: React.FC<ApiKeysSectionProps> = ({
         );
         return;
       }
-
       const newKeys = [...apiKeys, key];
       onApiKeysChange(newKeys);
       await saveApiKeys(newKeys);
@@ -87,9 +85,11 @@ const ApiKeysSection: React.FC<ApiKeysSectionProps> = ({
 
   return (
     <>
-      <Text style={styles.sectionTitle}>{t("settings.apiKeys.title")}</Text>
+      <Text style={themedStyles.sectionTitle}>
+        {t("settings.apiKeys.title")}
+      </Text>
       <View style={styles.sectionHintRow}>
-        <Text style={styles.sectionHint}>
+        <Text style={themedStyles.sectionHint}>
           {t("settings.apiKeys.description")}{" "}
         </Text>
         <TouchableOpacity
@@ -97,25 +97,26 @@ const ApiKeysSection: React.FC<ApiKeysSectionProps> = ({
             Linking.openURL("https://aistudio.google.com/app/apikey")
           }
         >
-          <Text style={styles.linkText}>{t("settings.apiKeys.getKey")}</Text>
+          <Text style={themedStyles.linkText}>
+            {t("settings.apiKeys.getKey")}
+          </Text>
         </TouchableOpacity>
       </View>
-
-      <View style={styles.apiKeysContainer}>
+      <View style={themedStyles.apiKeysContainer}>
         {apiKeys.map((key, index) => (
-          <View key={index} style={styles.apiKeyItem}>
+          <View key={index} style={themedStyles.apiKeyItem}>
             <View style={styles.apiKeyInfo}>
               <MaterialCommunityIcons
                 name="key"
                 size={16}
-                color={COLORS.primary}
+                color={colors.primary}
               />
-              <Text style={styles.apiKeyText}>
+              <Text style={themedStyles.apiKeyText}>
                 {showKeys ? key : maskKey(key)}
               </Text>
               {index === keyManager.getCurrentKeyIndex() - 1 && (
-                <View style={styles.activeKeyBadge}>
-                  <Text style={styles.activeKeyText}>
+                <View style={themedStyles.activeKeyBadge}>
+                  <Text style={themedStyles.activeKeyText}>
                     {t("settings.apiKeys.active")}
                   </Text>
                 </View>
@@ -128,12 +129,11 @@ const ApiKeysSection: React.FC<ApiKeysSectionProps> = ({
               <MaterialCommunityIcons
                 name="delete-outline"
                 size={18}
-                color={COLORS.error}
+                color={colors.error}
               />
             </TouchableOpacity>
           </View>
         ))}
-
         <View style={styles.addKeyRow}>
           <Button3D
             icon="clipboard-plus-outline"
@@ -154,11 +154,11 @@ const ApiKeysSection: React.FC<ApiKeysSectionProps> = ({
             <MaterialCommunityIcons
               name={showKeys ? "eye-off" : "eye"}
               size={20}
-              color={COLORS.textMuted}
+              color={colors.textMuted}
             />
           </TouchableOpacity>
         </View>
-        <Text style={styles.clipboardHint}>
+        <Text style={themedStyles.clipboardHint}>
           {t("settings.apiKeys.clipboardHint")}
         </Text>
       </View>
@@ -167,49 +167,13 @@ const ApiKeysSection: React.FC<ApiKeysSectionProps> = ({
 };
 
 const styles = StyleSheet.create({
-  sectionTitle: {
-    color: COLORS.primary,
-    fontSize: 13,
-    fontWeight: "600",
-    marginBottom: 8,
-    textTransform: "uppercase",
-  },
-  sectionHint: { color: COLORS.textMuted, fontSize: 12 },
   sectionHintRow: {
     flexDirection: "row",
     flexWrap: "wrap",
     alignItems: "center",
     marginBottom: 12,
   },
-  linkText: {
-    color: COLORS.primary,
-    fontSize: 12,
-    textDecorationLine: "underline",
-  },
-  apiKeysContainer: {
-    backgroundColor: COLORS.surfaceLight,
-    borderRadius: 12,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  apiKeyItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
   apiKeyInfo: { flexDirection: "row", alignItems: "center", gap: 8, flex: 1 },
-  apiKeyText: { color: COLORS.text, fontSize: 13, flex: 1 },
-  activeKeyBadge: {
-    backgroundColor: COLORS.success,
-    borderRadius: 4,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  activeKeyText: { color: COLORS.background, fontSize: 10, fontWeight: "600" },
   deleteKeyBtn: { padding: 4 },
   addKeyRow: {
     flexDirection: "row",
@@ -220,12 +184,51 @@ const styles = StyleSheet.create({
   },
   addKeyFromClipboardBtn: { flex: 1 },
   eyeBtn: { padding: 8, height: 52, justifyContent: "center" },
+});
+
+const apiKeysThemedStyles = createThemedStyles((colors) => ({
+  sectionTitle: {
+    color: colors.primary,
+    fontSize: 13,
+    fontWeight: "600",
+    marginBottom: 8,
+    textTransform: "uppercase",
+  },
+  sectionHint: { color: colors.textMuted, fontSize: 12 },
+  linkText: {
+    color: colors.primary,
+    fontSize: 12,
+    textDecorationLine: "underline",
+  },
+  apiKeysContainer: {
+    backgroundColor: colors.surfaceLight,
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  apiKeyItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  apiKeyText: { color: colors.text, fontSize: 13, flex: 1 },
+  activeKeyBadge: {
+    backgroundColor: colors.success,
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  activeKeyText: { color: colors.background, fontSize: 10, fontWeight: "600" },
   clipboardHint: {
-    color: COLORS.textMuted,
+    color: colors.textMuted,
     fontSize: 11,
     marginTop: 8,
     fontStyle: "italic",
   },
-});
+}));
 
 export default ApiKeysSection;

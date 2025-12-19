@@ -91,6 +91,14 @@ export default {
     selectLanguage: "Select language",
     editConfig: "Edit translation style",
 
+    // Theme
+    theme: {
+      title: "Theme",
+      system: "System",
+      light: "Light",
+      dark: "Dark",
+    },
+
     // API Keys
     apiKeys: {
       title: "API Keys",

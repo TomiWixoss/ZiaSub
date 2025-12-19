@@ -91,6 +91,14 @@ export default {
     selectLanguage: "Chọn ngôn ngữ",
     editConfig: "Chỉnh kiểu dịch",
 
+    // Theme
+    theme: {
+      title: "Giao diện",
+      system: "Theo hệ thống",
+      light: "Sáng",
+      dark: "Tối",
+    },
+
     // API Keys
     apiKeys: {
       title: "API Keys",

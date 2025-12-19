@@ -4,7 +4,8 @@ import { alert, confirmDestructive } from "../common/CustomAlert";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { COLORS } from "@constants/colors";
+import { useTheme } from "@src/contexts";
+import { useThemedStyles, createThemedStyles } from "@hooks/useThemedStyles";
 import type {
   GeminiConfig,
   BatchSettings,
@@ -28,7 +29,6 @@ import {
   TranslationProgress,
   AdvancedOptions,
   TranslateConfigPicker,
-  translateStyles,
 } from "./translate";
 
 interface TranslateTabProps {
@@ -57,6 +57,8 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
   onBatchSettingsChange,
 }) => {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const themedStyles = useThemedStyles(translateTabThemedStyles);
   const [geminiConfigs, setGeminiConfigs] = useState<GeminiConfig[]>([]);
   const [selectedConfigId, setSelectedConfigId] = useState<string>("");
   const [showConfigPicker, setShowConfigPicker] = useState(false);
@@ -67,8 +69,6 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
     null
   );
   const [hasApiKey, setHasApiKey] = useState(true);
-
-  // Advanced options
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [streamingMode, setStreamingMode] = useState(
     batchSettings?.streamingMode ?? false
@@ -84,11 +84,9 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
     loadConfigs();
     checkApiKeys();
   }, []);
-
   useEffect(() => {
     if (videoUrl) loadTranslations();
   }, [videoUrl]);
-
   useEffect(() => {
     if (batchSettings) {
       setStreamingMode(batchSettings.streamingMode ?? false);
@@ -102,12 +100,10 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
     const activeConfig = await getActiveGeminiConfig();
     if (activeConfig) setSelectedConfigId(activeConfig.id);
   };
-
   const checkApiKeys = async () => {
     const keys = await getApiKeys();
     setHasApiKey(keys.length > 0);
   };
-
   const loadTranslations = async () => {
     if (!videoUrl) return;
     const data = await getVideoTranslations(videoUrl);
@@ -122,25 +118,21 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
 
   const handleStreamingModeChange = (value: boolean) => {
     setStreamingMode(value);
-    if (batchSettings && onBatchSettingsChange) {
+    if (batchSettings && onBatchSettingsChange)
       onBatchSettingsChange({ ...batchSettings, streamingMode: value });
-    }
   };
-
   const handlePresubModeChange = (value: boolean) => {
     setPresubMode(value);
     if (value && !streamingMode) {
       setStreamingMode(true);
-      if (batchSettings && onBatchSettingsChange) {
+      if (batchSettings && onBatchSettingsChange)
         onBatchSettingsChange({
           ...batchSettings,
           presubMode: value,
           streamingMode: true,
         });
-      }
-    } else if (batchSettings && onBatchSettingsChange) {
+    } else if (batchSettings && onBatchSettingsChange)
       onBatchSettingsChange({ ...batchSettings, presubMode: value });
-    }
   };
 
   const handleTranslate = async () => {
@@ -155,47 +147,36 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
         t("subtitleModal.translate.noVideo"),
         t("subtitleModal.translate.noVideoMessage")
       );
-    if (translationManager.isTranslatingUrl(videoUrl)) {
+    if (translationManager.isTranslatingUrl(videoUrl))
       return alert(
         t("common.notice"),
         t("subtitleModal.translate.alreadyTranslating")
       );
-    }
-
     let rangeStart: number | undefined;
     let rangeEnd: number | undefined;
-
     if (useCustomRange) {
       const start = rangeStartStr.trim() ? parseTime(rangeStartStr) : 0;
       const end = rangeEndStr.trim() ? parseTime(rangeEndStr) : videoDuration;
-
-      if (start === null) {
+      if (start === null)
         return alert(
           t("common.error"),
           t("subtitleModal.translate.invalidStartTime")
         );
-      }
-      if (end === null || end === undefined) {
+      if (end === null || end === undefined)
         return alert(
           t("common.error"),
           t("subtitleModal.translate.invalidEndTime")
         );
-      }
-
       const clampedStart = Math.max(0, start);
       const clampedEnd = videoDuration ? Math.min(end, videoDuration) : end;
-
-      if (clampedStart >= clampedEnd) {
+      if (clampedStart >= clampedEnd)
         return alert(
           t("common.error"),
           t("subtitleModal.translate.invalidRange")
         );
-      }
-
       rangeStart = clampedStart;
       rangeEnd = clampedEnd;
     }
-
     try {
       await saveActiveGeminiConfigId(selectedConfigId);
       translationManager.startTranslation(
@@ -221,7 +202,6 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
     onSelectTranslation(translation.srtContent);
     onClose();
   };
-
   const handleDeleteTranslation = (translation: SavedTranslation) => {
     confirmDestructive(
       t("subtitleModal.translate.deleteTitle"),
@@ -233,7 +213,6 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
       }
     );
   };
-
   const handleSelectConfig = (configId: string) => {
     setSelectedConfigId(configId);
     setShowConfigPicker(false);
@@ -252,20 +231,18 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
           onSelect={handleSelectTranslation}
           onDelete={handleDeleteTranslation}
         />
-
         {!hasApiKey && (
-          <View style={translateStyles.warningContainer}>
+          <View style={themedStyles.warningContainer}>
             <MaterialCommunityIcons
               name="alert-circle-outline"
               size={20}
-              color={COLORS.warning}
+              color={colors.warning}
             />
-            <Text style={translateStyles.warningText}>
+            <Text style={themedStyles.warningText}>
               {t("subtitleModal.translate.noApiKey")}
             </Text>
           </View>
         )}
-
         <TranslateConfigPicker
           configs={geminiConfigs}
           selectedConfigId={selectedConfigId}
@@ -273,7 +250,6 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
           onTogglePicker={() => setShowConfigPicker(!showConfigPicker)}
           onSelectConfig={handleSelectConfig}
         />
-
         <AdvancedOptions
           showAdvanced={showAdvanced}
           onToggleAdvanced={() => setShowAdvanced(!showAdvanced)}
@@ -289,7 +265,6 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
           onRangeEndChange={setRangeEndStr}
           videoDuration={videoDuration}
         />
-
         <TranslationProgress
           isTranslating={isTranslating}
           translateStatus={translateStatus}
@@ -297,7 +272,6 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
           batchProgress={batchProgress}
         />
       </ScrollView>
-
       <View style={styles.translateButtonContainer}>
         <Button3D
           onPress={handleTranslate}
@@ -320,3 +294,18 @@ const styles = StyleSheet.create({
   scrollContent: { flex: 1 },
   translateButtonContainer: { marginTop: "auto", marginBottom: 8 },
 });
+
+const translateTabThemedStyles = createThemedStyles((colors) => ({
+  warningContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255,183,77,0.15)",
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: colors.warning,
+  },
+  warningText: { color: colors.warning, fontSize: 13, flex: 1 },
+}));

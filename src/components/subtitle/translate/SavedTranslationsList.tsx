@@ -3,9 +3,10 @@ import { View, TouchableOpacity } from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { COLORS } from "@constants/colors";
+import { useTheme } from "@src/contexts";
+import { useThemedStyles } from "@hooks/useThemedStyles";
 import type { SavedTranslation } from "@src/types";
-import { translateStyles as styles } from "./translateStyles";
+import { createTranslateStyles } from "./translateStyles";
 
 interface SavedTranslationsListProps {
   translations: SavedTranslation[];
@@ -29,6 +30,9 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
   onDelete,
 }) => {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = useThemedStyles(() => createTranslateStyles(colors));
+
   if (translations.length === 0) return null;
 
   return (
@@ -37,46 +41,46 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
         {t("subtitleModal.translate.savedTranslations")}
       </Text>
       <View style={styles.translationsList}>
-        {translations.map((t) => (
+        {translations.map((item) => (
           <View
-            key={t.id}
+            key={item.id}
             style={[
               styles.translationItem,
-              t.id === activeTranslationId && styles.translationItemActive,
+              item.id === activeTranslationId && styles.translationItemActive,
             ]}
           >
             <TouchableOpacity
               style={styles.translationInfo}
-              onPress={() => onSelect(t)}
+              onPress={() => onSelect(item)}
             >
               <View style={styles.translationHeader}>
                 <MaterialCommunityIcons
                   name={
-                    t.id === activeTranslationId
+                    item.id === activeTranslationId
                       ? "check-circle"
                       : "file-document-outline"
                   }
                   size={16}
                   color={
-                    t.id === activeTranslationId
-                      ? COLORS.success
-                      : COLORS.textMuted
+                    item.id === activeTranslationId
+                      ? colors.success
+                      : colors.textMuted
                   }
                 />
-                <Text style={styles.translationConfig}>{t.configName}</Text>
+                <Text style={styles.translationConfig}>{item.configName}</Text>
               </View>
               <Text style={styles.translationDate}>
-                {formatDate(t.createdAt)}
+                {formatDate(item.createdAt)}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.deleteBtn}
-              onPress={() => onDelete(t)}
+              onPress={() => onDelete(item)}
             >
               <MaterialCommunityIcons
                 name="delete-outline"
                 size={18}
-                color={COLORS.error}
+                color={colors.error}
               />
             </TouchableOpacity>
           </View>

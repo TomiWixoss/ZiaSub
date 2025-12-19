@@ -15,7 +15,8 @@ import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import * as Clipboard from "expo-clipboard";
-import { COLORS } from "@constants/colors";
+import { useTheme } from "@src/contexts";
+import { useThemedStyles, createThemedStyles } from "@hooks/useThemedStyles";
 import type { BatchSettings, BatchProgress, TranslationJob } from "@src/types";
 import { translationManager } from "@services/translationManager";
 import { queueManager } from "@services/queueManager";
@@ -63,9 +64,11 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
   onTranslationStateChange,
 }) => {
   const { t } = useTranslation();
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const slideAnim = useRef(new Animated.Value(SHEET_HEIGHT)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const styles = useThemedStyles(themedStyles);
 
   const [activeTab, setActiveTab] = useState<TabType>("translate");
   const [isTranslating, setIsTranslating] = useState(false);
@@ -76,26 +79,22 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
   );
 
   const onTranslationStateChangeRef = useRef(onTranslationStateChange);
-
   useEffect(() => {
     onTranslationStateChangeRef.current = onTranslationStateChange;
   }, [onTranslationStateChange]);
 
-  // Subscribe to translation manager
   useEffect(() => {
     const unsubscribe = translationManager.subscribe((job: TranslationJob) => {
       if (job.videoUrl === videoUrl) {
         setIsTranslating(job.status === "processing");
         setBatchProgress(job.progress);
         setKeyStatus(job.keyStatus);
-
         if (job.progress) {
           setTranslateStatus(
             job.progress.totalBatches > 1
               ? `Đang dịch phần ${job.progress.completedBatches}/${job.progress.totalBatches}...`
               : "Đang dịch video..."
           );
-          // Sync progress to queue if video is in queue
           queueManager.updateVideoProgress(
             job.videoUrl,
             {
@@ -105,7 +104,6 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
             job.configName
           );
         }
-
         onTranslationStateChangeRef.current?.(
           job.status === "processing",
           job.progress
@@ -115,26 +113,19 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
               }
             : null
         );
-
         if (job.status === "completed" && job.result) {
           setTranslateStatus("Xong rồi!");
           setKeyStatus(null);
-          // Update SRT content and load subtitles
           setSrtContent(job.result);
           onLoadSubtitles();
-          // Sync to queue - mark as completed (only if in queue)
           queueManager.markVideoCompleted(job.videoUrl, job.configName);
           translationManager.clearCompletedJob(videoUrl);
-          // Only show alert if modal is visible (user is watching the translation)
-          if (visible) {
+          if (visible)
             alert("Thành công", "Dịch xong rồi! Phụ đề đã sẵn sàng.");
-          }
         }
-
         if (job.status === "error") {
           setTranslateStatus("");
           setKeyStatus(null);
-          // Sync to queue - mark as error
           queueManager.markVideoError(
             job.videoUrl,
             job.error || "Có lỗi xảy ra"
@@ -147,7 +138,6 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
     return () => unsubscribe();
   }, [videoUrl]);
 
-  // Reset state and check for existing job when videoUrl changes
   useEffect(() => {
     if (videoUrl) {
       const existingJob = translationManager.getJobForUrl(videoUrl);
@@ -161,7 +151,6 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
             : "Đang dịch video..."
         );
         setActiveTab("translate");
-        // Notify parent about translation state
         onTranslationStateChangeRef.current?.(
           true,
           existingJob.progress
@@ -172,16 +161,13 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
             : null
         );
       } else {
-        // Reset state for new video that's not being translated
         setIsTranslating(false);
         setBatchProgress(null);
         setKeyStatus(null);
         setTranslateStatus("");
-        // Notify parent
         onTranslationStateChangeRef.current?.(false, null);
       }
     } else {
-      // No video URL - reset all state
       setIsTranslating(false);
       setBatchProgress(null);
       setKeyStatus(null);
@@ -265,7 +251,6 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
             onPress={handleClose}
           />
         </Animated.View>
-
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : undefined}
           style={styles.keyboardView}
@@ -289,11 +274,10 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
                 <MaterialCommunityIcons
                   name="close"
                   size={20}
-                  color={COLORS.textSecondary}
+                  color={colors.textSecondary}
                 />
               </TouchableOpacity>
             </View>
-
             <View style={styles.tabBar}>
               <TouchableOpacity
                 style={[
@@ -307,8 +291,8 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
                   size={18}
                   color={
                     activeTab === "translate"
-                      ? COLORS.primary
-                      : COLORS.textMuted
+                      ? colors.primary
+                      : colors.textMuted
                   }
                 />
                 <Text
@@ -328,7 +312,7 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
                   name="file-document-outline"
                   size={18}
                   color={
-                    activeTab === "srt" ? COLORS.primary : COLORS.textMuted
+                    activeTab === "srt" ? colors.primary : colors.textMuted
                   }
                 />
                 <Text
@@ -341,7 +325,6 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
                 </Text>
               </TouchableOpacity>
             </View>
-
             {activeTab === "srt" ? (
               <SrtTab
                 srtContent={srtContent}
@@ -372,52 +355,60 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  modalOverlay: { flex: 1, justifyContent: "flex-end" },
+const themedStyles = createThemedStyles((colors) => ({
+  modalOverlay: { flex: 1, justifyContent: "flex-end" as const },
   modalBackdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: COLORS.overlay,
+    backgroundColor: colors.overlay,
   },
-  keyboardView: { width: "100%" },
+  keyboardView: { width: "100%" as const },
   bottomSheet: {
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
-    width: "100%",
+    width: "100%" as const,
     height: SHEET_HEIGHT,
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     borderTopWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: colors.border,
   },
-  sheetHeader: { alignItems: "center", marginBottom: 16, position: "relative" },
+  sheetHeader: {
+    alignItems: "center" as const,
+    marginBottom: 16,
+    position: "relative" as const,
+  },
   dragHandle: {
     width: 36,
     height: 4,
     borderRadius: 2,
     marginBottom: 16,
-    backgroundColor: COLORS.borderLight,
+    backgroundColor: colors.borderLight,
   },
-  title: { color: COLORS.text, fontSize: 16, fontWeight: "600" },
-  closeButton: { position: "absolute", right: 0, top: 12, padding: 8 },
+  title: { color: colors.text, fontSize: 16, fontWeight: "600" as const },
+  closeButton: { position: "absolute" as const, right: 0, top: 12, padding: 8 },
   tabBar: {
-    flexDirection: "row",
-    backgroundColor: COLORS.surfaceLight,
+    flexDirection: "row" as const,
+    backgroundColor: colors.surfaceLight,
     borderRadius: 12,
     padding: 4,
     marginBottom: 16,
   },
   tab: {
     flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
     paddingVertical: 10,
     borderRadius: 8,
     gap: 6,
   },
-  tabActive: { backgroundColor: COLORS.surfaceElevated },
-  tabText: { color: COLORS.textMuted, fontSize: 13, fontWeight: "500" },
-  tabTextActive: { color: COLORS.text },
-});
+  tabActive: { backgroundColor: colors.surfaceElevated },
+  tabText: {
+    color: colors.textMuted,
+    fontSize: 13,
+    fontWeight: "500" as const,
+  },
+  tabTextActive: { color: colors.text },
+}));
 
 export default SubtitleInputModal;

@@ -3,7 +3,8 @@ import { View, StyleSheet, TouchableOpacity } from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { COLORS } from "@constants/colors";
+import { useTheme } from "@src/contexts";
+import { useThemedStyles, createThemedStyles } from "@hooks/useThemedStyles";
 
 const QUICK_ACTIONS = [
   {
@@ -35,21 +36,24 @@ interface QuickActionsProps {
 
 const QuickActions: React.FC<QuickActionsProps> = ({ onAction, disabled }) => {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const themedStyles = useThemedStyles(quickActionsThemedStyles);
+
   return (
     <View style={styles.container}>
       {QUICK_ACTIONS.map((action) => (
         <TouchableOpacity
           key={action.id}
-          style={[styles.actionBtn, disabled && styles.actionDisabled]}
+          style={[themedStyles.actionBtn, disabled && styles.actionDisabled]}
           onPress={() => onAction(action.id)}
           disabled={disabled}
         >
           <MaterialCommunityIcons
             name={action.icon as any}
             size={18}
-            color={COLORS.text}
+            color={colors.text}
           />
-          <Text style={styles.actionLabel}>{t(action.labelKey)}</Text>
+          <Text style={themedStyles.actionLabel}>{t(action.labelKey)}</Text>
         </TouchableOpacity>
       ))}
     </View>
@@ -57,10 +61,11 @@ const QuickActions: React.FC<QuickActionsProps> = ({ onAction, disabled }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    gap: 10,
-    width: "100%",
-  },
+  container: { gap: 10, width: "100%" },
+  actionDisabled: { opacity: 0.5 },
+});
+
+const quickActionsThemedStyles = createThemedStyles((colors) => ({
   actionBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -68,16 +73,10 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 18,
     borderRadius: 24,
-    backgroundColor: COLORS.surfaceLight,
+    backgroundColor: colors.surfaceLight,
     alignSelf: "flex-start",
   },
-  actionLabel: {
-    color: COLORS.text,
-    fontSize: 15,
-  },
-  actionDisabled: {
-    opacity: 0.5,
-  },
-});
+  actionLabel: { color: colors.text, fontSize: 15 },
+}));
 
 export default QuickActions;

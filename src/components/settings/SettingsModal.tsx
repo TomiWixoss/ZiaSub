@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useMemo } from "react";
 import {
   View,
   Modal,
@@ -12,7 +12,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { COLORS } from "@constants/colors";
+import { useTheme } from "@src/contexts";
+import { useThemedStyles, createThemedStyles } from "@hooks/useThemedStyles";
 import type {
   SubtitleSettings,
   BatchSettings,
@@ -55,6 +56,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   onTTSSettingsChange,
 }) => {
   const { t } = useTranslation();
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const slideAnim = useRef(new Animated.Value(SHEET_HEIGHT)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -62,6 +64,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   const [activeTab, setActiveTab] = useState<TabType>("general");
   const [geminiConfigs, setGeminiConfigs] = useState<GeminiConfig[]>([]);
   const [editingConfig, setEditingConfig] = useState<GeminiConfig | null>(null);
+
+  const themedStyles = useThemedStyles(settingsThemedStyles);
 
   useEffect(() => {
     if (visible) {
@@ -183,7 +187,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
       statusBarTranslucent
     >
       <View style={styles.modalOverlay}>
-        <Animated.View style={[styles.modalBackdrop, { opacity: fadeAnim }]}>
+        <Animated.View
+          style={[
+            styles.modalBackdrop,
+            themedStyles.modalBackdrop,
+            { opacity: fadeAnim },
+          ]}
+        >
           <TouchableOpacity
             style={StyleSheet.absoluteFill}
             activeOpacity={1}
@@ -194,6 +204,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         <Animated.View
           style={[
             styles.bottomSheet,
+            themedStyles.bottomSheet,
             {
               paddingBottom: Math.max(insets.bottom, 20),
               transform: [{ translateY: slideAnim }],
@@ -201,25 +212,28 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
           ]}
         >
           <View style={styles.sheetHeader}>
-            <View style={styles.dragHandle} />
-            <Text style={styles.title}>
+            <View style={[styles.dragHandle, themedStyles.dragHandle]} />
+            <Text style={[styles.title, themedStyles.title]}>
               {editingConfig ? t("settings.editConfig") : t("settings.title")}
             </Text>
             <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
               <MaterialCommunityIcons
                 name="close"
                 size={20}
-                color={COLORS.textSecondary}
+                color={colors.textSecondary}
               />
             </TouchableOpacity>
           </View>
 
           {!editingConfig && (
-            <View style={styles.tabBar}>
+            <View style={[styles.tabBar, themedStyles.tabBar]}>
               <TouchableOpacity
                 style={[
                   styles.tab,
-                  activeTab === "general" && styles.tabActive,
+                  activeTab === "general" && [
+                    styles.tabActive,
+                    themedStyles.tabActive,
+                  ],
                 ]}
                 onPress={() => setActiveTab("general")}
               >
@@ -227,33 +241,41 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                   name="cog"
                   size={18}
                   color={
-                    activeTab === "general" ? COLORS.primary : COLORS.textMuted
+                    activeTab === "general" ? colors.primary : colors.textMuted
                   }
                 />
                 <Text
                   style={[
                     styles.tabText,
-                    activeTab === "general" && styles.tabTextActive,
+                    themedStyles.tabText,
+                    activeTab === "general" && themedStyles.tabTextActive,
                   ]}
                 >
                   {t("settings.general")}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.tab, activeTab === "gemini" && styles.tabActive]}
+                style={[
+                  styles.tab,
+                  activeTab === "gemini" && [
+                    styles.tabActive,
+                    themedStyles.tabActive,
+                  ],
+                ]}
                 onPress={() => setActiveTab("gemini")}
               >
                 <MaterialCommunityIcons
                   name="robot"
                   size={18}
                   color={
-                    activeTab === "gemini" ? COLORS.primary : COLORS.textMuted
+                    activeTab === "gemini" ? colors.primary : colors.textMuted
                   }
                 />
                 <Text
                   style={[
                     styles.tabText,
-                    activeTab === "gemini" && styles.tabTextActive,
+                    themedStyles.tabText,
+                    activeTab === "gemini" && themedStyles.tabTextActive,
                   ]}
                 >
                   {t("settings.gemini")}
@@ -282,7 +304,6 @@ const styles = StyleSheet.create({
   modalOverlay: { flex: 1, justifyContent: "flex-end" },
   modalBackdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: COLORS.overlay,
   },
   bottomSheet: {
     borderTopLeftRadius: 20,
@@ -290,9 +311,7 @@ const styles = StyleSheet.create({
     padding: 20,
     width: "100%",
     height: SHEET_HEIGHT,
-    backgroundColor: COLORS.surface,
     borderTopWidth: 1,
-    borderColor: COLORS.border,
   },
   sheetHeader: {
     alignItems: "center",
@@ -304,13 +323,11 @@ const styles = StyleSheet.create({
     height: 4,
     borderRadius: 2,
     marginBottom: 16,
-    backgroundColor: COLORS.borderLight,
   },
-  title: { color: COLORS.text, fontSize: 16, fontWeight: "600" },
+  title: { fontSize: 16, fontWeight: "600" },
   closeButton: { position: "absolute", right: 0, top: 12, padding: 8 },
   tabBar: {
     flexDirection: "row",
-    backgroundColor: COLORS.surfaceLight,
     borderRadius: 12,
     padding: 4,
     marginBottom: 16,
@@ -324,9 +341,23 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     gap: 6,
   },
-  tabActive: { backgroundColor: COLORS.surfaceElevated },
-  tabText: { color: COLORS.textMuted, fontSize: 13, fontWeight: "500" },
-  tabTextActive: { color: COLORS.text },
+  tabActive: {},
+  tabText: { fontSize: 13, fontWeight: "500" },
+  tabTextActive: {},
 });
+
+const settingsThemedStyles = createThemedStyles((colors) => ({
+  modalBackdrop: { backgroundColor: colors.overlay },
+  bottomSheet: {
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+  },
+  dragHandle: { backgroundColor: colors.borderLight },
+  title: { color: colors.text },
+  tabBar: { backgroundColor: colors.surfaceLight },
+  tabActive: { backgroundColor: colors.surfaceElevated },
+  tabText: { color: colors.textMuted },
+  tabTextActive: { color: colors.text },
+}));
 
 export default SettingsModal;

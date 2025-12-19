@@ -4,7 +4,8 @@ import { Text } from "react-native-paper";
 import Slider from "@react-native-community/slider";
 import { useTranslation } from "react-i18next";
 import Button3D from "../../common/Button3D";
-import { COLORS } from "@constants/colors";
+import { useTheme } from "@src/contexts";
+import { useThemedStyles, createThemedStyles } from "@hooks/useThemedStyles";
 import type { SubtitleSettings } from "@src/types";
 import { saveSubtitleSettings } from "@utils/storage";
 
@@ -18,6 +19,9 @@ const SubtitleSection: React.FC<SubtitleSectionProps> = ({
   onSubtitleChange,
 }) => {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const themedStyles = useThemedStyles(subtitleThemedStyles);
+
   const handleFontSizeChange = (value: number) => {
     const newSettings = { ...subtitleSettings, fontSize: Math.round(value) };
     onSubtitleChange(newSettings);
@@ -53,12 +57,13 @@ const SubtitleSection: React.FC<SubtitleSectionProps> = ({
 
   return (
     <>
-      <Text style={styles.sectionTitle}>{t("settings.subtitle.title")}</Text>
-
-      <View style={styles.previewContainer}>
+      <Text style={themedStyles.sectionTitle}>
+        {t("settings.subtitle.title")}
+      </Text>
+      <View style={themedStyles.previewContainer}>
         <RNText
           style={[
-            styles.previewText,
+            themedStyles.previewText,
             {
               fontSize: subtitleSettings.fontSize,
               fontWeight:
@@ -70,9 +75,8 @@ const SubtitleSection: React.FC<SubtitleSectionProps> = ({
           {t("settings.subtitle.preview")}
         </RNText>
       </View>
-
       <View style={styles.settingRow}>
-        <Text style={styles.settingLabel}>
+        <Text style={themedStyles.settingLabel}>
           {t("settings.subtitle.fontSizeValue", {
             size: subtitleSettings.fontSize,
           })}
@@ -83,12 +87,11 @@ const SubtitleSection: React.FC<SubtitleSectionProps> = ({
           maximumValue={28}
           value={subtitleSettings.fontSize}
           onValueChange={handleFontSizeChange}
-          minimumTrackTintColor={COLORS.primary}
-          maximumTrackTintColor={COLORS.border}
-          thumbTintColor={COLORS.primary}
+          minimumTrackTintColor={colors.primary}
+          maximumTrackTintColor={colors.border}
+          thumbTintColor={colors.primary}
         />
       </View>
-
       <View style={[styles.styleButtonsRow, { marginBottom: 20 }]}>
         <Button3D
           onPress={toggleBold}
@@ -107,9 +110,8 @@ const SubtitleSection: React.FC<SubtitleSectionProps> = ({
           style={styles.styleButton}
         />
       </View>
-
       <View style={styles.settingGroup}>
-        <Text style={styles.settingLabel}>
+        <Text style={themedStyles.settingLabel}>
           {t("settings.subtitle.positionPortrait", {
             value: subtitleSettings.portraitBottom ?? 100,
           })}
@@ -123,14 +125,13 @@ const SubtitleSection: React.FC<SubtitleSectionProps> = ({
           onValueChange={(value) =>
             handlePositionChange("portraitBottom", value)
           }
-          minimumTrackTintColor={COLORS.primary}
-          maximumTrackTintColor={COLORS.border}
-          thumbTintColor={COLORS.primary}
+          minimumTrackTintColor={colors.primary}
+          maximumTrackTintColor={colors.border}
+          thumbTintColor={colors.primary}
         />
       </View>
-
       <View style={styles.settingGroup}>
-        <Text style={styles.settingLabel}>
+        <Text style={themedStyles.settingLabel}>
           {t("settings.subtitle.positionLandscape", {
             value: subtitleSettings.landscapeBottom ?? 8,
           })}
@@ -144,9 +145,9 @@ const SubtitleSection: React.FC<SubtitleSectionProps> = ({
           onValueChange={(value) =>
             handlePositionChange("landscapeBottom", value)
           }
-          minimumTrackTintColor={COLORS.primary}
-          maximumTrackTintColor={COLORS.border}
-          thumbTintColor={COLORS.primary}
+          minimumTrackTintColor={colors.primary}
+          maximumTrackTintColor={colors.border}
+          thumbTintColor={colors.primary}
         />
       </View>
     </>
@@ -154,8 +155,16 @@ const SubtitleSection: React.FC<SubtitleSectionProps> = ({
 };
 
 const styles = StyleSheet.create({
+  settingRow: { marginBottom: 16 },
+  settingGroup: { marginBottom: 16 },
+  slider: { width: "100%", height: 40 },
+  styleButtonsRow: { flexDirection: "row", gap: 12 },
+  styleButton: { flex: 1 },
+});
+
+const subtitleThemedStyles = createThemedStyles((colors) => ({
   sectionTitle: {
-    color: COLORS.primary,
+    color: colors.primary,
     fontSize: 13,
     fontWeight: "600",
     marginBottom: 8,
@@ -163,7 +172,7 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
   previewContainer: {
-    backgroundColor: COLORS.background,
+    backgroundColor: colors.background,
     borderRadius: 12,
     padding: 20,
     alignItems: "center",
@@ -172,22 +181,17 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   previewText: {
-    color: COLORS.text,
+    color: colors.text,
     textShadowColor: "rgba(0,0,0,0.9)",
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 3,
   },
-  settingRow: { marginBottom: 16 },
-  settingGroup: { marginBottom: 16 },
   settingLabel: {
-    color: COLORS.text,
+    color: colors.text,
     fontSize: 14,
     fontWeight: "500",
     marginBottom: 8,
   },
-  slider: { width: "100%", height: 40 },
-  styleButtonsRow: { flexDirection: "row", gap: 12 },
-  styleButton: { flex: 1 },
-});
+}));
 
 export default SubtitleSection;

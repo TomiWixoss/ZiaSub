@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   View,
   StyleSheet,
@@ -13,7 +13,8 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { WebViewMessageEvent, WebViewNavigation } from "react-native-webview";
 import { useTranslation } from "react-i18next";
 
-import { COLORS } from "@constants/colors";
+import { useTheme } from "@src/contexts";
+import { useThemedStyles, createThemedStyles } from "@hooks/useThemedStyles";
 import { hasTranslation } from "@utils/storage";
 import { ttsService } from "@services/ttsService";
 import { queueManager } from "@services/queueManager";
@@ -33,6 +34,7 @@ import { ChatModal } from "@components/chat";
 const HomeScreen = () => {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
+  const { colors, isDark } = useTheme();
 
   // Modal states
   const [modalVisible, setModalVisible] = useState(false);
@@ -301,16 +303,35 @@ const HomeScreen = () => {
     [navigateToVideo]
   );
 
+  const themedStyles = useThemedStyles(homeThemedStyles);
+
   return (
-    <View style={[styles.container, { paddingBottom: insets.bottom }]}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.surface} />
+    <View
+      style={[
+        styles.container,
+        themedStyles.container,
+        { paddingBottom: insets.bottom },
+      ]}
+    >
+      <StatusBar
+        barStyle={isDark ? "light-content" : "dark-content"}
+        backgroundColor={colors.surface}
+      />
 
       {!isFullscreen && (
         <LinearGradient
-          colors={["#1E1E3A", "#141428"]}
+          colors={
+            isDark
+              ? ["#1E1E3A", "#141428"]
+              : [colors.surfaceLight, colors.surface]
+          }
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
-          style={[styles.headerGradient, { paddingTop: insets.top }]}
+          style={[
+            styles.headerGradient,
+            themedStyles.headerGradient,
+            { paddingTop: insets.top },
+          ]}
         >
           <View style={styles.header}>
             <TouchableOpacity
@@ -322,20 +343,24 @@ const HomeScreen = () => {
               <MaterialCommunityIcons
                 name="arrow-left"
                 size={20}
-                color={canGoBack ? COLORS.text : COLORS.textMuted}
+                color={canGoBack ? colors.text : colors.textMuted}
               />
             </TouchableOpacity>
 
             <View style={styles.titleContainer}>
-              <View style={styles.logoContainer}>
+              <View style={[styles.logoContainer, themedStyles.logoContainer]}>
                 <MaterialCommunityIcons
                   name="subtitles"
                   size={16}
-                  color={COLORS.text}
+                  color="#FFFFFF"
                 />
               </View>
-              <Text style={styles.titleMain}>Zia</Text>
-              <Text style={styles.titleAccent}>Sub</Text>
+              <Text style={[styles.titleMain, themedStyles.titleMain]}>
+                Zia
+              </Text>
+              <Text style={[styles.titleAccent, themedStyles.titleAccent]}>
+                Sub
+              </Text>
             </View>
 
             <TouchableOpacity
@@ -346,7 +371,7 @@ const HomeScreen = () => {
               <MaterialCommunityIcons
                 name="reload"
                 size={20}
-                color={COLORS.text}
+                color={colors.text}
               />
             </TouchableOpacity>
           </View>
@@ -423,11 +448,9 @@ const HomeScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
   headerGradient: {
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(155,126,217,0.3)",
   },
   header: {
     flexDirection: "row",
@@ -455,20 +478,27 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 6,
-    backgroundColor: COLORS.primary,
     justifyContent: "center",
     alignItems: "center",
   },
   titleMain: {
-    color: COLORS.text,
     fontSize: 17,
     fontWeight: "600",
   },
   titleAccent: {
-    color: COLORS.primary,
     fontSize: 17,
     fontWeight: "700",
   },
 });
+
+const homeThemedStyles = createThemedStyles((colors, isDark) => ({
+  container: { backgroundColor: colors.background },
+  headerGradient: {
+    borderBottomColor: isDark ? "rgba(155,126,217,0.3)" : colors.border,
+  },
+  logoContainer: { backgroundColor: colors.primary },
+  titleMain: { color: colors.text },
+  titleAccent: { color: colors.primary },
+}));
 
 export default HomeScreen;

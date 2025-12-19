@@ -2,9 +2,10 @@ import React from "react";
 import { View, ActivityIndicator } from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { COLORS } from "@constants/colors";
+import { useTheme } from "@src/contexts";
+import { useThemedStyles } from "@hooks/useThemedStyles";
 import type { BatchProgress } from "@src/types";
-import { translateStyles as styles } from "./translateStyles";
+import { createTranslateStyles } from "./translateStyles";
 
 interface TranslationProgressProps {
   isTranslating: boolean;
@@ -19,13 +20,16 @@ const TranslationProgress: React.FC<TranslationProgressProps> = ({
   keyStatus,
   batchProgress,
 }) => {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(() => createTranslateStyles(colors));
+
   if (!isTranslating) return null;
 
   return (
     <View style={styles.progressContainer}>
       <View style={styles.progressHeader}>
         <View style={styles.progressTitleRow}>
-          <ActivityIndicator size="small" color={COLORS.primary} />
+          <ActivityIndicator size="small" color={colors.primary} />
           <Text style={styles.progressTitle}>{translateStatus}</Text>
         </View>
         {batchProgress && batchProgress.totalBatches > 1 && (
@@ -34,9 +38,7 @@ const TranslationProgress: React.FC<TranslationProgressProps> = ({
           </Text>
         )}
       </View>
-
       {keyStatus && <Text style={styles.keyStatusText}>{keyStatus}</Text>}
-
       {batchProgress && batchProgress.totalBatches > 1 && (
         <View style={styles.batchGrid}>
           {batchProgress.batchStatuses.map((status, index) => (
@@ -54,14 +56,14 @@ const TranslationProgress: React.FC<TranslationProgressProps> = ({
                 <MaterialCommunityIcons
                   name="check"
                   size={12}
-                  color={COLORS.text}
+                  color={colors.text}
                 />
               )}
               {status === "error" && (
                 <MaterialCommunityIcons
                   name="close"
                   size={12}
-                  color={COLORS.text}
+                  color={colors.text}
                 />
               )}
             </View>

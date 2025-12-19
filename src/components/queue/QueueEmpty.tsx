@@ -3,8 +3,9 @@ import { View } from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { COLORS } from "@constants/colors";
-import { queueStyles as styles } from "./queueStyles";
+import { useTheme } from "@src/contexts";
+import { useThemedStyles } from "@hooks/useThemedStyles";
+import { createQueueStyles } from "./queueStyles";
 import type { TabType } from "./QueueTabs";
 
 interface QueueEmptyProps {
@@ -13,6 +14,9 @@ interface QueueEmptyProps {
 
 const QueueEmpty: React.FC<QueueEmptyProps> = ({ activeTab }) => {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = useThemedStyles(() => createQueueStyles(colors));
+
   const getEmptyMessage = () => {
     switch (activeTab) {
       case "pending":
@@ -31,7 +35,7 @@ const QueueEmpty: React.FC<QueueEmptyProps> = ({ activeTab }) => {
           activeTab === "completed" ? "check-circle-outline" : "playlist-plus"
         }
         size={48}
-        color={COLORS.textMuted}
+        color={colors.textMuted}
       />
       <Text style={styles.emptyText}>{getEmptyMessage()}</Text>
     </View>

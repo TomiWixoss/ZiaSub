@@ -4,9 +4,10 @@ import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import Button3D from "../common/Button3D";
-import { COLORS } from "@constants/colors";
+import { useTheme } from "@src/contexts";
+import { useThemedStyles } from "@hooks/useThemedStyles";
 import type { GeminiConfig } from "@src/types";
-import { queueStyles as styles } from "./queueStyles";
+import { createQueueStyles } from "./queueStyles";
 import ConfigPicker from "./ConfigPicker";
 
 interface QueueActionsProps {
@@ -31,21 +32,21 @@ const QueueActions: React.FC<QueueActionsProps> = ({
   onClearPending,
 }) => {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = useThemedStyles(() => createQueueStyles(colors));
+
   return (
     <View style={styles.actionSection}>
-      {/* API Key Warning */}
       {!hasApiKey && (
         <View style={styles.warningContainer}>
           <MaterialCommunityIcons
             name="alert-circle-outline"
             size={18}
-            color={COLORS.warning}
+            color={colors.warning}
           />
           <Text style={styles.warningText}>{t("chat.noApiKey")}</Text>
         </View>
       )}
-
-      {/* Config Picker */}
       <ConfigPicker
         configs={configs}
         selectedConfigId={selectedConfigId}
@@ -53,7 +54,6 @@ const QueueActions: React.FC<QueueActionsProps> = ({
         onToggleDropdown={onToggleConfigPicker}
         onSelectConfig={onSelectConfig}
       />
-
       <View style={styles.actionButtons}>
         <View style={styles.actionButtonPrimary}>
           <Button3D
@@ -68,7 +68,7 @@ const QueueActions: React.FC<QueueActionsProps> = ({
           <MaterialCommunityIcons
             name="delete-sweep"
             size={22}
-            color={COLORS.error}
+            color={colors.error}
           />
         </TouchableOpacity>
       </View>

@@ -12,7 +12,8 @@ import { useTranslation } from "react-i18next";
 import * as DocumentPicker from "expo-document-picker";
 import * as Clipboard from "expo-clipboard";
 import { readAsStringAsync } from "expo-file-system/legacy";
-import { COLORS } from "@constants/colors";
+import { useTheme } from "@src/contexts";
+import { useThemedStyles, createThemedStyles } from "@hooks/useThemedStyles";
 import Button3D from "../common/Button3D";
 
 interface SrtTabProps {
@@ -27,14 +28,14 @@ export const SrtTab: React.FC<SrtTabProps> = ({
   onLoadSubtitles,
 }) => {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const themedStyles = useThemedStyles(srtTabThemedStyles);
+
   const handlePasteFromClipboard = async () => {
     try {
       const clipboardContent = await Clipboard.getStringAsync();
-      if (clipboardContent) {
-        setSrtContent(clipboardContent);
-      } else {
-        alert(t("common.notice"), t("subtitleModal.srt.pasteNothing"));
-      }
+      if (clipboardContent) setSrtContent(clipboardContent);
+      else alert(t("common.notice"), t("subtitleModal.srt.pasteNothing"));
     } catch (error) {
       alert(t("common.error"), t("subtitleModal.srt.pasteError"));
     }
@@ -46,9 +47,7 @@ export const SrtTab: React.FC<SrtTabProps> = ({
         type: "*/*",
         copyToCacheDirectory: true,
       });
-
       if (result.canceled) return;
-
       const asset = result.assets[0];
       if (asset) {
         const content = await readAsStringAsync(asset.uri);
@@ -77,15 +76,14 @@ export const SrtTab: React.FC<SrtTabProps> = ({
           style={styles.rowButton}
         />
       </View>
-
       <View style={styles.inputContainer}>
         <RNTextInput
           placeholder={t("subtitleModal.srt.placeholder")}
-          placeholderTextColor={COLORS.textMuted}
+          placeholderTextColor={colors.textMuted}
           multiline
           value={srtContent}
           onChangeText={setSrtContent}
-          style={styles.input}
+          style={themedStyles.input}
           autoCapitalize="none"
           autoCorrect={false}
         />
@@ -97,12 +95,11 @@ export const SrtTab: React.FC<SrtTabProps> = ({
             <MaterialCommunityIcons
               name="close-circle"
               size={18}
-              color={COLORS.textMuted}
+              color={colors.textMuted}
             />
           </TouchableOpacity>
         )}
       </View>
-
       <Button3D
         onPress={onLoadSubtitles}
         title={t("subtitleModal.srt.load")}
@@ -117,17 +114,20 @@ const styles = StyleSheet.create({
   buttonRow: { flexDirection: "row", gap: 12, marginBottom: 16 },
   rowButton: { flex: 1 },
   inputContainer: { flex: 1, marginBottom: 16, position: "relative" },
+  clearButton: { position: "absolute", top: 12, right: 12, padding: 4 },
+});
+
+const srtTabThemedStyles = createThemedStyles((colors) => ({
   input: {
     flex: 1,
-    backgroundColor: COLORS.surfaceLight,
+    backgroundColor: colors.surfaceLight,
     borderRadius: 12,
     padding: 16,
-    color: COLORS.text,
+    color: colors.text,
     fontSize: 13,
     fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
     textAlignVertical: "top",
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: colors.border,
   },
-  clearButton: { position: "absolute", top: 12, right: 12, padding: 4 },
-});
+}));

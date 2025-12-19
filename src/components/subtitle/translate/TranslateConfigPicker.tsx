@@ -3,9 +3,10 @@ import { View, TouchableOpacity } from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { COLORS } from "@constants/colors";
+import { useTheme } from "@src/contexts";
+import { useThemedStyles } from "@hooks/useThemedStyles";
 import type { GeminiConfig } from "@src/types";
-import { translateStyles as styles } from "./translateStyles";
+import { createTranslateStyles } from "./translateStyles";
 
 interface TranslateConfigPickerProps {
   configs: GeminiConfig[];
@@ -23,6 +24,8 @@ const TranslateConfigPicker: React.FC<TranslateConfigPickerProps> = ({
   onSelectConfig,
 }) => {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = useThemedStyles(() => createTranslateStyles(colors));
   const selectedConfig = configs.find((c) => c.id === selectedConfigId);
 
   return (
@@ -32,7 +35,7 @@ const TranslateConfigPicker: React.FC<TranslateConfigPickerProps> = ({
           <MaterialCommunityIcons
             name="robot"
             size={20}
-            color={COLORS.primary}
+            color={colors.primary}
           />
           <Text style={styles.configPickerText}>
             {selectedConfig?.name || t("subtitleModal.translate.selectConfig")}
@@ -41,10 +44,9 @@ const TranslateConfigPicker: React.FC<TranslateConfigPickerProps> = ({
         <MaterialCommunityIcons
           name={showPicker ? "chevron-up" : "chevron-down"}
           size={20}
-          color={COLORS.textMuted}
+          color={colors.textMuted}
         />
       </TouchableOpacity>
-
       {showPicker && (
         <View style={styles.configDropdown}>
           {configs.map((config) => (
