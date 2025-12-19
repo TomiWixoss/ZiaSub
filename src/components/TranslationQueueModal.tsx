@@ -158,8 +158,8 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
 
   const handleStartTranslation = (item: QueueItem) => {
     confirm(
-      "Bắt đầu dịch",
-      `Dịch video "${item.title}"?`,
+      "Dịch video này",
+      `Bắt đầu dịch "${item.title}"?`,
       () => queueManager.startTranslation(item.id),
       "Dịch"
     );
@@ -168,14 +168,14 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
   const handleStartAll = () => {
     confirm(
       "Dịch tất cả",
-      "Bắt đầu dịch tự động tất cả video trong danh sách?",
+      "Dịch tự động tất cả video trong danh sách?",
       () => queueManager.startAutoProcess(),
       "Bắt đầu"
     );
   };
 
   const handleRemove = (item: QueueItem) => {
-    confirmDestructive("Xóa", `Xóa "${item.title}" khỏi danh sách?`, () =>
+    confirmDestructive("Xóa video", `Bỏ "${item.title}" khỏi danh sách?`, () =>
       queueManager.removeFromQueue(item.id)
     );
   };
@@ -187,7 +187,7 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
   const handleClearPending = () => {
     confirmDestructive(
       "Xóa tất cả",
-      "Xóa tất cả video chưa dịch khỏi danh sách?",
+      "Bỏ hết video chưa dịch khỏi danh sách?",
       () => queueManager.clearPending()
     );
   };
@@ -195,7 +195,7 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
   const handleClearCompleted = () => {
     confirmDestructive(
       "Xóa tất cả",
-      "Xóa tất cả video đã dịch khỏi danh sách?",
+      "Bỏ hết video đã dịch khỏi danh sách?",
       () => queueManager.clearByStatus("completed")
     );
   };
@@ -253,7 +253,7 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
         <View style={styles.itemFooter}>
           {item.status === "pending" && (
             <Text style={styles.dateText}>
-              Thêm: {formatDate(item.addedAt)}
+              Đã thêm: {formatDate(item.addedAt)}
             </Text>
           )}
           {item.status === "translating" && (
@@ -263,7 +263,7 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
           )}
           {item.status === "completed" && (
             <Text style={[styles.dateText, { color: COLORS.success }]}>
-              Xong: {formatDate(item.completedAt)}
+              Dịch xong: {formatDate(item.completedAt)}
             </Text>
           )}
           {item.status === "error" && (
@@ -271,7 +271,7 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
               style={[styles.dateText, { color: COLORS.error }]}
               numberOfLines={1}
             >
-              Lỗi: {item.error}
+              Gặp lỗi: {item.error}
             </Text>
           )}
         </View>
@@ -326,9 +326,9 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
         color={COLORS.textMuted}
       />
       <Text style={styles.emptyText}>
-        {activeTab === "pending" && "Chưa có video nào trong danh sách"}
-        {activeTab === "translating" && "Không có video đang dịch"}
-        {activeTab === "completed" && "Chưa có video nào đã dịch"}
+        {activeTab === "pending" && "Chưa có video nào"}
+        {activeTab === "translating" && "Không có video nào đang dịch"}
+        {activeTab === "completed" && "Chưa dịch video nào"}
       </Text>
     </View>
   );
@@ -369,7 +369,7 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
         >
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.headerTitle}>Danh sách dịch</Text>
+            <Text style={styles.headerTitle}>Danh sách chờ dịch</Text>
             <TouchableOpacity style={styles.closeBtn} onPress={handleClose}>
               <MaterialCommunityIcons
                 name="close"
@@ -487,7 +487,7 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
                   />
                   <Text style={styles.configPickerText} numberOfLines={1}>
                     {geminiConfigs.find((c) => c.id === selectedConfigId)
-                      ?.name || "Chọn cấu hình"}
+                      ?.name || "Chọn kiểu dịch"}
                   </Text>
                 </View>
                 <MaterialCommunityIcons
@@ -526,7 +526,7 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
               <View style={styles.actionButtons}>
                 <View style={styles.actionButtonPrimary}>
                   <Button3D
-                    title="Dịch tự động tất cả"
+                    title="Dịch tất cả"
                     icon="play-circle"
                     variant="primary"
                     onPress={handleStartAll}
@@ -635,7 +635,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 12,
   },
-  headerTitle: { color: COLORS.text, fontSize: 20, fontWeight: "700" },
+  headerTitle: { color: COLORS.text, fontSize: 18, fontWeight: "700" },
   closeBtn: { padding: 4 },
   tabBar: {
     flexDirection: "row",

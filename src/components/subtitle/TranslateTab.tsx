@@ -95,10 +95,10 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
 
   const handleTranslate = async () => {
     const config = geminiConfigs.find((c) => c.id === selectedConfigId);
-    if (!config) return alert("Lỗi", "Vui lòng chọn cấu hình Gemini.");
-    if (!videoUrl) return alert("Lỗi", "Không tìm thấy URL video.");
+    if (!config) return alert("Chưa chọn", "Chọn kiểu dịch trước nhé.");
+    if (!videoUrl) return alert("Chưa có video", "Mở video cần dịch trước.");
     if (translationManager.isTranslatingUrl(videoUrl)) {
-      return alert("Thông báo", "Video này đang được dịch.");
+      return alert("Thông báo", "Video này đang dịch rồi.");
     }
 
     try {
@@ -110,7 +110,7 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
         batchSettings
       );
     } catch (error: any) {
-      alert("Lỗi", error.message || "Không thể bắt đầu dịch.");
+      alert("Không dịch được", error.message || "Có lỗi xảy ra.");
     }
   };
 
@@ -124,8 +124,8 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
 
   const handleDeleteTranslation = (translation: SavedTranslation) => {
     confirmDestructive(
-      "Xác nhận",
-      "Bạn có chắc muốn xóa bản dịch này?",
+      "Xóa bản dịch",
+      "Bạn muốn xóa bản dịch này?",
       async () => {
         if (!videoUrl) return;
         await deleteTranslation(videoUrl, translation.id);
@@ -149,7 +149,7 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
       {/* Saved Translations List */}
       {savedTranslations.length > 0 && (
         <View style={styles.translationsSection}>
-          <Text style={styles.sectionTitle}>Bản dịch đã lưu</Text>
+          <Text style={styles.sectionTitle}>Đã dịch</Text>
           <ScrollView
             style={styles.translationsList}
             showsVerticalScrollIndicator={false}
@@ -211,7 +211,7 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
             color={COLORS.warning}
           />
           <Text style={styles.warningText}>
-            Chưa có API Key. Vui lòng thêm trong Cài đặt → API Keys
+            Chưa có key. Thêm trong Cài đặt nhé
           </Text>
         </View>
       )}
@@ -228,7 +228,7 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
             color={COLORS.primary}
           />
           <Text style={styles.configPickerText}>
-            {selectedConfig?.name || "Chọn cấu hình"}
+            {selectedConfig?.name || "Chọn kiểu dịch"}
           </Text>
         </View>
         <MaterialCommunityIcons

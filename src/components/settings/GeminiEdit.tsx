@@ -42,18 +42,18 @@ const GeminiEdit: React.FC<GeminiEditProps> = ({
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.settingGroup}>
-        <Text style={styles.settingLabel}>Tên cấu hình</Text>
+        <Text style={styles.settingLabel}>Tên kiểu dịch</Text>
         <RNTextInput
           style={styles.input}
           value={config.name}
           onChangeText={(text) => onChange({ ...config, name: text })}
-          placeholder="Tên cấu hình..."
+          placeholder="Đặt tên..."
           placeholderTextColor={COLORS.textMuted}
         />
       </View>
 
       <View style={styles.settingGroup}>
-        <Text style={styles.settingLabel}>Model</Text>
+        <Text style={styles.settingLabel}>Mô hình AI</Text>
         <TouchableOpacity
           style={styles.modelPicker}
           onPress={() => setShowModelPicker(!showModelPicker)}
@@ -96,7 +96,7 @@ const GeminiEdit: React.FC<GeminiEditProps> = ({
 
       <View style={styles.settingGroup}>
         <Text style={styles.settingLabel}>
-          Temperature: {config.temperature.toFixed(1)}
+          Độ sáng tạo: {config.temperature.toFixed(1)}
         </Text>
         <Slider
           style={styles.slider}
@@ -112,12 +112,12 @@ const GeminiEdit: React.FC<GeminiEditProps> = ({
       </View>
 
       <View style={styles.settingGroup}>
-        <Text style={styles.settingLabel}>System Prompt</Text>
+        <Text style={styles.settingLabel}>Hướng dẫn dịch</Text>
         <RNTextInput
           style={styles.promptInput}
           value={config.systemPrompt}
           onChangeText={(text) => onChange({ ...config, systemPrompt: text })}
-          placeholder="Nhập system prompt..."
+          placeholder="Nhập hướng dẫn cho AI..."
           placeholderTextColor={COLORS.textMuted}
           multiline
           textAlignVertical="top"

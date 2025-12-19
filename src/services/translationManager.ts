@@ -76,7 +76,7 @@ class TranslationManager {
   ): Promise<string> {
     // Check if already translating this URL
     if (this.isTranslatingUrl(videoUrl)) {
-      throw new Error("Video này đang được dịch");
+      throw new Error("Video này đang dịch rồi");
     }
 
     // Create new job
@@ -149,7 +149,7 @@ class TranslationManager {
         this.currentJob = {
           ...this.currentJob,
           status: "error",
-          error: error.message || "Lỗi không xác định",
+          error: error.message || "Có lỗi xảy ra",
           completedAt: Date.now(),
         };
         this.notify();

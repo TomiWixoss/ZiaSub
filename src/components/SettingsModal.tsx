@@ -101,18 +101,18 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
   const handleAddConfig = () => {
     const newConfig = createDefaultGeminiConfig();
-    newConfig.name = `Cấu hình ${geminiConfigs.length + 1}`;
+    newConfig.name = `Kiểu dịch ${geminiConfigs.length + 1}`;
     setEditingConfig(newConfig);
   };
 
   const handleDeleteConfig = (id: string) => {
     if (geminiConfigs.length <= 1) {
-      alert("Lỗi", "Phải có ít nhất một cấu hình.");
+      alert("Không xóa được", "Cần giữ lại ít nhất một kiểu dịch.");
       return;
     }
     confirmDestructive(
-      "Xác nhận",
-      "Bạn có chắc muốn xóa cấu hình này?",
+      "Xóa kiểu dịch",
+      "Bạn muốn xóa kiểu dịch này?",
       async () => {
         const newConfigs = geminiConfigs.filter((c) => c.id !== id);
         setGeminiConfigs(newConfigs);
@@ -196,7 +196,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
           <View style={styles.sheetHeader}>
             <View style={styles.dragHandle} />
             <Text style={styles.title}>
-              {editingConfig ? "Chỉnh sửa cấu hình" : "Cài đặt"}
+              {editingConfig ? "Chỉnh kiểu dịch" : "Cài đặt"}
             </Text>
             <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
               <MaterialCommunityIcons
@@ -249,7 +249,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                     activeTab === "gemini" && styles.tabTextActive,
                   ]}
                 >
-                  Gemini AI
+                  Kiểu dịch
                 </Text>
               </TouchableOpacity>
             </View>

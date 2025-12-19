@@ -82,7 +82,7 @@ const runWithConcurrency = async <T>(
       // Only reaches here after all retries exhausted (executeWithRetry handles retries)
       statuses[index] = "error";
       hasErrors = true;
-      lastError = error.message || "Lỗi không xác định";
+      lastError = error.message || "Có lỗi xảy ra";
       console.error(
         `[Gemini] Batch ${index + 1} failed after all retries:`,
         error.message
@@ -152,7 +152,7 @@ export const translateVideoWithGemini = async (
   options?: VideoTranslateOptions
 ): Promise<string> => {
   if (!keyManager.hasAvailableKey()) {
-    throw new Error("Vui lòng thêm API Key trong cài đặt");
+    throw new Error("Thêm key trong Cài đặt trước nhé");
   }
 
   // Set key status callback
@@ -243,7 +243,7 @@ export const translateVideoWithGemini = async (
 
       if (successfulResults.length === 0) {
         // All batches failed
-        throw new Error(errorMessage || "Tất cả batch đều thất bại");
+        throw new Error(errorMessage || "Không dịch được phần nào");
       }
 
       const finalStatuses = results.map((r) =>

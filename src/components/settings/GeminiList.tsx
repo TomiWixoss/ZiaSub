@@ -54,7 +54,7 @@ const GeminiList: React.FC<GeminiListProps> = ({
     <Button3D
       onPress={onAdd}
       icon="plus"
-      title="Thêm cấu hình"
+      title="Thêm kiểu dịch"
       variant="outline"
       style={{ marginTop: 16 }}
     />

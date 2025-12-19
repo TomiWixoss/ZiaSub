@@ -31,10 +31,10 @@ export const SrtTab: React.FC<SrtTabProps> = ({
       if (clipboardContent) {
         setSrtContent(clipboardContent);
       } else {
-        alert("Thông báo", "Clipboard trống.");
+        alert("Thông báo", "Chưa có gì để dán.");
       }
     } catch (error) {
-      alert("Lỗi", "Không thể truy cập clipboard.");
+      alert("Lỗi", "Không thể dán được.");
     }
   };
 
@@ -53,7 +53,7 @@ export const SrtTab: React.FC<SrtTabProps> = ({
         setSrtContent(content);
       }
     } catch (error) {
-      alert("Lỗi", "Không thể đọc file này.");
+      alert("Lỗi", "Không mở được file này.");
     }
   };
 
@@ -78,7 +78,7 @@ export const SrtTab: React.FC<SrtTabProps> = ({
 
       <View style={styles.inputContainer}>
         <RNTextInput
-          placeholder="Dán nội dung SRT vào đây..."
+          placeholder="Dán nội dung phụ đề vào đây..."
           placeholderTextColor={COLORS.textMuted}
           multiline
           value={srtContent}

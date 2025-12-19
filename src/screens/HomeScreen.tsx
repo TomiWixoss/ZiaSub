@@ -381,8 +381,8 @@ const HomeScreen = () => {
 
     if (fixCount > 0) {
       alert(
-        "Đã sửa lỗi SRT",
-        `Đã tự động khắc phục ${fixCount} lỗi định dạng.`
+        "Đã sửa lỗi phụ đề",
+        `Đã tự động sửa ${fixCount} lỗi trong phụ đề.`
       );
     }
 
@@ -404,7 +404,7 @@ const HomeScreen = () => {
 
     const existing = queueManager.isInQueue(currentUrl);
     if (existing) {
-      alert("Thông báo", "Video này đã có trong danh sách dịch.");
+      alert("Thông báo", "Video này đã có trong danh sách rồi.");
       return;
     }
 
@@ -417,7 +417,7 @@ const HomeScreen = () => {
 
     if (item) {
       setCurrentVideoInQueue(item);
-      showAlert("Đã thêm", "Video đã được thêm vào danh sách dịch.", [
+      showAlert("Đã thêm", "Đã thêm video vào danh sách chờ dịch.", [
         { text: "OK" },
         { text: "Xem danh sách", onPress: () => setQueueModalVisible(true) },
       ]);

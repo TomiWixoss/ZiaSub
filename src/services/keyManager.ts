@@ -123,7 +123,7 @@ class GeminiKeyManager {
         this.keys.length
       }`
     );
-    this.notifyStatus(`Đang thử key #${this.currentKeyIndex + 1}...`);
+    this.notifyStatus(`Đang thử key ${this.currentKeyIndex + 1}...`);
     return true;
   }
 
@@ -144,7 +144,7 @@ class GeminiKeyManager {
     operation: (ai: GoogleGenAI, keyIndex: number) => Promise<T>
   ): Promise<T> {
     if (this.keys.length === 0) {
-      throw new Error("Vui lòng thêm API Key trong cài đặt");
+      throw new Error("Thêm key trong Cài đặt trước nhé");
     }
 
     const startIndex = this.currentKeyIndex;
@@ -163,8 +163,8 @@ class GeminiKeyManager {
       try {
         this.notifyStatus(
           triedKeys === 0
-            ? `Đang dịch với key #${this.currentKeyIndex + 1}...`
-            : `Đang thử key #${this.currentKeyIndex + 1}/${this.keys.length}...`
+            ? `Đang dùng key ${this.currentKeyIndex + 1}...`
+            : `Đang thử key ${this.currentKeyIndex + 1}/${this.keys.length}...`
         );
 
         const result = await operation(ai, this.currentKeyIndex);
@@ -176,7 +176,7 @@ class GeminiKeyManager {
               this.currentKeyIndex + 1
             } sau ${triedKeys + 1} lần thử`
           );
-          this.notifyStatus(`✅ Key #${this.currentKeyIndex + 1} hoạt động`);
+          this.notifyStatus(`✅ Key ${this.currentKeyIndex + 1} hoạt động`);
         }
 
         return result;
@@ -210,10 +210,10 @@ class GeminiKeyManager {
 
     // Đã thử hết tất cả keys
     if (triedKeys >= this.keys.length) {
-      this.notifyStatus(`❌ Đã thử hết ${this.keys.length} keys`);
+      this.notifyStatus(`❌ Đã thử hết ${this.keys.length} key`);
       throw new Error(
-        `Đã thử hết ${this.keys.length} API keys. Lỗi cuối: ${
-          lastError?.message || "Unknown"
+        `Đã thử hết ${this.keys.length} key nhưng không được. Lỗi: ${
+          lastError?.message || "Không rõ"
         }`
       );
     }

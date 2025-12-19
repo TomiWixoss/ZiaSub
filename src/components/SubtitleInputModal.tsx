@@ -91,7 +91,7 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
         if (job.progress) {
           setTranslateStatus(
             job.progress.totalBatches > 1
-              ? `Đang dịch batch ${job.progress.completedBatches}/${job.progress.totalBatches}...`
+              ? `Đang dịch phần ${job.progress.completedBatches}/${job.progress.totalBatches}...`
               : "Đang dịch video..."
           );
           // Sync progress to queue if video is in queue
@@ -116,7 +116,7 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
         );
 
         if (job.status === "completed" && job.result) {
-          setTranslateStatus("Hoàn tất!");
+          setTranslateStatus("Xong rồi!");
           setKeyStatus(null);
           // Update SRT content and load subtitles
           setSrtContent(job.result);
@@ -126,7 +126,7 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
           translationManager.clearCompletedJob(videoUrl);
           // Only show alert if modal is visible (user is watching the translation)
           if (visible) {
-            alert("Thành công", "Đã dịch xong! Phụ đề đã được áp dụng.");
+            alert("Thành công", "Dịch xong rồi! Phụ đề đã sẵn sàng.");
           }
         }
 
@@ -136,10 +136,10 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
           // Sync to queue - mark as error
           queueManager.markVideoError(
             job.videoUrl,
-            job.error || "Lỗi không xác định"
+            job.error || "Có lỗi xảy ra"
           );
           translationManager.clearCompletedJob(videoUrl);
-          alert("Lỗi dịch", job.error || "Không thể dịch video.");
+          alert("Không dịch được", job.error || "Không thể dịch video này.");
         }
       }
     });
@@ -156,7 +156,7 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
         setKeyStatus(existingJob.keyStatus);
         setTranslateStatus(
           existingJob.progress && existingJob.progress.totalBatches > 1
-            ? `Đang dịch batch ${existingJob.progress.completedBatches}/${existingJob.progress.totalBatches}...`
+            ? `Đang dịch phần ${existingJob.progress.completedBatches}/${existingJob.progress.totalBatches}...`
             : "Đang dịch video..."
         );
         setActiveTab("translate");
@@ -234,8 +234,8 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
       const clipboardContent = await Clipboard.getStringAsync();
       if (clipboardContent && isSRTFormat(clipboardContent) && !srtContent) {
         confirm(
-          "Phát hiện SRT",
-          "Clipboard có nội dung SRT. Bạn có muốn dán vào không?",
+          "Phát hiện phụ đề",
+          "Bạn vừa sao chép nội dung phụ đề. Muốn dán vào không?",
           () => setSrtContent(clipboardContent),
           "Dán",
           "Không"
@@ -336,7 +336,7 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
                     activeTab === "srt" && styles.tabTextActive,
                   ]}
                 >
-                  Nhập SRT
+                  Dán phụ đề
                 </Text>
               </TouchableOpacity>
             </View>

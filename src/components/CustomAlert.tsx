@@ -52,8 +52,8 @@ export const confirm = (
   title: string,
   message: string,
   onConfirm: () => void,
-  confirmText = "Xác nhận",
-  cancelText = "Hủy"
+  confirmText = "Đồng ý",
+  cancelText = "Không"
 ) => {
   showAlert(title, message, [
     { text: confirmText, onPress: onConfirm },
@@ -66,7 +66,7 @@ export const confirmDestructive = (
   message: string,
   onConfirm: () => void,
   confirmText = "Xóa",
-  cancelText = "Hủy"
+  cancelText = "Không"
 ) => {
   showAlert(
     title,

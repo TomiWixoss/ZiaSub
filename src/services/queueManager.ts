@@ -145,7 +145,7 @@ class QueueManager {
     if (!config) {
       this.updateItem(itemId, {
         status: "error",
-        error: "Chưa có cấu hình Gemini",
+        error: "Chưa chọn kiểu dịch",
       });
       return;
     }
@@ -186,7 +186,7 @@ class QueueManager {
         if (job.status === "error") {
           this.updateItem(itemId, {
             status: "error",
-            error: job.error || "Lỗi không xác định",
+            error: job.error || "Có lỗi xảy ra",
             progress: undefined,
           });
           this.isProcessing = false;

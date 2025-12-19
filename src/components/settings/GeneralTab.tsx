@@ -89,7 +89,7 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
     const key = newKey.trim();
     if (!key) return;
     if (apiKeys.includes(key)) {
-      alert("Lỗi", "API Key này đã tồn tại.");
+      alert("Trùng key", "Key này đã có rồi.");
       return;
     }
     const newKeys = [...apiKeys, key];
@@ -100,16 +100,12 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
   };
 
   const handleDeleteKey = (index: number) => {
-    confirmDestructive(
-      "Xác nhận",
-      "Bạn có chắc muốn xóa API Key này?",
-      async () => {
-        const newKeys = apiKeys.filter((_, i) => i !== index);
-        onApiKeysChange(newKeys);
-        await saveApiKeys(newKeys);
-        keyManager.initialize(newKeys);
-      }
-    );
+    confirmDestructive("Xóa key", "Bạn muốn xóa key này?", async () => {
+      const newKeys = apiKeys.filter((_, i) => i !== index);
+      onApiKeysChange(newKeys);
+      await saveApiKeys(newKeys);
+      keyManager.initialize(newKeys);
+    });
   };
 
   const maskKey = (key: string) => {
@@ -123,7 +119,7 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
       <Text style={styles.sectionTitle}>API Keys</Text>
       <View style={styles.sectionHintRow}>
         <Text style={styles.sectionHint}>
-          Thêm nhiều key để tự động xoay vòng khi bị rate limit.{" "}
+          Thêm nhiều key để dịch nhanh hơn.{" "}
         </Text>
         <TouchableOpacity
           onPress={() =>
@@ -170,7 +166,7 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
             style={styles.addKeyInput}
             value={newKey}
             onChangeText={setNewKey}
-            placeholder="Nhập API Key mới..."
+            placeholder="Dán key vào đây..."
             placeholderTextColor={COLORS.textMuted}
             secureTextEntry={!showKeys}
             autoCapitalize="none"
@@ -298,11 +294,11 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
 
       <View style={styles.settingGroup}>
         <Text style={styles.settingLabel}>
-          Thời lượng mỗi batch:{" "}
-          {Math.floor(batchSettings.maxVideoDuration / 60)} phút
+          Độ dài mỗi phần: {Math.floor(batchSettings.maxVideoDuration / 60)}{" "}
+          phút
         </Text>
         <Text style={styles.settingHint}>
-          Video dài hơn sẽ được chia thành nhiều phần
+          Video dài hơn sẽ được chia nhỏ để dịch
         </Text>
         <Slider
           style={styles.slider}
@@ -319,10 +315,10 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
 
       <View style={styles.settingGroup}>
         <Text style={styles.settingLabel}>
-          Batch đồng thời: {batchSettings.maxConcurrentBatches}
+          Dịch cùng lúc: {batchSettings.maxConcurrentBatches} phần
         </Text>
         <Text style={styles.settingHint}>
-          Số API call chạy song song (cao = nhanh nhưng tốn quota)
+          Dịch nhiều phần cùng lúc (nhanh hơn nhưng tốn key)
         </Text>
         <Slider
           style={styles.slider}
@@ -339,12 +335,12 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
 
       <View style={styles.settingGroup}>
         <Text style={styles.settingLabel}>
-          Offset dung sai: {Math.floor((batchSettings.batchOffset ?? 60) / 60)}{" "}
+          Dung sai thêm: {Math.floor((batchSettings.batchOffset ?? 60) / 60)}{" "}
           phút {(batchSettings.batchOffset ?? 60) % 60}s
         </Text>
         <Text style={styles.settingHint}>
-          Video dài hơn batch tối đa nhưng trong khoảng offset sẽ không bị tách
-          (VD: 10p + 1p offset = video 11p vẫn dịch 1 lần)
+          Video dài hơn một chút vẫn dịch 1 lần (VD: 10p + 1p dung sai = video
+          11p không bị chia nhỏ)
         </Text>
         <Slider
           style={styles.slider}
