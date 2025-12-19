@@ -17,6 +17,7 @@ export interface SubtitleSettings {
 export interface BatchSettings {
   maxVideoDuration: number; // Max duration per batch in seconds (default: 600 = 10 minutes)
   maxConcurrentBatches: number; // Max concurrent API calls (default: 2)
+  batchOffset: number; // Offset tolerance in seconds (default: 60). If video exceeds maxVideoDuration by less than this, don't split
 }
 
 // API Keys settings (shared, with rotation support)
@@ -40,6 +41,7 @@ export const DEFAULT_SUBTITLE_SETTINGS: SubtitleSettings = {
 export const DEFAULT_BATCH_SETTINGS: BatchSettings = {
   maxVideoDuration: 600, // 10 minutes
   maxConcurrentBatches: 2,
+  batchOffset: 60, // 1 minute tolerance
 };
 
 export const DEFAULT_API_KEYS_SETTINGS: ApiKeysSettings = {

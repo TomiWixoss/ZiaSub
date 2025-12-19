@@ -78,6 +78,12 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
     saveBatchSettings(newSettings);
   };
 
+  const handleOffsetChange = (value: number) => {
+    const newSettings = { ...batchSettings, batchOffset: value };
+    onBatchChange(newSettings);
+    saveBatchSettings(newSettings);
+  };
+
   const handleAddKey = async () => {
     const key = newKey.trim();
     if (!key) return;
@@ -270,6 +276,28 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
           step={1}
           value={batchSettings.maxConcurrentBatches}
           onValueChange={handleConcurrentChange}
+          minimumTrackTintColor={COLORS.primary}
+          maximumTrackTintColor={COLORS.border}
+          thumbTintColor={COLORS.primary}
+        />
+      </View>
+
+      <View style={styles.settingGroup}>
+        <Text style={styles.settingLabel}>
+          Offset dung sai: {Math.floor((batchSettings.batchOffset ?? 60) / 60)}{" "}
+          phút {(batchSettings.batchOffset ?? 60) % 60}s
+        </Text>
+        <Text style={styles.settingHint}>
+          Video dài hơn batch tối đa nhưng trong khoảng offset sẽ không bị tách
+          (VD: 10p + 1p offset = video 11p vẫn dịch 1 lần)
+        </Text>
+        <Slider
+          style={styles.slider}
+          minimumValue={0}
+          maximumValue={300}
+          step={30}
+          value={batchSettings.batchOffset ?? 60}
+          onValueChange={handleOffsetChange}
           minimumTrackTintColor={COLORS.primary}
           maximumTrackTintColor={COLORS.border}
           thumbTintColor={COLORS.primary}

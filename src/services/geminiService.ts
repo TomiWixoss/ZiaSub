@@ -7,8 +7,6 @@ import {
 import { mergeSrtContents } from "@utils/srtParser";
 import { keyManager, KeyStatusCallback } from "./keyManager";
 
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
 // Extract video ID and convert to standard YouTube URL
 const normalizeYouTubeUrl = (url: string): string => {
   let videoId = "";
@@ -152,17 +150,23 @@ export const translateVideoWithGemini = async (
   const batchSettings = options?.batchSettings || DEFAULT_BATCH_SETTINGS;
   const maxDuration = batchSettings.maxVideoDuration;
   const maxConcurrent = batchSettings.maxConcurrentBatches;
+  const batchOffset = batchSettings.batchOffset ?? 60; // Default 60s tolerance
   const videoDuration = options?.videoDuration;
 
   console.log("[Gemini] Starting video translation...");
   console.log("[Gemini] Normalized URL:", normalizedUrl);
   console.log("[Gemini] Using key:", keyManager.getCurrentKeyMasked());
   console.log("[Gemini] Max duration per batch:", maxDuration, "seconds");
+  console.log("[Gemini] Batch offset tolerance:", batchOffset, "seconds");
   console.log("[Gemini] Video duration:", videoDuration || "unknown");
 
   try {
-    // If video duration is known and exceeds max, split into batches
-    if (videoDuration && videoDuration > maxDuration) {
+    // Check if we need to split into batches
+    // Only split if video exceeds (maxDuration + batchOffset)
+    const effectiveMaxDuration = maxDuration + batchOffset;
+    const shouldSplit = videoDuration && videoDuration > effectiveMaxDuration;
+
+    if (shouldSplit) {
       const numBatches = Math.ceil(videoDuration / maxDuration);
       console.log(`[Gemini] Splitting into ${numBatches} batches...`);
 
