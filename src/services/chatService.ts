@@ -78,36 +78,33 @@ export const sendChatMessage = async (
   }
 
   try {
-    const response = await ai.models.generateContentStream({
+    // Dùng chats.create với sendMessage (non-streaming) theo docs
+    const chat = ai.chats.create({
       model: config.model,
-      contents,
       config: {
         temperature: config.temperature,
         systemInstruction: config.systemPrompt,
       },
+      history: contents.slice(0, -1), // Tất cả messages trừ cái cuối
     });
 
-    let fullText = "";
-    for await (const chunk of response) {
-      const text = chunk.text ?? "";
-      if (text) {
-        fullText += text;
-        callbacks.onChunk(fullText);
-      }
-    }
+    // Lấy message cuối cùng để gửi
+    const lastMessage = contents[contents.length - 1];
+
+    const response = await chat.sendMessage({
+      message: lastMessage.parts,
+    });
+
+    const fullText = response.text ?? "";
 
     if (fullText) {
+      callbacks.onChunk(fullText);
       callbacks.onComplete(fullText);
     } else {
       callbacks.onError(new Error("Không nhận được phản hồi từ AI"));
     }
   } catch (error: any) {
     console.error("[ChatService] Error:", error);
-    // Handle specific error cases
-    if (error.message?.includes("empty") || error.message?.includes("Empty")) {
-      callbacks.onError(new Error("Phản hồi trống. Thử lại nhé!"));
-    } else {
-      callbacks.onError(error);
-    }
+    callbacks.onError(error);
   }
 };
