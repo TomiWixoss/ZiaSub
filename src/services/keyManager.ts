@@ -147,7 +147,6 @@ class GeminiKeyManager {
       throw new Error("Thêm key trong Cài đặt trước nhé");
     }
 
-    const startIndex = this.currentKeyIndex;
     let lastError: any = null;
     let triedKeys = 0;
 

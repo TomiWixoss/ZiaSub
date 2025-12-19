@@ -77,7 +77,6 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
 
   useEffect(() => {
     queueManager.initialize();
-    loadConfigs();
     const unsubscribe = queueManager.subscribe(() => {
       setCounts(queueManager.getCounts());
       // Use refs to get current values
@@ -85,6 +84,13 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
     });
     return () => unsubscribe();
   }, []);
+
+  // Reload configs mỗi khi modal mở để cập nhật API keys mới
+  useEffect(() => {
+    if (visible) {
+      loadConfigs();
+    }
+  }, [visible]);
 
   const loadConfigs = async () => {
     const [configs, activeConfig, apiKeys] = await Promise.all([

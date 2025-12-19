@@ -4,11 +4,11 @@ import {
   StyleSheet,
   Text as RNText,
   ScrollView,
-  TextInput,
   TouchableOpacity,
   Linking,
   Switch,
 } from "react-native";
+import * as Clipboard from "expo-clipboard";
 import { alert, confirmDestructive } from "../CustomAlert";
 import Button3D from "../Button3D";
 import { Text } from "react-native-paper";
@@ -47,8 +47,8 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
   ttsSettings,
   onTTSChange,
 }) => {
-  const [newKey, setNewKey] = useState("");
   const [showKeys, setShowKeys] = useState(false);
+  const [isAddingKey, setIsAddingKey] = useState(false);
 
   const handleFontSizeChange = (value: number) => {
     const newSettings = { ...subtitleSettings, fontSize: Math.round(value) };
@@ -92,18 +92,46 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
     saveBatchSettings(newSettings);
   };
 
-  const handleAddKey = async () => {
-    const key = newKey.trim();
-    if (!key) return;
-    if (apiKeys.includes(key)) {
-      alert("Trùng key", "Key này đã có rồi.");
-      return;
+  const handleAddKeyFromClipboard = async () => {
+    if (isAddingKey) return;
+    setIsAddingKey(true);
+
+    try {
+      const clipboardContent = await Clipboard.getStringAsync();
+      const key = clipboardContent?.trim();
+
+      if (!key) {
+        alert(
+          "Clipboard trống",
+          "Hãy copy API key vào clipboard trước khi bấm nút này."
+        );
+        return;
+      }
+
+      // Kiểm tra định dạng key cơ bản (Gemini API key thường bắt đầu bằng AIza)
+      if (!key.startsWith("AIza") || key.length < 30) {
+        alert(
+          "Key không hợp lệ",
+          "Clipboard không chứa API key hợp lệ. Key Gemini thường bắt đầu bằng 'AIza...'"
+        );
+        return;
+      }
+
+      if (apiKeys.includes(key)) {
+        alert("Trùng key", "Key này đã có trong danh sách rồi.");
+        return;
+      }
+
+      const newKeys = [...apiKeys, key];
+      onApiKeysChange(newKeys);
+      await saveApiKeys(newKeys);
+      keyManager.initialize(newKeys);
+      alert("Thành công", "Đã thêm API key từ clipboard!");
+    } catch (error) {
+      alert("Lỗi", "Không thể đọc clipboard. Hãy thử lại.");
+    } finally {
+      setIsAddingKey(false);
     }
-    const newKeys = [...apiKeys, key];
-    onApiKeysChange(newKeys);
-    await saveApiKeys(newKeys);
-    keyManager.initialize(newKeys);
-    setNewKey("");
   };
 
   const handleDeleteKey = (index: number) => {
@@ -187,14 +215,13 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
         ))}
 
         <View style={styles.addKeyRow}>
-          <TextInput
-            style={styles.addKeyInput}
-            value={newKey}
-            onChangeText={setNewKey}
-            placeholder="Dán key vào đây..."
-            placeholderTextColor={COLORS.textMuted}
-            secureTextEntry={!showKeys}
-            autoCapitalize="none"
+          <Button3D
+            icon="clipboard-plus-outline"
+            title={isAddingKey ? "Đang thêm..." : "Thêm key từ clipboard"}
+            variant="primary"
+            onPress={handleAddKeyFromClipboard}
+            disabled={isAddingKey}
+            style={styles.addKeyFromClipboardBtn}
           />
           <TouchableOpacity
             onPress={() => setShowKeys(!showKeys)}
@@ -206,15 +233,10 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
               color={COLORS.textMuted}
             />
           </TouchableOpacity>
-          <View style={styles.addKeyBtnWrapper}>
-            <Button3D
-              icon="plus"
-              variant="primary"
-              onPress={handleAddKey}
-              style={styles.addKeyBtn}
-            />
-          </View>
         </View>
+        <Text style={styles.clipboardHint}>
+          Copy API key trước, sau đó bấm nút để tự động thêm
+        </Text>
       </View>
 
       {/* Subtitle Section */}
@@ -609,26 +631,20 @@ const styles = StyleSheet.create({
   deleteKeyBtn: { padding: 4 },
   addKeyRow: {
     flexDirection: "row",
-    alignItems: "flex-start",
+    alignItems: "center",
     marginTop: 10,
     gap: 8,
     paddingTop: 4,
   },
-  addKeyInput: {
+  addKeyFromClipboardBtn: {
     flex: 1,
-    backgroundColor: COLORS.surfaceElevated,
-    borderRadius: 8,
-    padding: 10,
-    height: 52,
-    color: COLORS.text,
-    fontSize: 13,
   },
   eyeBtn: { padding: 8, height: 52, justifyContent: "center" },
-  addKeyBtnWrapper: {
-    width: 56,
-  },
-  addKeyBtn: {
-    // Don't override height - let Button3D use default
+  clipboardHint: {
+    color: COLORS.textMuted,
+    fontSize: 11,
+    marginTop: 8,
+    fontStyle: "italic",
   },
   previewContainer: {
     backgroundColor: COLORS.background,
