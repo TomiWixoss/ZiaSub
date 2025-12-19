@@ -105,8 +105,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   };
 
   const handleAddConfig = () => {
-    const newConfig = createDefaultGeminiConfig();
-    newConfig.name = `Kiểu dịch ${geminiConfigs.length + 1}`;
+    const newConfig = {
+      id: Date.now().toString(),
+      name: `Kiểu dịch ${geminiConfigs.length + 1}`,
+      model: "models/gemini-3-flash-preview",
+      temperature: 0.7,
+      systemPrompt: "",
+    };
     setEditingConfig(newConfig);
   };
 
@@ -140,16 +145,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   };
 
   const renderContent = () => {
-    if (editingConfig) {
-      return (
-        <GeminiEdit
-          config={editingConfig}
-          onChange={setEditingConfig}
-          onSave={handleSaveConfig}
-          onCancel={() => setEditingConfig(null)}
-        />
-      );
-    }
     if (activeTab === "general") {
       return (
         <GeneralTab
@@ -264,6 +259,15 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
           {renderContent()}
         </Animated.View>
+
+        {editingConfig && (
+          <GeminiEdit
+            config={editingConfig}
+            onChange={setEditingConfig}
+            onSave={handleSaveConfig}
+            onCancel={() => setEditingConfig(null)}
+          />
+        )}
       </View>
     </Modal>
   );
