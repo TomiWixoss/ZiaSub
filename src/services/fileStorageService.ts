@@ -27,6 +27,8 @@ class FileStorageService {
   private storagePath: string | null = null;
   private storageType: StorageType = "local";
   private initialized: boolean = false;
+  // Write locks to prevent race conditions
+  private writeLocks: Map<string, Promise<void>> = new Map();
 
   /**
    * Check if path is a SAF URI
@@ -456,13 +458,34 @@ class FileStorageService {
   }
 
   /**
-   * Write data to a file (SAF)
+   * Acquire a write lock for a specific file
+   */
+  private async acquireWriteLock(key: string): Promise<void> {
+    while (this.writeLocks.has(key)) {
+      await this.writeLocks.get(key);
+    }
+  }
+
+  /**
+   * Write data to a file (SAF) with lock to prevent race conditions
    */
   private async writeFileSaf(
     directoryUri: string,
     filename: string,
     content: string
   ): Promise<void> {
+    const lockKey = `${directoryUri}/${filename}`;
+
+    // Wait for any existing write to complete
+    await this.acquireWriteLock(lockKey);
+
+    // Create a new promise for this write operation
+    let resolveLock: () => void;
+    const lockPromise = new Promise<void>((resolve) => {
+      resolveLock = resolve;
+    });
+    this.writeLocks.set(lockKey, lockPromise);
+
     try {
       const files = await FileSystem.StorageAccessFramework.readDirectoryAsync(
         directoryUri
@@ -489,6 +512,10 @@ class FileStorageService {
     } catch (error) {
       console.error("Error writing SAF file:", error);
       throw error;
+    } finally {
+      // Release the lock
+      this.writeLocks.delete(lockKey);
+      resolveLock!();
     }
   }
 
