@@ -23,12 +23,15 @@ export default {
         "{{chats}} chats, {{translations}} translations (created {{date}})",
       newStorage: "New folder, will create new data",
       useDefault: "Use default folder",
+      pickFolder: "Choose another folder",
       existingDataTitle: "Data Found",
       existingDataMessage:
         "This folder has {{chats}} chats and {{translations}} translations. Restore or start fresh?",
       restore: "Restore",
       clearAndNew: "Clear and start fresh",
       errorSetup: "Cannot setup storage folder",
+      pickError: "Cannot select folder",
+      iosDefaultOnly: "On iOS, only the default folder can be used",
     },
     theme: {
       title: "Choose Theme",

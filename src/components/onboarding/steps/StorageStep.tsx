@@ -6,12 +6,14 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  Platform,
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@src/contexts";
 import Button3D from "@components/common/Button3D";
 import { Ionicons } from "@expo/vector-icons";
 import { fileStorage } from "@services/fileStorageService";
+import * as FileSystem from "expo-file-system/legacy";
 
 interface StepProps {
   onNext: () => void;
@@ -58,6 +60,28 @@ export const StorageStep: React.FC<StepProps> = ({ onNext, onPrevious }) => {
     const defaultPath = fileStorage.getDefaultStoragePath();
     setSelectedPath(defaultPath);
     await checkExistingData(defaultPath);
+  };
+
+  const handlePickFolder = async () => {
+    try {
+      // Use SAF to pick a directory on Android
+      if (Platform.OS === "android") {
+        const permissions =
+          await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
+
+        if (permissions.granted) {
+          const uri = permissions.directoryUri;
+          setSelectedPath(uri);
+          await checkExistingData(uri);
+        }
+      } else {
+        // iOS - use default path only
+        Alert.alert(t("common.notice"), t("onboarding.storage.iosDefaultOnly"));
+      }
+    } catch (error) {
+      console.error("Error picking folder:", error);
+      Alert.alert(t("common.error"), t("onboarding.storage.pickError"));
+    }
   };
 
   const handleConfirm = async (restore: boolean = false) => {
@@ -216,6 +240,25 @@ export const StorageStep: React.FC<StepProps> = ({ onNext, onPrevious }) => {
               {t("onboarding.storage.useDefault")}
             </Text>
           </TouchableOpacity>
+
+          {Platform.OS === "android" && (
+            <TouchableOpacity
+              style={[
+                styles.optionButton,
+                { backgroundColor: colors.surface, borderColor: colors.border },
+              ]}
+              onPress={handlePickFolder}
+            >
+              <Ionicons
+                name="folder-open-outline"
+                size={20}
+                color={colors.primary}
+              />
+              <Text style={[styles.optionText, { color: colors.text }]}>
+                {t("onboarding.storage.pickFolder")}
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 

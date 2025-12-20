@@ -1,12 +1,13 @@
 /**
  * File Storage Service - Manages all app data storage using file system
+ * Supports both local storage and SAF (Storage Access Framework) for Android
  */
 import * as FileSystem from "expo-file-system/legacy";
-import * as DocumentPicker from "expo-document-picker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Storage path key in AsyncStorage (only stores the path, not data)
 const STORAGE_PATH_KEY = "@app_storage_path";
+const STORAGE_TYPE_KEY = "@app_storage_type"; // "local" or "saf"
 const DATA_MARKER_FILE = ".ziasub_data";
 
 // Data file names
@@ -20,9 +21,19 @@ const FILES = {
   marker: DATA_MARKER_FILE,
 };
 
+type StorageType = "local" | "saf";
+
 class FileStorageService {
   private storagePath: string | null = null;
+  private storageType: StorageType = "local";
   private initialized: boolean = false;
+
+  /**
+   * Check if path is a SAF URI
+   */
+  private isSafUri(path: string): boolean {
+    return path.startsWith("content://");
+  }
 
   /**
    * Initialize the storage service
@@ -31,13 +42,27 @@ class FileStorageService {
     if (this.initialized && this.storagePath) return true;
 
     try {
-      const savedPath = await AsyncStorage.getItem(STORAGE_PATH_KEY);
+      const [savedPath, savedType] = await Promise.all([
+        AsyncStorage.getItem(STORAGE_PATH_KEY),
+        AsyncStorage.getItem(STORAGE_TYPE_KEY),
+      ]);
+
       if (savedPath) {
-        const dirInfo = await FileSystem.getInfoAsync(savedPath);
-        if (dirInfo.exists && dirInfo.isDirectory) {
+        this.storageType = (savedType as StorageType) || "local";
+
+        if (this.storageType === "saf") {
+          // For SAF, just check if we have the URI saved
           this.storagePath = savedPath;
           this.initialized = true;
           return true;
+        } else {
+          // For local storage, verify directory exists
+          const dirInfo = await FileSystem.getInfoAsync(savedPath);
+          if (dirInfo.exists && dirInfo.isDirectory) {
+            this.storagePath = savedPath;
+            this.initialized = true;
+            return true;
+          }
         }
       }
       return false;
@@ -62,31 +87,48 @@ class FileStorageService {
   }
 
   /**
+   * Get storage type
+   */
+  getStorageType(): StorageType {
+    return this.storageType;
+  }
+
+  /**
    * Set storage path and create necessary structure
    */
   async setStoragePath(path: string): Promise<void> {
     try {
-      // Ensure directory exists
-      const dirInfo = await FileSystem.getInfoAsync(path);
-      if (!dirInfo.exists) {
-        await FileSystem.makeDirectoryAsync(path, { intermediates: true });
+      const isSaf = this.isSafUri(path);
+      this.storageType = isSaf ? "saf" : "local";
+
+      if (isSaf) {
+        // SAF storage - create files using SAF API
+        await this.ensureDirectoriesSaf(path);
+        await this.writeFileSaf(
+          path,
+          FILES.marker,
+          JSON.stringify({ createdAt: Date.now(), version: "1.0" })
+        );
+      } else {
+        // Local storage
+        const dirInfo = await FileSystem.getInfoAsync(path);
+        if (!dirInfo.exists) {
+          await FileSystem.makeDirectoryAsync(path, { intermediates: true });
+        }
+        await this.ensureDirectories(path);
+        await this.writeFile(
+          path,
+          FILES.marker,
+          JSON.stringify({ createdAt: Date.now(), version: "1.0" })
+        );
       }
 
-      // Create subdirectories
-      await this.ensureDirectories(path);
+      // Save path and type to AsyncStorage
+      await Promise.all([
+        AsyncStorage.setItem(STORAGE_PATH_KEY, path),
+        AsyncStorage.setItem(STORAGE_TYPE_KEY, this.storageType),
+      ]);
 
-      // Create marker file
-      await this.writeFile(
-        path,
-        FILES.marker,
-        JSON.stringify({
-          createdAt: Date.now(),
-          version: "1.0",
-        })
-      );
-
-      // Save path to AsyncStorage
-      await AsyncStorage.setItem(STORAGE_PATH_KEY, path);
       this.storagePath = path;
       this.initialized = true;
     } catch (error) {
@@ -100,9 +142,26 @@ class FileStorageService {
    */
   async hasExistingData(path: string): Promise<boolean> {
     try {
+      if (this.isSafUri(path)) {
+        return await this.hasExistingDataSaf(path);
+      }
       const markerPath = `${path}/${FILES.marker}`;
       const info = await FileSystem.getInfoAsync(markerPath);
       return info.exists;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Check for existing data in SAF directory
+   */
+  private async hasExistingDataSaf(directoryUri: string): Promise<boolean> {
+    try {
+      const files = await FileSystem.StorageAccessFramework.readDirectoryAsync(
+        directoryUri
+      );
+      return files.some((f) => f.includes(FILES.marker));
     } catch {
       return false;
     }
@@ -122,10 +181,13 @@ class FileStorageService {
       const hasData = await this.hasExistingData(path);
       if (!hasData) return { hasData: false };
 
+      if (this.isSafUri(path)) {
+        return await this.getDataInfoSaf(path);
+      }
+
       const markerContent = await this.readFile(path, FILES.marker);
       const marker = markerContent ? JSON.parse(markerContent) : {};
 
-      // Count chat sessions
       let chatCount = 0;
       try {
         const chatContent = await this.readFile(path, FILES.chatSessions);
@@ -135,7 +197,6 @@ class FileStorageService {
         }
       } catch {}
 
-      // Count translations
       let translationCount = 0;
       try {
         const translationsDir = `${path}/${FILES.translations}`;
@@ -163,33 +224,116 @@ class FileStorageService {
   }
 
   /**
+   * Get data info from SAF directory
+   */
+  private async getDataInfoSaf(directoryUri: string): Promise<{
+    hasData: boolean;
+    createdAt?: number;
+    chatCount?: number;
+    translationCount?: number;
+  }> {
+    try {
+      const files = await FileSystem.StorageAccessFramework.readDirectoryAsync(
+        directoryUri
+      );
+
+      let createdAt: number | undefined;
+      let chatCount = 0;
+      let translationCount = 0;
+
+      const markerFile = files.find((f) => f.includes(FILES.marker));
+      if (markerFile) {
+        try {
+          const content =
+            await FileSystem.StorageAccessFramework.readAsStringAsync(
+              markerFile
+            );
+          const marker = JSON.parse(content);
+          createdAt = marker.createdAt;
+        } catch {}
+      }
+
+      const chatFile = files.find((f) => f.includes(FILES.chatSessions));
+      if (chatFile) {
+        try {
+          const content =
+            await FileSystem.StorageAccessFramework.readAsStringAsync(chatFile);
+          const sessions = JSON.parse(content);
+          chatCount = Array.isArray(sessions) ? sessions.length : 0;
+        } catch {}
+      }
+
+      const translationsDir = files.find((f) => f.includes(FILES.translations));
+      if (translationsDir) {
+        try {
+          const translationFiles =
+            await FileSystem.StorageAccessFramework.readDirectoryAsync(
+              translationsDir
+            );
+          translationCount = translationFiles.filter((f) =>
+            f.endsWith(".json")
+          ).length;
+        } catch {}
+      }
+
+      return { hasData: true, createdAt, chatCount, translationCount };
+    } catch {
+      return { hasData: false };
+    }
+  }
+
+  /**
    * Clear all data in storage
    */
   async clearAllData(): Promise<void> {
     if (!this.storagePath) throw new Error("Storage not configured");
 
     try {
-      // Delete all files and subdirectories
-      const items = await FileSystem.readDirectoryAsync(this.storagePath);
-      for (const item of items) {
-        const itemPath = `${this.storagePath}/${item}`;
-        await FileSystem.deleteAsync(itemPath, { idempotent: true });
+      if (this.storageType === "saf") {
+        await this.clearAllDataSaf();
+      } else {
+        const items = await FileSystem.readDirectoryAsync(this.storagePath);
+        for (const item of items) {
+          const itemPath = `${this.storagePath}/${item}`;
+          await FileSystem.deleteAsync(itemPath, { idempotent: true });
+        }
+        await this.ensureDirectories(this.storagePath);
+        await this.writeFile(
+          this.storagePath,
+          FILES.marker,
+          JSON.stringify({ createdAt: Date.now(), version: "1.0" })
+        );
       }
-
-      // Recreate structure
-      await this.ensureDirectories(this.storagePath);
-
-      // Recreate marker
-      await this.writeFile(
-        this.storagePath,
-        FILES.marker,
-        JSON.stringify({
-          createdAt: Date.now(),
-          version: "1.0",
-        })
-      );
     } catch (error) {
       console.error("Error clearing data:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Clear all data in SAF storage
+   */
+  private async clearAllDataSaf(): Promise<void> {
+    if (!this.storagePath) return;
+
+    try {
+      const files = await FileSystem.StorageAccessFramework.readDirectoryAsync(
+        this.storagePath
+      );
+      for (const fileUri of files) {
+        try {
+          await FileSystem.StorageAccessFramework.deleteAsync(fileUri);
+        } catch {}
+      }
+
+      await this.ensureDirectoriesSaf(this.storagePath);
+      await this.writeFileSaf(
+        this.storagePath,
+        FILES.marker,
+        JSON.stringify({ createdAt: Date.now(), version: "1.0" })
+      );
+    } catch (error) {
+      console.error("Error clearing SAF data:", error);
       throw error;
     }
   }
@@ -198,13 +342,17 @@ class FileStorageService {
    * Reset storage (clear path, requires re-onboarding)
    */
   async resetStorage(): Promise<void> {
-    await AsyncStorage.removeItem(STORAGE_PATH_KEY);
+    await Promise.all([
+      AsyncStorage.removeItem(STORAGE_PATH_KEY),
+      AsyncStorage.removeItem(STORAGE_TYPE_KEY),
+    ]);
     this.storagePath = null;
+    this.storageType = "local";
     this.initialized = false;
   }
 
   /**
-   * Ensure all necessary directories exist
+   * Ensure all necessary directories exist (local)
    */
   private async ensureDirectories(basePath: string): Promise<void> {
     const dirs = [FILES.translations, FILES.srt];
@@ -218,7 +366,24 @@ class FileStorageService {
   }
 
   /**
-   * Write data to a file
+   * Ensure all necessary directories exist (SAF)
+   */
+  private async ensureDirectoriesSaf(directoryUri: string): Promise<void> {
+    const dirs = [FILES.translations, FILES.srt];
+    for (const dir of dirs) {
+      try {
+        await FileSystem.StorageAccessFramework.makeDirectoryAsync(
+          directoryUri,
+          dir
+        );
+      } catch {
+        // Directory might already exist
+      }
+    }
+  }
+
+  /**
+   * Write data to a file (local)
    */
   private async writeFile(
     basePath: string,
@@ -232,7 +397,43 @@ class FileStorageService {
   }
 
   /**
-   * Read data from a file
+   * Write data to a file (SAF)
+   */
+  private async writeFileSaf(
+    directoryUri: string,
+    filename: string,
+    content: string
+  ): Promise<void> {
+    try {
+      const files = await FileSystem.StorageAccessFramework.readDirectoryAsync(
+        directoryUri
+      );
+      const existingFile = files.find((f) => f.includes(filename));
+
+      if (existingFile) {
+        await FileSystem.StorageAccessFramework.writeAsStringAsync(
+          existingFile,
+          content
+        );
+      } else {
+        const fileUri = await FileSystem.StorageAccessFramework.createFileAsync(
+          directoryUri,
+          filename,
+          "application/json"
+        );
+        await FileSystem.StorageAccessFramework.writeAsStringAsync(
+          fileUri,
+          content
+        );
+      }
+    } catch (error) {
+      console.error("Error writing SAF file:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Read data from a file (local)
    */
   private async readFile(
     basePath: string,
@@ -250,6 +451,25 @@ class FileStorageService {
     }
   }
 
+  /**
+   * Read data from a file (SAF)
+   */
+  private async readFileSaf(
+    directoryUri: string,
+    filename: string
+  ): Promise<string | null> {
+    try {
+      const files = await FileSystem.StorageAccessFramework.readDirectoryAsync(
+        directoryUri
+      );
+      const fileUri = files.find((f) => f.includes(filename));
+      if (!fileUri) return null;
+      return await FileSystem.StorageAccessFramework.readAsStringAsync(fileUri);
+    } catch {
+      return null;
+    }
+  }
+
   // ============================================
   // PUBLIC DATA ACCESS METHODS
   // ============================================
@@ -259,11 +479,13 @@ class FileStorageService {
    */
   async saveData<T>(filename: string, data: T): Promise<void> {
     if (!this.storagePath) throw new Error("Storage not configured");
-    await this.writeFile(
-      this.storagePath,
-      filename,
-      JSON.stringify(data, null, 2)
-    );
+    const content = JSON.stringify(data, null, 2);
+
+    if (this.storageType === "saf") {
+      await this.writeFileSaf(this.storagePath, filename, content);
+    } else {
+      await this.writeFile(this.storagePath, filename, content);
+    }
   }
 
   /**
@@ -272,7 +494,10 @@ class FileStorageService {
   async loadData<T>(filename: string, defaultValue: T): Promise<T> {
     if (!this.storagePath) return defaultValue;
     try {
-      const content = await this.readFile(this.storagePath, filename);
+      const content =
+        this.storageType === "saf"
+          ? await this.readFileSaf(this.storagePath, filename)
+          : await this.readFile(this.storagePath, filename);
       return content ? JSON.parse(content) : defaultValue;
     } catch {
       return defaultValue;
@@ -285,8 +510,19 @@ class FileStorageService {
   async deleteData(filename: string): Promise<void> {
     if (!this.storagePath) return;
     try {
-      const filePath = `${this.storagePath}/${filename}`;
-      await FileSystem.deleteAsync(filePath, { idempotent: true });
+      if (this.storageType === "saf") {
+        const files =
+          await FileSystem.StorageAccessFramework.readDirectoryAsync(
+            this.storagePath
+          );
+        const fileUri = files.find((f) => f.includes(filename));
+        if (fileUri) {
+          await FileSystem.StorageAccessFramework.deleteAsync(fileUri);
+        }
+      } else {
+        const filePath = `${this.storagePath}/${filename}`;
+        await FileSystem.deleteAsync(filePath, { idempotent: true });
+      }
     } catch (error) {
       console.error("Error deleting file:", error);
     }
@@ -301,12 +537,30 @@ class FileStorageService {
     data: T
   ): Promise<void> {
     if (!this.storagePath) throw new Error("Storage not configured");
-    const dirPath = `${this.storagePath}/${subdir}`;
-    const info = await FileSystem.getInfoAsync(dirPath);
-    if (!info.exists) {
-      await FileSystem.makeDirectoryAsync(dirPath, { intermediates: true });
+    const content = JSON.stringify(data, null, 2);
+
+    if (this.storageType === "saf") {
+      const files = await FileSystem.StorageAccessFramework.readDirectoryAsync(
+        this.storagePath
+      );
+      let subdirUri = files.find((f) => f.includes(subdir));
+
+      if (!subdirUri) {
+        subdirUri = await FileSystem.StorageAccessFramework.makeDirectoryAsync(
+          this.storagePath,
+          subdir
+        );
+      }
+
+      await this.writeFileSaf(subdirUri, filename, content);
+    } else {
+      const dirPath = `${this.storagePath}/${subdir}`;
+      const info = await FileSystem.getInfoAsync(dirPath);
+      if (!info.exists) {
+        await FileSystem.makeDirectoryAsync(dirPath, { intermediates: true });
+      }
+      await this.writeFile(dirPath, filename, content);
     }
-    await this.writeFile(dirPath, filename, JSON.stringify(data, null, 2));
   }
 
   /**
@@ -319,11 +573,23 @@ class FileStorageService {
   ): Promise<T> {
     if (!this.storagePath) return defaultValue;
     try {
-      const content = await this.readFile(
-        `${this.storagePath}/${subdir}`,
-        filename
-      );
-      return content ? JSON.parse(content) : defaultValue;
+      if (this.storageType === "saf") {
+        const files =
+          await FileSystem.StorageAccessFramework.readDirectoryAsync(
+            this.storagePath
+          );
+        const subdirUri = files.find((f) => f.includes(subdir));
+        if (!subdirUri) return defaultValue;
+
+        const content = await this.readFileSaf(subdirUri, filename);
+        return content ? JSON.parse(content) : defaultValue;
+      } else {
+        const content = await this.readFile(
+          `${this.storagePath}/${subdir}`,
+          filename
+        );
+        return content ? JSON.parse(content) : defaultValue;
+      }
     } catch {
       return defaultValue;
     }
@@ -335,8 +601,24 @@ class FileStorageService {
   async deleteSubData(subdir: string, filename: string): Promise<void> {
     if (!this.storagePath) return;
     try {
-      const filePath = `${this.storagePath}/${subdir}/${filename}`;
-      await FileSystem.deleteAsync(filePath, { idempotent: true });
+      if (this.storageType === "saf") {
+        const files =
+          await FileSystem.StorageAccessFramework.readDirectoryAsync(
+            this.storagePath
+          );
+        const subdirUri = files.find((f) => f.includes(subdir));
+        if (!subdirUri) return;
+
+        const subFiles =
+          await FileSystem.StorageAccessFramework.readDirectoryAsync(subdirUri);
+        const fileUri = subFiles.find((f) => f.includes(filename));
+        if (fileUri) {
+          await FileSystem.StorageAccessFramework.deleteAsync(fileUri);
+        }
+      } else {
+        const filePath = `${this.storagePath}/${subdir}/${filename}`;
+        await FileSystem.deleteAsync(filePath, { idempotent: true });
+      }
     } catch (error) {
       console.error("Error deleting sub file:", error);
     }
@@ -348,34 +630,28 @@ class FileStorageService {
   async listSubFiles(subdir: string): Promise<string[]> {
     if (!this.storagePath) return [];
     try {
-      const dirPath = `${this.storagePath}/${subdir}`;
-      const info = await FileSystem.getInfoAsync(dirPath);
-      if (!info.exists) return [];
-      return await FileSystem.readDirectoryAsync(dirPath);
+      if (this.storageType === "saf") {
+        const files =
+          await FileSystem.StorageAccessFramework.readDirectoryAsync(
+            this.storagePath
+          );
+        const subdirUri = files.find((f) => f.includes(subdir));
+        if (!subdirUri) return [];
+
+        const subFiles =
+          await FileSystem.StorageAccessFramework.readDirectoryAsync(subdirUri);
+        return subFiles.map((uri) => {
+          const parts = uri.split("/");
+          return decodeURIComponent(parts[parts.length - 1]);
+        });
+      } else {
+        const dirPath = `${this.storagePath}/${subdir}`;
+        const info = await FileSystem.getInfoAsync(dirPath);
+        if (!info.exists) return [];
+        return await FileSystem.readDirectoryAsync(dirPath);
+      }
     } catch {
       return [];
-    }
-  }
-
-  /**
-   * Pick a directory using document picker
-   */
-  async pickDirectory(): Promise<string | null> {
-    try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: "*/*",
-        copyToCacheDirectory: false,
-      });
-
-      if (result.canceled || !result.assets?.[0]) return null;
-
-      // Get parent directory of selected file
-      const uri = result.assets[0].uri;
-      const parentDir = uri.substring(0, uri.lastIndexOf("/"));
-      return parentDir;
-    } catch (error) {
-      console.error("Error picking directory:", error);
-      return null;
     }
   }
 

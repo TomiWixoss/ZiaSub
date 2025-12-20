@@ -23,12 +23,15 @@ export default {
         "{{chats}} cuộc chat, {{translations}} bản dịch (tạo {{date}})",
       newStorage: "Thư mục mới, sẽ tạo dữ liệu mới",
       useDefault: "Dùng thư mục mặc định",
+      pickFolder: "Chọn thư mục khác",
       existingDataTitle: "Phát hiện dữ liệu",
       existingDataMessage:
         "Thư mục này có {{chats}} cuộc chat và {{translations}} bản dịch. Bạn muốn khôi phục hay xóa sạch?",
       restore: "Khôi phục",
       clearAndNew: "Xóa và tạo mới",
       errorSetup: "Không thể thiết lập thư mục lưu trữ",
+      pickError: "Không thể chọn thư mục",
+      iosDefaultOnly: "Trên iOS chỉ có thể dùng thư mục mặc định",
     },
     theme: {
       title: "Chọn giao diện",
