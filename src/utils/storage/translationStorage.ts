@@ -4,7 +4,11 @@
  */
 import { cacheService } from "@services/cacheService";
 import { fileStorage, STORAGE_FILES } from "@services/fileStorageService";
-import type { SavedTranslation, VideoTranslations } from "@src/types";
+import type {
+  SavedTranslation,
+  VideoTranslations,
+  BatchSettings,
+} from "@src/types";
 import { extractVideoId } from "@utils/videoUtils";
 
 const TRANSLATIONS_DIR = STORAGE_FILES.translations;
@@ -42,11 +46,17 @@ export const saveTranslation = async (
     };
   }
 
+  // Remove any partial translation with same config (it's now complete)
+  data.translations = data.translations.filter(
+    (t) => !(t.isPartial && t.configName === configName)
+  );
+
   const newTranslation: SavedTranslation = {
     id: Date.now().toString(),
     srtContent,
     createdAt: Date.now(),
     configName,
+    isPartial: false,
   };
 
   data.translations.push(newTranslation);
@@ -56,6 +66,85 @@ export const saveTranslation = async (
   cacheService.setTranslation(videoId, data);
 
   return newTranslation;
+};
+
+// Save partial translation for resume support
+export const savePartialTranslation = async (
+  videoUrl: string,
+  srtContent: string,
+  configName: string,
+  metadata: {
+    completedBatches: number;
+    totalBatches: number;
+    rangeStart?: number;
+    rangeEnd?: number;
+    videoDuration?: number;
+    batchSettings?: BatchSettings;
+  }
+): Promise<SavedTranslation> => {
+  const videoId = getVideoIdFromUrl(videoUrl);
+
+  let data = cacheService.getTranslation(videoId);
+  if (!data) {
+    data = await cacheService.loadTranslation(videoId, fileStorage);
+  }
+
+  if (!data) {
+    data = {
+      videoUrl,
+      translations: [],
+      activeTranslationId: null,
+    };
+  }
+
+  // Find existing partial translation with same config to update
+  const existingPartialIndex = data.translations.findIndex(
+    (t) => t.isPartial && t.configName === configName
+  );
+
+  const partialTranslation: SavedTranslation = {
+    id:
+      existingPartialIndex >= 0
+        ? data.translations[existingPartialIndex].id
+        : `partial_${Date.now()}`,
+    srtContent,
+    createdAt: Date.now(),
+    configName,
+    isPartial: true,
+    completedBatches: metadata.completedBatches,
+    totalBatches: metadata.totalBatches,
+    rangeStart: metadata.rangeStart,
+    rangeEnd: metadata.rangeEnd,
+    videoDuration: metadata.videoDuration,
+    batchSettings: metadata.batchSettings,
+  };
+
+  if (existingPartialIndex >= 0) {
+    data.translations[existingPartialIndex] = partialTranslation;
+  } else {
+    data.translations.push(partialTranslation);
+  }
+
+  // Set as active so user can see partial result
+  data.activeTranslationId = partialTranslation.id;
+
+  cacheService.setTranslation(videoId, data);
+
+  return partialTranslation;
+};
+
+// Get partial translation for resume
+export const getPartialTranslation = async (
+  videoUrl: string,
+  configName?: string
+): Promise<SavedTranslation | null> => {
+  const data = await getVideoTranslations(videoUrl);
+  if (!data) return null;
+
+  const partial = data.translations.find(
+    (t) => t.isPartial && (!configName || t.configName === configName)
+  );
+  return partial || null;
 };
 
 export const getVideoTranslations = async (

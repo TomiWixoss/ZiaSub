@@ -319,13 +319,6 @@ export default {
       completed: "Completed",
     },
 
-    status: {
-      added: "Added: {{date}}",
-      translating: "Translating...",
-      completed: "Completed: {{date}}",
-      error: "Error: {{error}}",
-    },
-
     actions: {
       translateAll: "Translate all",
       clearAll: "Clear all",
@@ -347,6 +340,18 @@ export default {
       stopConfirm: 'Stop translating "{{title}}" and move to pending?',
       abortTitle: "Abort and remove",
       abortConfirm: 'Abort translating "{{title}}" and remove from list?',
+      resumeTitle: "Resume translation",
+      resumeConfirm:
+        '"{{title}}" has {{completed}}/{{total}} parts done. Continue translating?',
+      resume: "Resume",
+    },
+
+    status: {
+      added: "Added {{date}}",
+      translating: "Translating...",
+      paused: "Paused ({{completed}}/{{total}})",
+      completed: "Done {{date}}",
+      error: "Error: {{error}}",
     },
 
     addedToQueue: "Added",
@@ -397,6 +402,11 @@ export default {
       savedTranslations: "Translated",
       deleteTitle: "Delete translation",
       deleteConfirm: "Do you want to delete this translation?",
+      partial: "Incomplete",
+      resumeTitle: "Resume translation",
+      resumeConfirm:
+        "Translated {{completed}}/{{total}} parts. Continue translating remaining parts?",
+      resume: "Resume",
 
       advancedOptions: "Advanced options",
       streamingMode: "Batch translation",

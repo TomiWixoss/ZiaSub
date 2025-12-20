@@ -5,7 +5,7 @@ import type {
   TranslationJob,
   KeyStatusCallback,
 } from "@src/types";
-import { saveTranslation } from "@utils/storage";
+import { saveTranslation, savePartialTranslation } from "@utils/storage";
 import { translateVideoWithGemini } from "./geminiService";
 
 type TranslationListener = (job: TranslationJob) => void;
@@ -28,7 +28,6 @@ class TranslationManager {
 
   subscribe(listener: TranslationListener): () => void {
     this.listeners.add(listener);
-    // Immediately notify with current state
     if (this.currentJob) {
       listener(this.currentJob);
     }
@@ -69,28 +68,29 @@ class TranslationManager {
     videoDuration?: number,
     batchSettings?: BatchSettings,
     rangeStart?: number,
-    rangeEnd?: number
+    rangeEnd?: number,
+    resumeData?: {
+      partialSrt: string;
+      completedBatchRanges: Array<{ start: number; end: number }>;
+    }
   ): Promise<string> {
-    // Check if already translating this URL
     if (this.isTranslatingUrl(videoUrl)) {
       throw new Error("Video này đang dịch rồi");
     }
 
-    // Check if another video is being translated
     if (this.isTranslating()) {
       throw new Error("Đang dịch video khác, vui lòng đợi hoặc dừng trước");
     }
 
-    // Create new abort controller for this translation
     this.abortController = new AbortController();
     this.isAborted = false;
 
-    // Create new job
     const jobId = `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
     this.currentJob = {
       id: jobId,
       videoUrl,
       configName: config.name,
+      configId: config.id,
       status: "processing",
       progress: null,
       keyStatus: null,
@@ -98,13 +98,15 @@ class TranslationManager {
       error: null,
       startedAt: Date.now(),
       completedAt: null,
-      partialResult: null,
+      partialResult: resumeData?.partialSrt || null,
       rangeStart,
       rangeEnd,
+      videoDuration,
+      batchSettings,
+      completedBatchRanges: resumeData?.completedBatchRanges || [],
     };
     this.notify();
 
-    // Key status callback
     const onKeyStatus: KeyStatusCallback = (status) => {
       if (this.currentJob && this.currentJob.id === jobId && !this.isAborted) {
         this.currentJob = {
@@ -114,6 +116,11 @@ class TranslationManager {
         this.notify();
       }
     };
+
+    // Track completed ranges for resume support
+    let completedRanges: Array<{ start: number; end: number }> =
+      resumeData?.completedBatchRanges || [];
+    let accumulatedSrt = resumeData?.partialSrt || "";
 
     try {
       const result = await translateVideoWithGemini(
@@ -126,6 +133,7 @@ class TranslationManager {
           rangeStart,
           rangeEnd,
           abortSignal: this.abortController.signal,
+          skipRanges: resumeData?.completedBatchRanges,
           onBatchProgress: (progress: BatchProgress) => {
             if (
               this.currentJob &&
@@ -140,20 +148,23 @@ class TranslationManager {
             }
           },
           onKeyStatus,
-          // Streaming mode callback - update partial result as each batch completes
           onBatchComplete: (
             partialSrt: string,
             _batchIndex: number,
-            _totalBatches: number
+            _totalBatches: number,
+            newCompletedRanges: Array<{ start: number; end: number }>
           ) => {
             if (
               this.currentJob &&
               this.currentJob.id === jobId &&
               !this.isAborted
             ) {
+              accumulatedSrt = partialSrt;
+              completedRanges = newCompletedRanges;
               this.currentJob = {
                 ...this.currentJob,
                 partialResult: partialSrt,
+                completedBatchRanges: newCompletedRanges,
               };
               this.notify();
             }
@@ -161,15 +172,12 @@ class TranslationManager {
         }
       );
 
-      // Check if aborted during translation
       if (this.isAborted) {
         throw new Error("Đã dừng dịch");
       }
 
-      // Save translation to storage
       await saveTranslation(videoUrl, result, config.name);
 
-      // Update job with result
       if (this.currentJob && this.currentJob.id === jobId && !this.isAborted) {
         this.currentJob = {
           ...this.currentJob,
@@ -178,21 +186,47 @@ class TranslationManager {
           partialResult: null,
           keyStatus: null,
           completedAt: Date.now(),
+          completedBatchRanges: [],
         };
         this.notify();
       }
 
       return result;
     } catch (error: any) {
-      // Update job with error
+      // Save partial result when stopped or error
+      const hasPartialResult = accumulatedSrt && completedRanges.length > 0;
+
+      if (hasPartialResult && this.currentJob) {
+        // Save partial translation for resume
+        try {
+          await savePartialTranslation(videoUrl, accumulatedSrt, config.name, {
+            completedBatches: completedRanges.length,
+            totalBatches: this.currentJob.progress?.totalBatches || 0,
+            rangeStart,
+            rangeEnd,
+            videoDuration,
+            batchSettings,
+          });
+        } catch (saveError) {
+          console.error(
+            "[TranslationManager] Failed to save partial:",
+            saveError
+          );
+        }
+      }
+
       if (this.currentJob && this.currentJob.id === jobId) {
         this.currentJob = {
           ...this.currentJob,
           status: "error",
           error: this.isAborted
-            ? "Đã dừng dịch"
+            ? hasPartialResult
+              ? `Đã dừng (${completedRanges.length} phần đã dịch)`
+              : "Đã dừng dịch"
             : error.message || "Có lỗi xảy ra",
           completedAt: Date.now(),
+          partialResult: accumulatedSrt || null,
+          completedBatchRanges: completedRanges,
         };
         this.notify();
       }
@@ -215,38 +249,43 @@ class TranslationManager {
     }
   }
 
-  // Abort current translation
-  abortTranslation(videoUrl?: string): boolean {
+  abortTranslation(videoUrl?: string): {
+    aborted: boolean;
+    partialResult?: string;
+    completedRanges?: Array<{ start: number; end: number }>;
+  } {
     if (!this.currentJob || this.currentJob.status !== "processing") {
-      return false;
+      return { aborted: false };
     }
 
-    // If videoUrl specified, only abort if it matches
     if (videoUrl && this.currentJob.videoUrl !== videoUrl) {
-      return false;
+      return { aborted: false };
     }
 
-    // Set abort flag first
     this.isAborted = true;
 
-    // Abort the request
+    const partialResult = this.currentJob.partialResult || undefined;
+    const completedRanges = this.currentJob.completedBatchRanges || [];
+
     if (this.abortController) {
       this.abortController.abort();
       this.abortController = null;
     }
 
-    // Update job status
+    const hasPartial = partialResult && completedRanges.length > 0;
     this.currentJob = {
       ...this.currentJob,
       status: "error",
-      error: "Đã dừng dịch",
+      error: hasPartial
+        ? `Đã dừng (${completedRanges.length} phần đã dịch)`
+        : "Đã dừng dịch",
       completedAt: Date.now(),
     };
     this.notify();
-    return true;
+
+    return { aborted: true, partialResult, completedRanges };
   }
 
-  // Check if can abort
   canAbort(videoUrl?: string): boolean {
     if (!this.currentJob || this.currentJob.status !== "processing") {
       return false;
@@ -255,6 +294,23 @@ class TranslationManager {
       return false;
     }
     return true;
+  }
+
+  // Get partial result for a video (for resume)
+  getPartialResult(videoUrl: string): {
+    partialSrt: string;
+    completedRanges: Array<{ start: number; end: number }>;
+  } | null {
+    if (
+      this.currentJob?.videoUrl === videoUrl &&
+      this.currentJob.partialResult
+    ) {
+      return {
+        partialSrt: this.currentJob.partialResult,
+        completedRanges: this.currentJob.completedBatchRanges || [],
+      };
+    }
+    return null;
   }
 }
 

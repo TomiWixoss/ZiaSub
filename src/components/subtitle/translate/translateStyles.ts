@@ -22,10 +22,15 @@ export const createTranslateStyles = (colors: ThemeColors) =>
       borderColor: colors.border,
     },
     translationItemActive: { borderColor: colors.success },
+    translationItemPartial: {
+      borderColor: colors.warning,
+      borderStyle: "dashed",
+    },
     translationInfo: { flex: 1, padding: 12 },
     translationHeader: { flexDirection: "row", alignItems: "center", gap: 6 },
     translationConfig: { color: colors.text, fontSize: 13, fontWeight: "500" },
     translationDate: { color: colors.textMuted, fontSize: 11, marginTop: 2 },
+    resumeBtn: { padding: 12 },
     deleteBtn: { padding: 12 },
 
     // Config picker styles

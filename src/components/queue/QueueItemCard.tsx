@@ -11,8 +11,10 @@ import { createQueueStyles } from "./queueStyles";
 interface QueueItemCardProps {
   item: QueueItem;
   hasApiKey: boolean;
+  canResume?: boolean;
   onSelect: (item: QueueItem) => void;
   onStart: (item: QueueItem) => void;
+  onResume?: (item: QueueItem) => void;
   onRequeue: (item: QueueItem) => void;
   onRemove: (item: QueueItem) => void;
   onStop?: (item: QueueItem) => void;
@@ -37,8 +39,10 @@ const formatDate = (timestamp?: number) => {
 const QueueItemCard: React.FC<QueueItemCardProps> = ({
   item,
   hasApiKey,
+  canResume,
   onSelect,
   onStart,
+  onResume,
   onRequeue,
   onRemove,
   onStop,
@@ -52,6 +56,15 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
   const hasRealProgress = item.progress && item.progress.total > 0;
   const showProgress = item.status === "translating" && hasRealProgress;
 
+  // Check if has partial data (can resume)
+  const hasPartialData = !!(
+    item.partialSrt &&
+    item.completedBatches &&
+    item.completedBatches > 0
+  );
+  const isWaitingToResume =
+    item.status === "translating" && hasPartialData && !hasRealProgress;
+
   return (
     <TouchableOpacity style={styles.queueItem} onPress={() => onSelect(item)}>
       <Image source={{ uri: item.thumbnail }} style={styles.thumbnail} />
@@ -59,6 +72,18 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
         <View style={styles.progressOverlay}>
           <Text style={styles.progressText}>
             {item.progress!.completed}/{item.progress!.total}
+          </Text>
+        </View>
+      )}
+      {isWaitingToResume && (
+        <View
+          style={[
+            styles.progressOverlay,
+            { backgroundColor: "rgba(255, 152, 0, 0.9)" },
+          ]}
+        >
+          <Text style={styles.progressText}>
+            {item.completedBatches}/{item.totalBatches || "?"}
           </Text>
         </View>
       )}
@@ -80,9 +105,17 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
               {t("queue.status.added", { date: formatDate(item.addedAt) })}
             </Text>
           )}
-          {item.status === "translating" && (
+          {item.status === "translating" && !isWaitingToResume && (
             <Text style={[styles.dateText, { color: colors.primary }]}>
               {t("queue.status.translating")}
+            </Text>
+          )}
+          {isWaitingToResume && (
+            <Text style={[styles.dateText, { color: colors.warning }]}>
+              {t("queue.status.paused", {
+                completed: item.completedBatches,
+                total: item.totalBatches || "?",
+              })}
             </Text>
           )}
           {item.status === "completed" && (
@@ -116,7 +149,7 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
             />
           </TouchableOpacity>
         )}
-        {item.status === "translating" && (
+        {item.status === "translating" && !isWaitingToResume && (
           <>
             <TouchableOpacity
               style={styles.actionBtn}
@@ -134,6 +167,31 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
             >
               <MaterialCommunityIcons
                 name="close-circle-outline"
+                size={20}
+                color={colors.error}
+              />
+            </TouchableOpacity>
+          </>
+        )}
+        {isWaitingToResume && (
+          <>
+            <TouchableOpacity
+              style={[styles.actionBtn, !hasApiKey && styles.actionBtnDisabled]}
+              onPress={() => onResume?.(item)}
+              disabled={!hasApiKey}
+            >
+              <MaterialCommunityIcons
+                name="play-circle-outline"
+                size={20}
+                color={hasApiKey ? colors.success : colors.textMuted}
+              />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.actionBtn}
+              onPress={() => onRemove(item)}
+            >
+              <MaterialCommunityIcons
+                name="delete-outline"
                 size={20}
                 color={colors.error}
               />

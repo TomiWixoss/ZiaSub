@@ -173,34 +173,58 @@ const translateVideoBatch = async (
 // Run batches sequentially for streaming mode - apply each result immediately
 const runSequentialStreaming = async <T>(
   tasks: (() => Promise<T>)[],
-  onBatchComplete: (result: T, index: number, total: number) => void,
+  onBatchComplete: (
+    result: T,
+    index: number,
+    total: number,
+    completedIndices: number[]
+  ) => void,
   onProgress?: (
     completed: number,
     total: number,
     statuses: Array<"pending" | "processing" | "completed" | "error">
   ) => void,
-  abortSignal?: AbortSignal
+  abortSignal?: AbortSignal,
+  skipIndices?: number[]
 ): Promise<{
   results: (T | null)[];
   hasErrors: boolean;
   errorMessage?: string;
   aborted?: boolean;
+  completedIndices: number[];
 }> => {
   const results: (T | null)[] = new Array(tasks.length).fill(null);
   const statuses: Array<"pending" | "processing" | "completed" | "error"> =
     new Array(tasks.length).fill("pending");
   let hasErrors = false;
   let lastError: string | undefined;
+  const completedIndices: number[] = [...(skipIndices || [])];
+
+  // Mark skipped batches as completed
+  for (const idx of skipIndices || []) {
+    statuses[idx] = "completed";
+  }
 
   for (let i = 0; i < tasks.length; i++) {
+    // Skip already completed batches
+    if (skipIndices?.includes(i)) {
+      continue;
+    }
+
     // Check abort before each batch
     if (abortSignal?.aborted) {
       console.log(`[Gemini] Aborted at batch ${i + 1}`);
-      return { results, hasErrors, errorMessage: lastError, aborted: true };
+      return {
+        results,
+        hasErrors,
+        errorMessage: lastError,
+        aborted: true,
+        completedIndices,
+      };
     }
 
     statuses[i] = "processing";
-    onProgress?.(i, tasks.length, [...statuses]);
+    onProgress?.(completedIndices.length, tasks.length, [...statuses]);
 
     try {
       const result = await tasks[i]();
@@ -208,13 +232,20 @@ const runSequentialStreaming = async <T>(
       // Check abort after batch completes
       if (abortSignal?.aborted) {
         console.log(`[Gemini] Aborted after batch ${i + 1}`);
-        return { results, hasErrors, errorMessage: lastError, aborted: true };
+        return {
+          results,
+          hasErrors,
+          errorMessage: lastError,
+          aborted: true,
+          completedIndices,
+        };
       }
 
       results[i] = result;
       statuses[i] = "completed";
+      completedIndices.push(i);
       // Immediately notify about completed batch for streaming
-      onBatchComplete(result, i, tasks.length);
+      onBatchComplete(result, i, tasks.length, completedIndices);
     } catch (error: any) {
       statuses[i] = "error";
       hasErrors = true;
@@ -222,10 +253,10 @@ const runSequentialStreaming = async <T>(
       console.error(`[Gemini] Batch ${i + 1} failed:`, error.message);
     }
 
-    onProgress?.(i + 1, tasks.length, [...statuses]);
+    onProgress?.(completedIndices.length, tasks.length, [...statuses]);
   }
 
-  return { results, hasErrors, errorMessage: lastError };
+  return { results, hasErrors, errorMessage: lastError, completedIndices };
 };
 
 // Translate video directly from YouTube URL
@@ -347,18 +378,45 @@ export const translateVideoWithGemini = async (
 
       let accumulatedResults: { content: string; offsetSeconds: number }[] = [];
 
+      // Calculate which batch indices to skip based on skipRanges
+      const skipIndices: number[] = [];
+      if (options?.skipRanges && options.skipRanges.length > 0) {
+        for (let i = 0; i < batchRanges.length; i++) {
+          const range = batchRanges[i];
+          // Check if this range is already completed
+          const isCompleted = options.skipRanges.some(
+            (skip) => skip.start === range.start && skip.end === range.end
+          );
+          if (isCompleted) {
+            skipIndices.push(i);
+          }
+        }
+        console.log(
+          `[Gemini] Resuming: skipping ${skipIndices.length} completed batches`
+        );
+      }
+
       // Use streaming mode (sequential) or concurrent mode based on settings
       if (streamingMode) {
         console.log("[Gemini] Using streaming mode (sequential batches)...");
 
-        const { results, hasErrors, errorMessage, aborted } =
+        const { results, hasErrors, errorMessage, aborted, completedIndices } =
           await runSequentialStreaming(
             batchTasks,
-            (result, index, total) => {
+            (result, index, total, allCompletedIndices) => {
               // Accumulate results and merge for streaming preview
               accumulatedResults.push(result);
               const partialSrt = mergeSrtContents([...accumulatedResults]);
-              options?.onBatchComplete?.(partialSrt, index, total);
+              // Build completed ranges from indices
+              const completedRanges = allCompletedIndices.map(
+                (idx) => batchRanges[idx]
+              );
+              options?.onBatchComplete?.(
+                partialSrt,
+                index,
+                total,
+                completedRanges
+              );
             },
             (completed, total, statuses) => {
               options?.onBatchProgress?.({
@@ -372,7 +430,8 @@ export const translateVideoWithGemini = async (
                 batchStatuses: statuses,
               });
             },
-            options?.abortSignal
+            options?.abortSignal,
+            skipIndices
           );
 
         // Check if aborted
@@ -384,17 +443,17 @@ export const translateVideoWithGemini = async (
           (r): r is { content: string; offsetSeconds: number } => r !== null
         );
 
-        if (successfulResults.length === 0) {
+        if (successfulResults.length === 0 && skipIndices.length === 0) {
           throw new Error(errorMessage || "Không dịch được phần nào");
         }
 
-        const finalStatuses = results.map((r) =>
-          r !== null ? "completed" : "error"
+        const finalStatuses = results.map((r, idx) =>
+          r !== null || skipIndices.includes(idx) ? "completed" : "error"
         ) as Array<"completed" | "error">;
 
         options?.onBatchProgress?.({
           totalBatches: numBatches,
-          completedBatches: successfulResults.length,
+          completedBatches: completedIndices.length,
           currentBatch: numBatches,
           status: "completed",
           batchStatuses: finalStatuses,
@@ -406,51 +465,85 @@ export const translateVideoWithGemini = async (
       }
 
       // Concurrent mode (original behavior)
-      const { results, hasErrors, errorMessage, aborted } =
-        await runWithConcurrency(
-          batchTasks,
-          maxConcurrent,
-          (completed, total, statuses) => {
-            options?.onBatchProgress?.({
-              totalBatches: total,
-              completedBatches: completed,
-              currentBatch:
-                statuses.filter((s) => s === "processing").length > 0
-                  ? statuses.findIndex((s) => s === "processing") + 1
-                  : completed,
-              status: "processing",
-              batchStatuses: statuses,
-            });
-          },
-          options?.abortSignal
-        );
+      // For concurrent mode, we need to handle skip ranges differently
+      // Filter out tasks that should be skipped
+      const tasksToRun = batchTasks.filter(
+        (_, idx) => !skipIndices.includes(idx)
+      );
+      const taskIndexMap = batchTasks
+        .map((_, idx) => idx)
+        .filter((idx) => !skipIndices.includes(idx));
+
+      if (tasksToRun.length === 0) {
+        // All batches already completed
+        console.log("[Gemini] All batches already completed (resume)");
+        return "";
+      }
+
+      const {
+        results: runResults,
+        hasErrors,
+        errorMessage,
+        aborted,
+      } = await runWithConcurrency(
+        tasksToRun,
+        maxConcurrent,
+        (completed, total, statuses) => {
+          options?.onBatchProgress?.({
+            totalBatches: numBatches,
+            completedBatches: completed + skipIndices.length,
+            currentBatch:
+              statuses.filter((s) => s === "processing").length > 0
+                ? taskIndexMap[statuses.findIndex((s) => s === "processing")] +
+                  1
+                : completed + skipIndices.length,
+            status: "processing",
+            batchStatuses: batchTasks.map((_, idx) => {
+              if (skipIndices.includes(idx)) return "completed";
+              const runIdx = taskIndexMap.indexOf(idx);
+              return runIdx >= 0 ? statuses[runIdx] : "pending";
+            }),
+          });
+        },
+        options?.abortSignal
+      );
 
       // Check if aborted
       if (aborted) {
         throw new Error("Đã dừng dịch");
       }
 
+      // Map results back to original indices
+      const results: (typeof runResults)[0][] = new Array(
+        batchTasks.length
+      ).fill(null);
+      runResults.forEach((result, runIdx) => {
+        results[taskIndexMap[runIdx]] = result;
+      });
+
       // Filter out failed batches (null results)
       const successfulResults = results.filter(
         (r): r is { content: string; offsetSeconds: number } => r !== null
       );
 
-      if (successfulResults.length === 0) {
+      if (successfulResults.length === 0 && skipIndices.length === 0) {
         // All batches failed
         throw new Error(errorMessage || "Không dịch được phần nào");
       }
 
-      const finalStatuses = results.map((r) =>
-        r !== null ? "completed" : "error"
+      const finalStatuses = results.map((r, idx) =>
+        r !== null || skipIndices.includes(idx) ? "completed" : "error"
       ) as Array<"completed" | "error">;
 
       if (hasErrors) {
         console.log(
-          `[Gemini] ${successfulResults.length}/${numBatches} batches completed, merging partial SRT...`
+          `[Gemini] ${
+            successfulResults.length + skipIndices.length
+          }/${numBatches} batches completed, merging partial SRT...`
         );
         options?.onBatchProgress?.({
           totalBatches: numBatches,
-          completedBatches: successfulResults.length,
+          completedBatches: successfulResults.length + skipIndices.length,
           currentBatch: numBatches,
           status: "completed",
           batchStatuses: finalStatuses,
@@ -517,7 +610,11 @@ export const translateVideoWithGemini = async (
 
     // For single batch in streaming mode, also call onBatchComplete
     if (streamingMode) {
-      options?.onBatchComplete?.(adjustedResult, 0, 1);
+      const completedRanges =
+        rangeStart !== undefined && rangeEnd !== undefined
+          ? [{ start: rangeStart, end: rangeEnd }]
+          : [{ start: 0, end: options?.videoDuration || 0 }];
+      options?.onBatchComplete?.(adjustedResult, 0, 1, completedRanges);
     }
 
     onChunk?.(adjustedResult);

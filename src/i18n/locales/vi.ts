@@ -317,13 +317,6 @@ export default {
       completed: "Đã dịch",
     },
 
-    status: {
-      added: "Đã thêm: {{date}}",
-      translating: "Đang dịch...",
-      completed: "Dịch xong: {{date}}",
-      error: "Gặp lỗi: {{error}}",
-    },
-
     actions: {
       translateAll: "Dịch tất cả",
       clearAll: "Xóa tất cả",
@@ -345,6 +338,18 @@ export default {
       stopConfirm: 'Dừng dịch "{{title}}" và chuyển về chưa dịch?',
       abortTitle: "Hủy và xóa",
       abortConfirm: 'Hủy dịch "{{title}}" và xóa khỏi danh sách?',
+      resumeTitle: "Dịch tiếp",
+      resumeConfirm:
+        '"{{title}}" đã dịch {{completed}}/{{total}} phần. Tiếp tục dịch?',
+      resume: "Dịch tiếp",
+    },
+
+    status: {
+      added: "Thêm {{date}}",
+      translating: "Đang dịch...",
+      paused: "Tạm dừng ({{completed}}/{{total}})",
+      completed: "Xong {{date}}",
+      error: "Lỗi: {{error}}",
     },
 
     addedToQueue: "Đã thêm",
@@ -394,6 +399,11 @@ export default {
       savedTranslations: "Đã dịch",
       deleteTitle: "Xóa bản dịch",
       deleteConfirm: "Bạn muốn xóa bản dịch này?",
+      partial: "Chưa xong",
+      resumeTitle: "Dịch tiếp",
+      resumeConfirm:
+        "Đã dịch {{completed}}/{{total}} phần. Tiếp tục dịch các phần còn lại?",
+      resume: "Dịch tiếp",
 
       advancedOptions: "Tùy chọn nâng cao",
       streamingMode: "Dịch từng đợt",

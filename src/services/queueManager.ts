@@ -3,9 +3,13 @@
  * Kiểu MAL: Chưa dịch (Plan to Watch), Đang dịch (Watching), Đã dịch (Completed)
  */
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import type { QueueItem, QueueStatus } from "@src/types";
+import type { QueueItem, QueueStatus, BatchSettings } from "@src/types";
 import { translationManager } from "./translationManager";
-import { getActiveGeminiConfig, getBatchSettings } from "@utils/storage";
+import {
+  getActiveGeminiConfig,
+  getBatchSettings,
+  getGeminiConfigs,
+} from "@utils/storage";
 
 // Re-export types for backward compatibility
 export type { QueueItem, QueueStatus } from "@src/types";
@@ -39,12 +43,22 @@ class QueueManager {
       const data = await AsyncStorage.getItem(QUEUE_STORAGE_KEY);
       if (data) {
         this.items = JSON.parse(data);
-        // Reset any stuck "translating" items to "pending"
-        this.items = this.items.map((item) =>
-          item.status === "translating"
-            ? { ...item, status: "pending" as QueueStatus }
-            : item
-        );
+        // Reset stuck "translating" items - but keep partial data
+        this.items = this.items.map((item) => {
+          if (item.status === "translating") {
+            // If has partial data, keep as translating with partial info
+            if (
+              item.partialSrt &&
+              item.completedBatches &&
+              item.completedBatches > 0
+            ) {
+              return item; // Keep as is - can resume
+            }
+            // No partial data - reset to pending
+            return { ...item, status: "pending" as QueueStatus };
+          }
+          return item;
+        });
       }
 
       await this.save();
@@ -126,12 +140,18 @@ class QueueManager {
   }
 
   // Start translation for a single item - adds to translating queue and processes
-  async startTranslation(itemId: string): Promise<void> {
+  async startTranslation(
+    itemId: string,
+    isResume: boolean = false
+  ): Promise<void> {
     const item = this.items.find((i) => i.id === itemId);
     if (!item) return;
 
-    // If item is already completed or currently translating, skip
-    if (item.status === "completed" || item.status === "translating") return;
+    // If item is already completed, skip (unless it has partial data and isResume)
+    if (item.status === "completed") return;
+
+    // If currently translating without partial data, skip
+    if (item.status === "translating" && !item.partialSrt && !isResume) return;
 
     // Enable auto-process mode so it continues after this item
     this.autoProcessEnabled = true;
@@ -139,7 +159,7 @@ class QueueManager {
     // Mark as translating (add to queue)
     await this.updateItem(itemId, {
       status: "translating",
-      startedAt: Date.now(),
+      startedAt: item.startedAt || Date.now(),
       error: undefined,
     });
 
@@ -152,14 +172,45 @@ class QueueManager {
     }
 
     // Start processing this item
-    await this.processItem(item);
+    await this.processItem(item, isResume);
+  }
+
+  // Resume translation for an item with partial data
+  async resumeTranslation(itemId: string): Promise<void> {
+    const item = this.items.find((i) => i.id === itemId);
+    if (!item) return;
+
+    // Must have partial data to resume
+    if (
+      !item.partialSrt ||
+      !item.completedBatchRanges ||
+      item.completedBatchRanges.length === 0
+    ) {
+      // No partial data - start fresh
+      await this.startTranslation(itemId, false);
+      return;
+    }
+
+    await this.startTranslation(itemId, true);
   }
 
   // Internal: Process a specific item
-  private async processItem(item: QueueItem): Promise<void> {
+  private async processItem(
+    item: QueueItem,
+    isResume: boolean = false
+  ): Promise<void> {
     if (this.isProcessing) return;
 
-    const config = await getActiveGeminiConfig();
+    // Get config - use saved configId if resuming, otherwise get active config
+    let config = null;
+    if (isResume && item.configId) {
+      const configs = await getGeminiConfigs();
+      config = configs.find((c) => c.id === item.configId) || null;
+    }
+    if (!config) {
+      config = await getActiveGeminiConfig();
+    }
+
     if (!config) {
       await this.updateItem(item.id, {
         status: "error",
@@ -169,7 +220,14 @@ class QueueManager {
       return;
     }
 
-    const batchSettings = await getBatchSettings();
+    const batchSettings = item.batchSettings || (await getBatchSettings());
+
+    // Force streaming mode for queue items to support resume
+    const queueBatchSettings = {
+      ...batchSettings,
+      streamingMode: true, // Always use streaming for queue to track partial results
+    };
+
     this.isProcessing = true;
 
     // Keep existing startedAt to maintain order, only set if not exists
@@ -177,8 +235,19 @@ class QueueManager {
       status: "translating",
       startedAt: item.startedAt || Date.now(),
       configName: config.name,
+      configId: config.id,
+      batchSettings: queueBatchSettings,
       error: undefined,
     });
+
+    // Prepare resume data if available
+    const resumeData =
+      isResume && item.partialSrt && item.completedBatchRanges
+        ? {
+            partialSrt: item.partialSrt,
+            completedBatchRanges: item.completedBatchRanges,
+          }
+        : undefined;
 
     // Subscribe to translation progress
     const unsubscribe = translationManager.subscribe((job) => {
@@ -189,6 +258,16 @@ class QueueManager {
               completed: job.progress.completedBatches,
               total: job.progress.totalBatches,
             },
+            completedBatches: job.progress.completedBatches,
+            totalBatches: job.progress.totalBatches,
+          });
+        }
+
+        // Update partial result for streaming
+        if (job.partialResult) {
+          this.updateItem(item.id, {
+            partialSrt: job.partialResult,
+            completedBatchRanges: job.completedBatchRanges,
           });
         }
 
@@ -197,6 +276,10 @@ class QueueManager {
             status: "completed",
             completedAt: Date.now(),
             progress: undefined,
+            partialSrt: undefined,
+            completedBatches: undefined,
+            totalBatches: undefined,
+            completedBatchRanges: undefined,
           });
           this.isProcessing = false;
           unsubscribe();
@@ -207,18 +290,64 @@ class QueueManager {
           // Check if this was a user-initiated stop
           const wasUserStopped = this.userStoppedItemId === item.id;
           if (wasUserStopped) {
-            // User stopped - don't update status (already set to pending) and don't process next
+            // User stopped - check if has partial data
+            const hasPartial =
+              job.partialResult &&
+              job.completedBatchRanges &&
+              job.completedBatchRanges.length > 0;
+            if (hasPartial) {
+              // Keep as translating with partial data - can resume
+              this.updateItem(item.id, {
+                status: "translating",
+                partialSrt: job.partialResult || undefined,
+                completedBatches: job.completedBatchRanges?.length || 0,
+                totalBatches: job.progress?.totalBatches || 0,
+                completedBatchRanges: job.completedBatchRanges,
+                error: `Đã dừng (${job.completedBatchRanges?.length || 0}/${
+                  job.progress?.totalBatches || 0
+                } phần)`,
+              });
+            } else {
+              // No partial - move to pending
+              this.updateItem(item.id, {
+                status: "pending",
+                error: undefined,
+                progress: undefined,
+                startedAt: undefined,
+                partialSrt: undefined,
+                completedBatches: undefined,
+                totalBatches: undefined,
+                completedBatchRanges: undefined,
+              });
+            }
             this.userStoppedItemId = null;
             this.isProcessing = false;
             unsubscribe();
             return;
           }
 
-          this.updateItem(item.id, {
-            status: "error",
-            error: job.error || "Có lỗi xảy ra",
-            progress: undefined,
-          });
+          // Error (not user stopped) - check for partial
+          const hasPartial =
+            job.partialResult &&
+            job.completedBatchRanges &&
+            job.completedBatchRanges.length > 0;
+          if (hasPartial) {
+            // Keep partial data for resume
+            this.updateItem(item.id, {
+              status: "translating",
+              partialSrt: job.partialResult || undefined,
+              completedBatches: job.completedBatchRanges?.length || 0,
+              totalBatches: job.progress?.totalBatches || 0,
+              completedBatchRanges: job.completedBatchRanges,
+              error: job.error || "Có lỗi xảy ra",
+            });
+          } else {
+            this.updateItem(item.id, {
+              status: "error",
+              error: job.error || "Có lỗi xảy ra",
+              progress: undefined,
+            });
+          }
           this.isProcessing = false;
           unsubscribe();
           this.processNextInQueue();
@@ -231,7 +360,10 @@ class QueueManager {
         item.videoUrl,
         config,
         item.duration,
-        batchSettings
+        queueBatchSettings,
+        undefined,
+        undefined,
+        resumeData
       );
     } catch (e: any) {
       // Error handled in subscription
@@ -451,7 +583,7 @@ class QueueManager {
     this.notify();
   }
 
-  // Stop translation - move back to pending
+  // Stop translation - keep partial data if available
   async stopTranslation(itemId: string): Promise<void> {
     const item = this.items.find((i) => i.id === itemId);
     if (!item || item.status !== "translating") return;
@@ -459,19 +591,59 @@ class QueueManager {
     // Set flag to indicate user-initiated stop
     this.userStoppedItemId = itemId;
 
-    // Move back to pending first (before abort triggers error callback)
-    await this.updateItem(itemId, {
-      status: "pending",
-      error: undefined,
-      progress: undefined,
-      startedAt: undefined,
-    });
-
     // If this item is currently being processed, abort it
     if (this.isProcessing) {
-      const aborted = translationManager.abortTranslation(item.videoUrl);
-      if (aborted) {
+      const result = translationManager.abortTranslation(item.videoUrl);
+      if (result.aborted) {
         this.isProcessing = false;
+
+        // Check if has partial data
+        if (
+          result.partialResult &&
+          result.completedRanges &&
+          result.completedRanges.length > 0
+        ) {
+          // Keep as translating with partial data
+          await this.updateItem(itemId, {
+            status: "translating",
+            partialSrt: result.partialResult,
+            completedBatchRanges: result.completedRanges,
+            completedBatches: result.completedRanges.length,
+            error: `Đã dừng (${result.completedRanges.length} phần đã dịch)`,
+          });
+        } else {
+          // No partial - move to pending
+          await this.updateItem(itemId, {
+            status: "pending",
+            error: undefined,
+            progress: undefined,
+            startedAt: undefined,
+            partialSrt: undefined,
+            completedBatches: undefined,
+            totalBatches: undefined,
+            completedBatchRanges: undefined,
+          });
+        }
+      }
+    } else {
+      // Not currently processing - just check if has partial
+      if (
+        item.partialSrt &&
+        item.completedBatchRanges &&
+        item.completedBatchRanges.length > 0
+      ) {
+        // Keep partial data
+        await this.updateItem(itemId, {
+          error: `Đã dừng (${item.completedBatchRanges.length} phần đã dịch)`,
+        });
+      } else {
+        // Move back to pending
+        await this.updateItem(itemId, {
+          status: "pending",
+          error: undefined,
+          progress: undefined,
+          startedAt: undefined,
+        });
       }
     }
   }
@@ -509,6 +681,25 @@ class QueueManager {
       this.isProcessing &&
       translationManager.isTranslatingUrl(item.videoUrl)
     );
+  }
+
+  // Check if item can be resumed (has partial data)
+  canResume(itemId: string): boolean {
+    const item = this.items.find((i) => i.id === itemId);
+    if (!item) return false;
+    return !!(
+      item.status === "translating" &&
+      item.partialSrt &&
+      item.completedBatchRanges &&
+      item.completedBatchRanges.length > 0 &&
+      !this.isCurrentlyProcessing(itemId)
+    );
+  }
+
+  // Get partial SRT for an item
+  getPartialSrt(itemId: string): string | undefined {
+    const item = this.items.find((i) => i.id === itemId);
+    return item?.partialSrt;
   }
 
   // Remove completed video from queue (called when all translations are deleted)

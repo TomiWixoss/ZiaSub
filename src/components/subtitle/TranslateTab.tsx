@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { View, StyleSheet, ScrollView } from "react-native";
-import { alert, confirmDestructive } from "../common/CustomAlert";
+import { alert, confirm, confirmDestructive } from "../common/CustomAlert";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
@@ -20,9 +20,11 @@ import {
   setActiveTranslation,
   deleteTranslation,
   getApiKeys,
+  getPartialTranslation,
 } from "@utils/storage";
 import { translationManager } from "@services/translationManager";
 import { parseTime } from "@utils/videoUtils";
+import { parseSRT } from "@utils/srtParser";
 import Button3D from "../common/Button3D";
 import {
   SavedTranslationsList,
@@ -151,7 +153,7 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
       onBatchSettingsChange({ ...batchSettings, presubMode: value });
   };
 
-  const handleTranslate = async () => {
+  const handleTranslate = async (resumeTranslation?: SavedTranslation) => {
     const config = geminiConfigs.find((c) => c.id === selectedConfigId);
     if (!config)
       return alert(
@@ -174,9 +176,50 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
         t("common.notice"),
         t("subtitleModal.translate.anotherTranslating")
       );
+
     let rangeStart: number | undefined;
     let rangeEnd: number | undefined;
-    if (useCustomRange) {
+    let resumeData:
+      | {
+          partialSrt: string;
+          completedBatchRanges: Array<{ start: number; end: number }>;
+        }
+      | undefined;
+
+    // Check if resuming from partial translation
+    if (resumeTranslation?.isPartial && resumeTranslation.srtContent) {
+      // Parse SRT to get completed ranges
+      const parsed = parseSRT(resumeTranslation.srtContent);
+      if (parsed.length > 0) {
+        // Build completed ranges from parsed subtitles
+        // Group consecutive subtitles into ranges based on batch settings
+        const batchDuration =
+          resumeTranslation.batchSettings?.maxVideoDuration ||
+          batchSettings?.maxVideoDuration ||
+          600;
+        const completedRanges: Array<{ start: number; end: number }> = [];
+
+        // Simple approach: calculate ranges based on completed batches count
+        const completedBatches = resumeTranslation.completedBatches || 0;
+        for (let i = 0; i < completedBatches; i++) {
+          const start = i * batchDuration;
+          const end = Math.min(
+            (i + 1) * batchDuration,
+            resumeTranslation.videoDuration || videoDuration || Infinity
+          );
+          completedRanges.push({ start, end });
+        }
+
+        resumeData = {
+          partialSrt: resumeTranslation.srtContent,
+          completedBatchRanges: completedRanges,
+        };
+
+        // Use original range if set
+        rangeStart = resumeTranslation.rangeStart;
+        rangeEnd = resumeTranslation.rangeEnd;
+      }
+    } else if (useCustomRange) {
       const start = rangeStartStr.trim() ? parseTime(rangeStartStr) : 0;
       const end = rangeEndStr.trim() ? parseTime(rangeEndStr) : videoDuration;
       if (start === null)
@@ -199,15 +242,17 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
       rangeStart = clampedStart;
       rangeEnd = clampedEnd;
     }
+
     try {
       await saveActiveTranslationConfigId(selectedConfigId);
       translationManager.startTranslation(
         videoUrl,
         config,
         videoDuration,
-        batchSettings,
+        (resumeTranslation?.batchSettings as BatchSettings) || batchSettings,
         rangeStart,
-        rangeEnd
+        rangeEnd,
+        resumeData
       );
     } catch (error: any) {
       alert(
@@ -215,6 +260,20 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
         error.message || t("errors.generic")
       );
     }
+  };
+
+  const handleResumeTranslation = (translation: SavedTranslation) => {
+    if (!translation.isPartial) return;
+
+    confirm(
+      t("subtitleModal.translate.resumeTitle"),
+      t("subtitleModal.translate.resumeConfirm", {
+        completed: translation.completedBatches || 0,
+        total: translation.totalBatches || "?",
+      }),
+      () => handleTranslate(translation),
+      t("subtitleModal.translate.resume")
+    );
   };
 
   const handleSelectTranslation = async (translation: SavedTranslation) => {
@@ -286,6 +345,7 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
           activeTranslationId={activeTranslationId}
           onSelect={handleSelectTranslation}
           onDelete={handleDeleteTranslation}
+          onResume={handleResumeTranslation}
         />
         {!hasApiKey && (
           <View style={themedStyles.warningContainer}>
@@ -342,7 +402,7 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
           />
         ) : (
           <Button3D
-            onPress={handleTranslate}
+            onPress={() => handleTranslate()}
             icon="translate"
             title={t("subtitleModal.translate.newTranslation")}
             variant="primary"

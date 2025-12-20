@@ -31,6 +31,8 @@ export { saveSRT, getSRT, removeSRT } from "./srtStorage";
 // Translations
 export {
   saveTranslation,
+  savePartialTranslation,
+  getPartialTranslation,
   getVideoTranslations,
   setActiveTranslation,
   deleteTranslation,

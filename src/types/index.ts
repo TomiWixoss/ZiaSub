@@ -41,6 +41,14 @@ export interface SavedTranslation {
   srtContent: string;
   createdAt: number;
   configName: string;
+  // Partial translation support
+  isPartial?: boolean;
+  completedBatches?: number;
+  totalBatches?: number;
+  rangeStart?: number;
+  rangeEnd?: number;
+  videoDuration?: number;
+  batchSettings?: Partial<BatchSettings>;
 }
 
 export interface VideoTranslations {
@@ -53,6 +61,7 @@ export interface TranslationJob {
   id: string;
   videoUrl: string;
   configName: string;
+  configId?: string;
   status: "pending" | "processing" | "completed" | "error";
   progress: BatchProgress | null;
   keyStatus: string | null;
@@ -63,6 +72,10 @@ export interface TranslationJob {
   partialResult: string | null;
   rangeStart?: number;
   rangeEnd?: number;
+  // Resume support
+  videoDuration?: number;
+  batchSettings?: BatchSettings;
+  completedBatchRanges?: Array<{ start: number; end: number }>;
 }
 
 // ============================================
@@ -156,11 +169,18 @@ export interface QueueItem {
   duration?: number;
   status: QueueStatus;
   configName?: string;
+  configId?: string;
   progress?: { completed: number; total: number };
   error?: string;
   addedAt: number;
   startedAt?: number;
   completedAt?: number;
+  // Resume support - partial translation data
+  partialSrt?: string;
+  completedBatches?: number;
+  totalBatches?: number;
+  completedBatchRanges?: Array<{ start: number; end: number }>;
+  batchSettings?: BatchSettings;
 }
 
 // ============================================
@@ -210,6 +230,9 @@ export interface VideoTranslateOptions {
   onBatchComplete?: (
     partialSrt: string,
     batchIndex: number,
-    totalBatches: number
+    totalBatches: number,
+    completedRanges: Array<{ start: number; end: number }>
   ) => void;
+  // Resume support - skip already completed ranges
+  skipRanges?: Array<{ start: number; end: number }>;
 }

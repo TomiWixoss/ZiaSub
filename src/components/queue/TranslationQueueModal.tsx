@@ -188,6 +188,18 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
       t("queue.dialogs.translate")
     );
   };
+  const handleResumeTranslation = (item: QueueItem) => {
+    confirm(
+      t("queue.dialogs.resumeTitle"),
+      t("queue.dialogs.resumeConfirm", {
+        title: item.title,
+        completed: item.completedBatches || 0,
+        total: item.totalBatches || "?",
+      }),
+      () => queueManager.resumeTranslation(item.id),
+      t("queue.dialogs.resume")
+    );
+  };
   const handleStartAll = () => {
     confirm(
       t("queue.dialogs.translateAllTitle"),
@@ -323,8 +335,10 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
               <QueueItemCard
                 item={item}
                 hasApiKey={hasApiKey}
+                canResume={queueManager.canResume(item.id)}
                 onSelect={handleSelectVideo}
                 onStart={handleStartTranslation}
+                onResume={handleResumeTranslation}
                 onRequeue={handleRequeue}
                 onRemove={handleRemove}
                 onStop={handleStopTranslation}

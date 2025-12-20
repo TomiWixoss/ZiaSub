@@ -13,6 +13,7 @@ interface SavedTranslationsListProps {
   activeTranslationId: string | null;
   onSelect: (translation: SavedTranslation) => void;
   onDelete: (translation: SavedTranslation) => void;
+  onResume?: (translation: SavedTranslation) => void;
 }
 
 const formatDate = (timestamp: number) => {
@@ -28,6 +29,7 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
   activeTranslationId,
   onSelect,
   onDelete,
+  onResume,
 }) => {
   const { t } = useTranslation();
   const { colors } = useTheme();
@@ -47,6 +49,7 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
             style={[
               styles.translationItem,
               item.id === activeTranslationId && styles.translationItemActive,
+              item.isPartial && styles.translationItemPartial,
             ]}
           >
             <TouchableOpacity
@@ -56,23 +59,44 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
               <View style={styles.translationHeader}>
                 <MaterialCommunityIcons
                   name={
-                    item.id === activeTranslationId
+                    item.isPartial
+                      ? "progress-clock"
+                      : item.id === activeTranslationId
                       ? "check-circle"
                       : "file-document-outline"
                   }
                   size={16}
                   color={
-                    item.id === activeTranslationId
+                    item.isPartial
+                      ? colors.warning
+                      : item.id === activeTranslationId
                       ? colors.success
                       : colors.textMuted
                   }
                 />
-                <Text style={styles.translationConfig}>{item.configName}</Text>
+                <Text style={styles.translationConfig}>
+                  {item.configName}
+                  {item.isPartial &&
+                    ` (${item.completedBatches}/${item.totalBatches || "?"})`}
+                </Text>
               </View>
               <Text style={styles.translationDate}>
                 {formatDate(item.createdAt)}
+                {item.isPartial && ` • ${t("subtitleModal.translate.partial")}`}
               </Text>
             </TouchableOpacity>
+            {item.isPartial && onResume && (
+              <TouchableOpacity
+                style={styles.resumeBtn}
+                onPress={() => onResume(item)}
+              >
+                <MaterialCommunityIcons
+                  name="play-circle-outline"
+                  size={18}
+                  color={colors.success}
+                />
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
               style={styles.deleteBtn}
               onPress={() => onDelete(item)}
