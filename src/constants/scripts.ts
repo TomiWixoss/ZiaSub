@@ -11,7 +11,6 @@ export const INJECTED_JAVASCRIPT = `
     let parentCheckId = null;
     let isPolling = false;
     let isPortrait = window.innerHeight > window.innerWidth;
-    let isShorts = false;
     
     // Subtitle style settings (defaults should match DEFAULT_SUBTITLE_SETTINGS in storage.ts)
     let subtitleFontSize = 15;
@@ -49,25 +48,15 @@ export const INJECTED_JAVASCRIPT = `
       const textStroke = '-webkit-text-stroke:0.8px #000;paint-order:stroke fill;';
       const textShadow = 'text-shadow:0 0 2px #000,-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000,0 -1px 0 #000,0 1px 0 #000,-1px 0 0 #000,1px 0 0 #000;';
       
-      // Check if current page is Shorts
-      isShorts = window.location.href.includes('/shorts/');
-      
-      // Shorts videos need special styling (vertical video)
-      const bgStyle = (isPortrait || isShorts)
+      const bgStyle = isPortrait 
         ? 'background:rgba(0,0,0,0.7);padding:8px 16px;border-radius:8px;' 
         : '';
       
-      // Shorts videos need higher bottom position due to UI elements
-      let bottomPos;
-      if (isShorts) {
-        bottomPos = 180; // Higher position for Shorts to avoid bottom UI
-      } else {
-        bottomPos = isPortrait ? portraitBottom : landscapeBottom;
-      }
+      const bottomPos = isPortrait ? portraitBottom : landscapeBottom;
       
       // Use fixed position in portrait mode to prevent scrolling with page
       // Use absolute position in fullscreen mode (attached to fullscreen element)
-      const positionType = (isPortrait || isShorts) ? 'fixed' : 'absolute';
+      const positionType = isPortrait ? 'fixed' : 'absolute';
       subtitleLayer.style.cssText = 'position:' + positionType + ';bottom:' + bottomPos + 'px;left:5%;right:5%;max-width:90%;margin:0 auto;text-align:center;color:#FFF;font-size:' + subtitleFontSize + 'px;font-weight:' + weight + ';font-style:' + subtitleFontStyle + ';font-family:system-ui,sans-serif;' + textStroke + textShadow + bgStyle + 'pointer-events:none;z-index:2147483647;display:' + (lastSubtitle ? 'block' : 'none') + ';line-height:1.5;white-space:pre-line;transform:translateZ(0);backface-visibility:hidden;contain:layout style paint';
     }
 
@@ -129,11 +118,15 @@ export const INJECTED_JAVASCRIPT = `
             }
             
             // Send video title - try multiple selectors for mobile YouTube (including Shorts)
-            const titleSelectors = [
-              // Shorts title selectors
-              '.shorts-video-title-text',
-              'ytm-shorts-video-title-view-model .yt-core-attributed-string',
-              '.reel-video-in-sequence .title',
+            const isCurrentlyShorts = window.location.href.includes('/shorts/');
+            const titleSelectors = isCurrentlyShorts ? [
+              // Shorts-specific title selectors (when watching Shorts)
+              'yt-shorts-video-title-view-model h2',
+              '.ytShortsVideoTitleViewModelShortsVideoTitle',
+              'h2.ytShortsVideoTitleViewModelShortsVideoTitle span.yt-core-attributed-string',
+              '.reel-player-overlay-metadata h2',
+              'video[title]'
+            ] : [
               // Regular video title selectors
               '.slim-video-information-title .yt-core-attributed-string',
               '.slim-video-information-title',
@@ -145,12 +138,28 @@ export const INJECTED_JAVASCRIPT = `
             ];
             for (const sel of titleSelectors) {
               const el = document.querySelector(sel);
-              if (el && el.textContent) {
-                const title = el.textContent.trim();
-                if (title && title.length > 3 && title !== 'YouTube' && title !== window.__lastSentTitle) {
+              if (el) {
+                // Check for title attribute (for video element)
+                let title = el.getAttribute('title') || el.textContent;
+                if (title) {
+                  title = title.trim();
+                  if (title && title.length > 3 && title !== 'YouTube' && title !== window.__lastSentTitle) {
+                    window.__lastSentTitle = title;
+                    window.ReactNativeWebView.postMessage(JSON.stringify({type:'videoTitle',payload:title}));
+                    break;
+                  }
+                }
+              }
+            }
+            
+            // Fallback: try to get title from video element's title attribute for Shorts
+            if (isCurrentlyShorts && !window.__lastSentTitle) {
+              const videoEl = document.querySelector('video[title]');
+              if (videoEl) {
+                const title = videoEl.getAttribute('title');
+                if (title && title.length > 3 && title !== window.__lastSentTitle) {
                   window.__lastSentTitle = title;
                   window.ReactNativeWebView.postMessage(JSON.stringify({type:'videoTitle',payload:title}));
-                  break;
                 }
               }
             }
@@ -256,33 +265,91 @@ export const INJECTED_JAVASCRIPT = `
         // Get title and duration from parent
         let title = 'Video YouTube';
         let duration = null;
-        const parent = link.closest('ytm-rich-item-renderer, ytm-video-with-context-renderer, ytm-compact-video-renderer, ytm-video-card-renderer, ytm-playlist-video-renderer, ytm-media-item');
-        if (parent) {
-          const titleEl = parent.querySelector('h3, h4, .media-item-headline, .YtmCompactMediaItemHeadline');
-          if (titleEl) title = titleEl.textContent.trim() || title;
-          
-          // Try to get duration from thumbnail overlay
-          const durationSelectors = [
-            '.ytm-thumbnail-overlay-time-status-renderer span',
-            '.badge-shape-wiz__text',
-            '[class*="time-status"] span',
-            '.ytm-thumbnail-overlay-badge-shape span',
-            'ytm-thumbnail-overlay-time-status-renderer'
-          ];
-          for (const sel of durationSelectors) {
-            const durationEl = parent.querySelector(sel);
-            if (durationEl && durationEl.textContent) {
-              const durationText = durationEl.textContent.trim();
-              // Parse duration text like "12:34" or "1:23:45"
-              const parts = durationText.split(':').map(p => parseInt(p, 10));
-              if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
-                duration = parts[0] * 60 + parts[1];
-                break;
-              } else if (parts.length === 3 && !isNaN(parts[0]) && !isNaN(parts[1]) && !isNaN(parts[2])) {
-                duration = parts[0] * 3600 + parts[1] * 60 + parts[2];
-                break;
+        
+        // For Shorts, the structure is different - title is inside the link itself
+        if (isShorts) {
+          // Try h3 with aria-label first (contains full title)
+          const h3 = link.querySelector('h3.shortsLockupViewModelHostMetadataTitle');
+          if (h3) {
+            const ariaLabel = h3.getAttribute('aria-label');
+            if (ariaLabel && ariaLabel.length > 3) {
+              // aria-label format: "Title – phát video ngắn", extract title part
+              const titlePart = ariaLabel.split(' – ')[0].trim();
+              if (titlePart && titlePart.length > 3) {
+                title = titlePart;
               }
             }
+            // Fallback to span text content
+            if (title === 'Video YouTube') {
+              const span = h3.querySelector('span.yt-core-attributed-string');
+              if (span && span.textContent) {
+                const spanTitle = span.textContent.trim();
+                if (spanTitle && spanTitle.length > 3) {
+                  title = spanTitle;
+                }
+              }
+            }
+          }
+        }
+        
+        // For regular videos or if Shorts title not found, use parent container
+        if (title === 'Video YouTube') {
+          const parent = link.closest('ytm-rich-item-renderer, ytm-video-with-context-renderer, ytm-compact-video-renderer, ytm-video-card-renderer, ytm-playlist-video-renderer, ytm-media-item, ytm-shorts-lockup-view-model');
+          if (parent) {
+            const titleSelectors = [
+              'h3', 'h4', '.media-item-headline', '.YtmCompactMediaItemHeadline'
+            ];
+            
+            for (const sel of titleSelectors) {
+              const titleEl = parent.querySelector(sel);
+              if (titleEl && titleEl.textContent) {
+                const foundTitle = titleEl.textContent.trim();
+                if (foundTitle && foundTitle.length > 3) {
+                  title = foundTitle;
+                  break;
+                }
+              }
+            }
+            
+            // Also try to get title from aria-label on the link itself
+            if (title === 'Video YouTube') {
+              const ariaLabel = link.getAttribute('aria-label');
+              if (ariaLabel && ariaLabel.length > 3) {
+                title = ariaLabel;
+              }
+            }
+          
+            // Try to get duration from thumbnail overlay
+            const durationSelectors = [
+              '.ytm-thumbnail-overlay-time-status-renderer span',
+              '.badge-shape-wiz__text',
+              '[class*="time-status"] span',
+              '.ytm-thumbnail-overlay-badge-shape span',
+              'ytm-thumbnail-overlay-time-status-renderer'
+            ];
+            for (const sel of durationSelectors) {
+              const durationEl = parent.querySelector(sel);
+              if (durationEl && durationEl.textContent) {
+                const durationText = durationEl.textContent.trim();
+                // Parse duration text like "12:34" or "1:23:45"
+                const parts = durationText.split(':').map(p => parseInt(p, 10));
+                if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+                  duration = parts[0] * 60 + parts[1];
+                  break;
+                } else if (parts.length === 3 && !isNaN(parts[0]) && !isNaN(parts[1]) && !isNaN(parts[2])) {
+                  duration = parts[0] * 3600 + parts[1] * 60 + parts[2];
+                  break;
+                }
+              }
+            }
+          }
+        }
+        
+        // Fallback: try to get title from aria-label on link if still not found
+        if (title === 'Video YouTube') {
+          const ariaLabel = link.getAttribute('aria-label');
+          if (ariaLabel && ariaLabel.length > 3) {
+            title = ariaLabel;
           }
         }
         
