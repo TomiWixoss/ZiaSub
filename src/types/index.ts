@@ -85,12 +85,24 @@ export interface ApiKeysSettings {
   keys: string[];
 }
 
+// Media Resolution options for video processing
+export type MediaResolutionType =
+  | "MEDIA_RESOLUTION_UNSPECIFIED"
+  | "MEDIA_RESOLUTION_LOW"
+  | "MEDIA_RESOLUTION_MEDIUM"
+  | "MEDIA_RESOLUTION_HIGH";
+
+// Thinking Level options for AI reasoning
+export type ThinkingLevelType = "MINIMAL" | "LOW" | "MEDIUM" | "HIGH";
+
 export interface GeminiConfig {
   id: string;
   name: string;
   model: string;
   temperature: number;
   systemPrompt: string;
+  mediaResolution?: MediaResolutionType;
+  thinkingLevel?: ThinkingLevelType;
 }
 
 // ============================================

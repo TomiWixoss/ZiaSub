@@ -23,6 +23,20 @@ const AVAILABLE_MODELS = [
   { id: "models/gemini-flash-lite-latest", name: "Gemini Flash Lite (Latest)" },
 ];
 
+const MEDIA_RESOLUTION_OPTIONS = [
+  { id: "MEDIA_RESOLUTION_HIGH", name: "Cao (High)" },
+  { id: "MEDIA_RESOLUTION_MEDIUM", name: "Trung bình (Medium)" },
+  { id: "MEDIA_RESOLUTION_LOW", name: "Thấp (Low)" },
+  { id: "MEDIA_RESOLUTION_UNSPECIFIED", name: "Mặc định" },
+];
+
+const THINKING_LEVEL_OPTIONS = [
+  { id: "HIGH", name: "Cao (High)" },
+  { id: "MEDIUM", name: "Trung bình (Medium)" },
+  { id: "LOW", name: "Thấp (Low)" },
+  { id: "MINIMAL", name: "Tối thiểu (Minimal)" },
+];
+
 interface GeminiEditProps {
   config: GeminiConfig;
   onChange: (config: GeminiConfig) => void;
@@ -40,10 +54,22 @@ const GeminiEdit: React.FC<GeminiEditProps> = ({
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const [showModelPicker, setShowModelPicker] = useState(false);
+  const [showResolutionPicker, setShowResolutionPicker] = useState(false);
+  const [showThinkingPicker, setShowThinkingPicker] = useState(false);
   const styles = useThemedStyles(themedStyles);
 
   const selectedModel = AVAILABLE_MODELS.find((m) => m.id === config.model);
   const modelDisplayName = selectedModel?.name || config.model;
+
+  const selectedResolution = MEDIA_RESOLUTION_OPTIONS.find(
+    (r) => r.id === (config.mediaResolution || "MEDIA_RESOLUTION_HIGH")
+  );
+  const resolutionDisplayName = selectedResolution?.name || "Cao (High)";
+
+  const selectedThinking = THINKING_LEVEL_OPTIONS.find(
+    (t) => t.id === (config.thinkingLevel || "HIGH")
+  );
+  const thinkingDisplayName = selectedThinking?.name || "Cao (High)";
 
   return (
     <View
@@ -149,6 +175,94 @@ const GeminiEdit: React.FC<GeminiEditProps> = ({
             maximumTrackTintColor={colors.border}
             thumbTintColor={colors.primary}
           />
+        </View>
+        <View style={styles.settingGroup}>
+          <Text style={styles.settingLabel}>
+            {t("settings.geminiConfig.mediaResolution")}
+          </Text>
+          <TouchableOpacity
+            style={styles.modelPicker}
+            onPress={() => setShowResolutionPicker(!showResolutionPicker)}
+          >
+            <Text style={styles.modelPickerText}>{resolutionDisplayName}</Text>
+            <MaterialCommunityIcons
+              name={showResolutionPicker ? "chevron-up" : "chevron-down"}
+              size={20}
+              color={colors.textMuted}
+            />
+          </TouchableOpacity>
+          {showResolutionPicker && (
+            <View style={styles.modelDropdown}>
+              {MEDIA_RESOLUTION_OPTIONS.map((option) => (
+                <TouchableOpacity
+                  key={option.id}
+                  style={[
+                    styles.modelOption,
+                    (config.mediaResolution || "MEDIA_RESOLUTION_HIGH") ===
+                      option.id && styles.modelOptionActive,
+                  ]}
+                  onPress={() => {
+                    onChange({ ...config, mediaResolution: option.id as any });
+                    setShowResolutionPicker(false);
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.modelOptionText,
+                      (config.mediaResolution || "MEDIA_RESOLUTION_HIGH") ===
+                        option.id && styles.modelOptionTextActive,
+                    ]}
+                  >
+                    {option.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+        </View>
+        <View style={styles.settingGroup}>
+          <Text style={styles.settingLabel}>
+            {t("settings.geminiConfig.thinkingLevel")}
+          </Text>
+          <TouchableOpacity
+            style={styles.modelPicker}
+            onPress={() => setShowThinkingPicker(!showThinkingPicker)}
+          >
+            <Text style={styles.modelPickerText}>{thinkingDisplayName}</Text>
+            <MaterialCommunityIcons
+              name={showThinkingPicker ? "chevron-up" : "chevron-down"}
+              size={20}
+              color={colors.textMuted}
+            />
+          </TouchableOpacity>
+          {showThinkingPicker && (
+            <View style={styles.modelDropdown}>
+              {THINKING_LEVEL_OPTIONS.map((option) => (
+                <TouchableOpacity
+                  key={option.id}
+                  style={[
+                    styles.modelOption,
+                    (config.thinkingLevel || "HIGH") === option.id &&
+                      styles.modelOptionActive,
+                  ]}
+                  onPress={() => {
+                    onChange({ ...config, thinkingLevel: option.id as any });
+                    setShowThinkingPicker(false);
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.modelOptionText,
+                      (config.thinkingLevel || "HIGH") === option.id &&
+                        styles.modelOptionTextActive,
+                    ]}
+                  >
+                    {option.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
         </View>
         <View style={styles.settingGroup}>
           <Text style={styles.settingLabel}>

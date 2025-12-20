@@ -301,6 +301,8 @@ export default {
       cannotDelete: "Cannot delete",
       cannotDeleteMessage: "Must keep at least one translation style.",
       selectType: "Select translation style",
+      mediaResolution: "Video resolution",
+      thinkingLevel: "AI thinking level",
     },
   },
 

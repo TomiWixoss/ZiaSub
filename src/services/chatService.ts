@@ -1,6 +1,37 @@
+import { ThinkingLevel, MediaResolution } from "@google/genai";
 import type { GeminiConfig, ChatMessage, StreamCallbacks } from "@src/types";
 import { normalizeYouTubeUrl } from "@utils/videoUtils";
 import { keyManager } from "./keyManager";
+
+// Map config string to ThinkingLevel enum
+const getThinkingLevel = (level?: string): ThinkingLevel => {
+  switch (level) {
+    case "MINIMAL":
+      return ThinkingLevel.MINIMAL;
+    case "LOW":
+      return ThinkingLevel.LOW;
+    case "MEDIUM":
+      return ThinkingLevel.MEDIUM;
+    case "HIGH":
+    default:
+      return ThinkingLevel.HIGH;
+  }
+};
+
+// Map config string to MediaResolution enum
+const getMediaResolution = (resolution?: string): MediaResolution => {
+  switch (resolution) {
+    case "MEDIA_RESOLUTION_LOW":
+      return MediaResolution.MEDIA_RESOLUTION_LOW;
+    case "MEDIA_RESOLUTION_MEDIUM":
+      return MediaResolution.MEDIA_RESOLUTION_MEDIUM;
+    case "MEDIA_RESOLUTION_HIGH":
+      return MediaResolution.MEDIA_RESOLUTION_HIGH;
+    case "MEDIA_RESOLUTION_UNSPECIFIED":
+    default:
+      return MediaResolution.MEDIA_RESOLUTION_MEDIUM;
+  }
+};
 
 // Send message with streaming response (multi-turn)
 export const sendChatMessage = async (
@@ -57,6 +88,10 @@ export const sendChatMessage = async (
       config: {
         temperature: config.temperature,
         systemInstruction: config.systemPrompt,
+        thinkingConfig: {
+          thinkingLevel: getThinkingLevel(config.thinkingLevel),
+        },
+        mediaResolution: getMediaResolution(config.mediaResolution),
       },
       history: contents.slice(0, -1), // Tất cả messages trừ cái cuối
     });

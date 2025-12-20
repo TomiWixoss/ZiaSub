@@ -15,6 +15,8 @@ export const createDefaultGeminiConfig = (): GeminiConfig => ({
   model: "models/gemini-3-flash-preview",
   temperature: 0.7,
   systemPrompt: DEFAULT_SYSTEM_PROMPT,
+  mediaResolution: "MEDIA_RESOLUTION_HIGH",
+  thinkingLevel: "HIGH",
 });
 
 export const createDefaultChatConfig = (): GeminiConfig => ({
@@ -23,6 +25,8 @@ export const createDefaultChatConfig = (): GeminiConfig => ({
   model: "models/gemini-flash-latest",
   temperature: 1.0,
   systemPrompt: "",
+  mediaResolution: "MEDIA_RESOLUTION_MEDIUM",
+  thinkingLevel: "MEDIUM",
 });
 
 export const saveGeminiConfigs = async (

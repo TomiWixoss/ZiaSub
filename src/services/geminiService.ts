@@ -95,6 +95,36 @@ const runWithConcurrency = async <T>(
   return { results, hasErrors, errorMessage: lastError, aborted };
 };
 
+// Map config string to ThinkingLevel enum
+const getThinkingLevel = (level?: string): ThinkingLevel => {
+  switch (level) {
+    case "MINIMAL":
+      return ThinkingLevel.MINIMAL;
+    case "LOW":
+      return ThinkingLevel.LOW;
+    case "MEDIUM":
+      return ThinkingLevel.MEDIUM;
+    case "HIGH":
+    default:
+      return ThinkingLevel.HIGH;
+  }
+};
+
+// Map config string to MediaResolution enum
+const getMediaResolution = (resolution?: string): MediaResolution => {
+  switch (resolution) {
+    case "MEDIA_RESOLUTION_LOW":
+      return MediaResolution.MEDIA_RESOLUTION_LOW;
+    case "MEDIA_RESOLUTION_MEDIUM":
+      return MediaResolution.MEDIA_RESOLUTION_MEDIUM;
+    case "MEDIA_RESOLUTION_HIGH":
+      return MediaResolution.MEDIA_RESOLUTION_HIGH;
+    case "MEDIA_RESOLUTION_UNSPECIFIED":
+    default:
+      return MediaResolution.MEDIA_RESOLUTION_HIGH;
+  }
+};
+
 // Translate a single video batch with automatic key rotation
 const translateVideoBatch = async (
   videoUrl: string,
@@ -127,10 +157,12 @@ const translateVideoBatch = async (
       model: config.model,
       contents,
       config: {
-        temperature: 0.7,
+        temperature: config.temperature,
         systemInstruction: config.systemPrompt,
-        thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
-        mediaResolution: MediaResolution.MEDIA_RESOLUTION_HIGH,
+        thinkingConfig: {
+          thinkingLevel: getThinkingLevel(config.thinkingLevel),
+        },
+        mediaResolution: getMediaResolution(config.mediaResolution),
       },
     });
 

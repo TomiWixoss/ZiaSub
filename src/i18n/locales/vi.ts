@@ -299,6 +299,8 @@ export default {
       cannotDelete: "Không xóa được",
       cannotDeleteMessage: "Cần giữ lại ít nhất một kiểu dịch.",
       selectType: "Chọn kiểu dịch",
+      mediaResolution: "Độ phân giải video",
+      thinkingLevel: "Mức độ suy nghĩ AI",
     },
   },
 
