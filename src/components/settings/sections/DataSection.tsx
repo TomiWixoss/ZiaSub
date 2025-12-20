@@ -3,7 +3,6 @@ import {
   View,
   StyleSheet,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
 } from "react-native";
 import { Text } from "react-native-paper";
@@ -12,6 +11,7 @@ import { useTranslation } from "react-i18next";
 import { useTheme } from "@src/contexts";
 import { fileStorage } from "@services/fileStorageService";
 import { setOnboardingCompleted } from "@utils/storage";
+import { showAlert } from "@components/common/CustomAlert";
 
 interface DataInfo {
   storagePath: string | null;
@@ -55,20 +55,21 @@ export const DataSection: React.FC = () => {
   };
 
   const handleClearAllData = () => {
-    Alert.alert(
+    showAlert(
       t("settings.data.clearAllTitle"),
       t("settings.data.clearAllMessage"),
       [
-        {
-          text: t("common.cancel"),
-          style: "cancel",
-        },
         {
           text: t("settings.data.clearConfirm"),
           style: "destructive",
           onPress: confirmClearData,
         },
-      ]
+        {
+          text: t("common.cancel"),
+          style: "cancel",
+        },
+      ],
+      "warning"
     );
   };
 
@@ -77,28 +78,39 @@ export const DataSection: React.FC = () => {
     try {
       await fileStorage.clearAllData();
       await loadDataInfo();
-      Alert.alert(t("common.success"), t("settings.data.clearSuccess"));
+      showAlert(
+        t("common.success"),
+        t("settings.data.clearSuccess"),
+        [{ text: t("common.ok") }],
+        "success"
+      );
     } catch (error) {
-      Alert.alert(t("common.error"), t("settings.data.clearError"));
+      showAlert(
+        t("common.error"),
+        t("settings.data.clearError"),
+        [{ text: t("common.ok") }],
+        "error"
+      );
     }
     setClearing(false);
   };
 
   const handleResetStorage = () => {
-    Alert.alert(
+    showAlert(
       t("settings.data.resetTitle"),
       t("settings.data.resetMessage"),
       [
-        {
-          text: t("common.cancel"),
-          style: "cancel",
-        },
         {
           text: t("settings.data.resetConfirm"),
           style: "destructive",
           onPress: confirmResetStorage,
         },
-      ]
+        {
+          text: t("common.cancel"),
+          style: "cancel",
+        },
+      ],
+      "warning"
     );
   };
 
@@ -106,17 +118,19 @@ export const DataSection: React.FC = () => {
     try {
       await fileStorage.resetStorage();
       await setOnboardingCompleted(false);
-      Alert.alert(t("common.success"), t("settings.data.resetSuccess"), [
-        {
-          text: t("common.ok"),
-          onPress: () => {
-            // Reload app - this will trigger onboarding
-            // In a real app, you might use expo-updates or similar
-          },
-        },
-      ]);
+      showAlert(
+        t("common.success"),
+        t("settings.data.resetSuccess"),
+        [{ text: t("common.ok") }],
+        "success"
+      );
     } catch (error) {
-      Alert.alert(t("common.error"), t("settings.data.resetError"));
+      showAlert(
+        t("common.error"),
+        t("settings.data.resetError"),
+        [{ text: t("common.ok") }],
+        "error"
+      );
     }
   };
 

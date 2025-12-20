@@ -5,7 +5,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   Platform,
 } from "react-native";
 import { useTranslation } from "react-i18next";
@@ -14,6 +13,7 @@ import Button3D from "@components/common/Button3D";
 import { Ionicons } from "@expo/vector-icons";
 import { fileStorage } from "@services/fileStorageService";
 import * as FileSystem from "expo-file-system/legacy";
+import { showAlert } from "@components/common/CustomAlert";
 
 interface StepProps {
   onNext: () => void;
@@ -76,11 +76,15 @@ export const StorageStep: React.FC<StepProps> = ({ onNext, onPrevious }) => {
         }
       } else {
         // iOS - use default path only
-        Alert.alert(t("common.notice"), t("onboarding.storage.iosDefaultOnly"));
+        showAlert(t("common.notice"), t("onboarding.storage.iosDefaultOnly"), [
+          { text: t("common.ok") },
+        ]);
       }
     } catch (error) {
       console.error("Error picking folder:", error);
-      Alert.alert(t("common.error"), t("onboarding.storage.pickError"));
+      showAlert(t("common.error"), t("onboarding.storage.pickError"), [
+        { text: t("common.ok") },
+      ]);
     }
   };
 
@@ -89,8 +93,8 @@ export const StorageStep: React.FC<StepProps> = ({ onNext, onPrevious }) => {
 
     setLoading(true);
     try {
-      if (dataInfo?.hasData && !restore) {
-        // Clear existing data
+      if (dataInfo?.hasData && !restore && hasRealData()) {
+        // Clear existing data only if there's real data
         await fileStorage.setStoragePath(selectedPath);
         await fileStorage.clearAllData();
       } else {
@@ -99,22 +103,35 @@ export const StorageStep: React.FC<StepProps> = ({ onNext, onPrevious }) => {
       }
       onNext();
     } catch (error) {
-      Alert.alert(t("common.error"), t("onboarding.storage.errorSetup"));
+      showAlert(t("common.error"), t("onboarding.storage.errorSetup"), [
+        { text: t("common.ok") },
+      ]);
     }
     setLoading(false);
   };
 
+  // Check if there's actual data (not just marker file)
+  const hasRealData = () => {
+    return (
+      dataInfo?.hasData &&
+      ((dataInfo.chatCount && dataInfo.chatCount > 0) ||
+        (dataInfo.translationCount && dataInfo.translationCount > 0))
+    );
+  };
+
   const handleDataChoice = () => {
-    if (!dataInfo?.hasData) {
+    // If no real data (only marker or empty), just proceed
+    if (!hasRealData()) {
       handleConfirm();
       return;
     }
 
-    Alert.alert(
+    // Has real data - show restore/clear dialog
+    showAlert(
       t("onboarding.storage.existingDataTitle"),
       t("onboarding.storage.existingDataMessage", {
-        chats: dataInfo.chatCount || 0,
-        translations: dataInfo.translationCount || 0,
+        chats: dataInfo?.chatCount || 0,
+        translations: dataInfo?.translationCount || 0,
       }),
       [
         {
@@ -130,7 +147,8 @@ export const StorageStep: React.FC<StepProps> = ({ onNext, onPrevious }) => {
           text: t("common.cancel"),
           style: "cancel",
         },
-      ]
+      ],
+      "info"
     );
   };
 
@@ -186,7 +204,7 @@ export const StorageStep: React.FC<StepProps> = ({ onNext, onPrevious }) => {
               {t("onboarding.storage.checking")}
             </Text>
           </View>
-        ) : dataInfo?.hasData ? (
+        ) : hasRealData() ? (
           <View
             style={[
               styles.dataInfoContainer,
@@ -206,9 +224,9 @@ export const StorageStep: React.FC<StepProps> = ({ onNext, onPrevious }) => {
                 style={[styles.dataInfoDetail, { color: colors.textSecondary }]}
               >
                 {t("onboarding.storage.dataDetail", {
-                  chats: dataInfo.chatCount || 0,
-                  translations: dataInfo.translationCount || 0,
-                  date: formatDate(dataInfo.createdAt),
+                  chats: dataInfo?.chatCount || 0,
+                  translations: dataInfo?.translationCount || 0,
+                  date: formatDate(dataInfo?.createdAt),
                 })}
               </Text>
             </View>
