@@ -320,14 +320,15 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
     translation: SavedTranslation,
     fromBatchIndex: number
   ) => {
-    const batchDuration =
-      translation.batchSettings?.maxVideoDuration ||
-      batchSettings?.maxVideoDuration ||
-      600;
+    // IMPORTANT: Use original batch settings from the translation, not current settings
+    // This ensures batch boundaries stay consistent
+    const originalBatchDuration =
+      translation.batchSettings?.maxVideoDuration || 600;
     const totalBatches =
       translation.totalBatches ||
       Math.ceil(
-        (translation.videoDuration || videoDuration || 0) / batchDuration
+        (translation.videoDuration || videoDuration || 0) /
+          originalBatchDuration
       );
 
     confirm(
@@ -340,7 +341,7 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
         // Keep batches before fromBatchIndex, retranslate from there
         const keepBatches = fromBatchIndex;
         const parsed = parseSRT(translation.srtContent);
-        const keepUntilTime = fromBatchIndex * batchDuration;
+        const keepUntilTime = fromBatchIndex * originalBatchDuration;
 
         // Filter subtitles to keep only those before the retranslate point
         const keptSubtitles = parsed.filter(
@@ -370,21 +371,31 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
         const completedRanges: Array<{ start: number; end: number }> = [];
         for (let i = 0; i < keepBatches; i++) {
           completedRanges.push({
-            start: i * batchDuration,
+            start: i * originalBatchDuration,
             end: Math.min(
-              (i + 1) * batchDuration,
+              (i + 1) * originalBatchDuration,
               translation.videoDuration || videoDuration || Infinity
             ),
           });
         }
 
         // Create modified translation for resume
+        // IMPORTANT: Preserve original batchSettings to maintain batch boundaries
         const modifiedTranslation: SavedTranslation = {
           ...translation,
           srtContent: partialSrt,
           isPartial: true,
           completedBatches: keepBatches,
           totalBatches: totalBatches,
+          // Ensure original batch settings are preserved
+          batchSettings: translation.batchSettings || {
+            maxVideoDuration: originalBatchDuration,
+            maxConcurrentBatches: batchSettings?.maxConcurrentBatches || 1,
+            batchOffset: batchSettings?.batchOffset || 60,
+            streamingMode: true,
+            presubMode: false,
+            presubDuration: 120,
+          },
         };
 
         handleTranslate(modifiedTranslation);
@@ -465,7 +476,6 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
           onResume={handleResumeTranslation}
           onRetranslateFromBatch={handleRetranslateFromBatch}
           videoDuration={videoDuration}
-          batchSettings={batchSettings}
         />
         {!hasApiKey && (
           <View style={themedStyles.warningContainer}>

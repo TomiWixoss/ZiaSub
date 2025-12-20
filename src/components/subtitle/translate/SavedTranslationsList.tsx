@@ -5,7 +5,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@src/contexts";
 import { useThemedStyles } from "@hooks/useThemedStyles";
-import type { SavedTranslation, BatchSettings } from "@src/types";
+import type { SavedTranslation } from "@src/types";
 import { createTranslateStyles } from "./translateStyles";
 import { parseSRT } from "@utils/srtParser";
 
@@ -20,7 +20,6 @@ interface SavedTranslationsListProps {
     fromBatchIndex: number
   ) => void;
   videoDuration?: number;
-  batchSettings?: BatchSettings;
 }
 
 const formatDate = (timestamp: number) => {
@@ -58,7 +57,6 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
   onResume,
   onRetranslateFromBatch,
   videoDuration,
-  batchSettings,
 }) => {
   const { t } = useTranslation();
   const { colors } = useTheme();
@@ -69,10 +67,9 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
   const getBatchesInfo = useMemo(() => {
     return (item: SavedTranslation): BatchInfo[] => {
       const duration = item.videoDuration || videoDuration || 0;
-      const batchDuration =
-        item.batchSettings?.maxVideoDuration ||
-        batchSettings?.maxVideoDuration ||
-        600;
+      // IMPORTANT: Use original batch settings from the translation
+      // This ensures batch display matches how it was originally translated
+      const batchDuration = item.batchSettings?.maxVideoDuration || 600;
 
       if (duration <= 0) return [];
 
@@ -100,7 +97,7 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
 
       return batches;
     };
-  }, [videoDuration, batchSettings]);
+  }, [videoDuration]);
 
   if (translations.length === 0) return null;
 
