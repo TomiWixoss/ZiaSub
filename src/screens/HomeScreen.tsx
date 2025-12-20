@@ -9,7 +9,6 @@ import {
 } from "react-native";
 import { alert, showAlert } from "@components/common/CustomAlert";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { WebViewMessageEvent, WebViewNavigation } from "react-native-webview";
 import { useTranslation } from "react-i18next";
@@ -331,17 +330,10 @@ const HomeScreen = () => {
       />
 
       {!isFullscreen && (
-        <LinearGradient
-          colors={
-            isDark
-              ? ["#1E1E3A", "#141428"]
-              : [colors.surfaceLight, colors.surface]
-          }
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
+        <View
           style={[
-            styles.headerGradient,
-            themedStyles.headerGradient,
+            styles.headerContainer,
+            themedStyles.headerContainer,
             { paddingTop: insets.top },
           ]}
         >
@@ -391,6 +383,12 @@ const HomeScreen = () => {
                   themedStyles.urlInputContainer,
                 ]}
               >
+                <MaterialCommunityIcons
+                  name="magnify"
+                  size={16}
+                  color={colors.textMuted}
+                  style={styles.urlInputIcon}
+                />
                 <TextInput
                   style={[styles.urlInput, themedStyles.urlInput]}
                   value={urlInput}
@@ -401,6 +399,7 @@ const HomeScreen = () => {
                   autoCapitalize="none"
                   autoCorrect={false}
                   returnKeyType="go"
+                  selectTextOnFocus
                   onSubmitEditing={() => {
                     if (urlInput.trim()) {
                       navigateToUrl(urlInput);
@@ -409,10 +408,25 @@ const HomeScreen = () => {
                     }
                   }}
                   onBlur={() => {
+                    setTimeout(() => {
+                      setShowUrlInput(false);
+                      setUrlInput("");
+                    }, 100);
+                  }}
+                />
+                <TouchableOpacity
+                  style={styles.urlInputClose}
+                  onPress={() => {
                     setShowUrlInput(false);
                     setUrlInput("");
                   }}
-                />
+                >
+                  <MaterialCommunityIcons
+                    name="close"
+                    size={16}
+                    color={colors.textMuted}
+                  />
+                </TouchableOpacity>
               </View>
             ) : (
               <TouchableOpacity
@@ -447,7 +461,7 @@ const HomeScreen = () => {
               </Text>
             </View>
           </View>
-        </LinearGradient>
+        </View>
       )}
 
       <YouTubePlayer
@@ -521,7 +535,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  headerGradient: {
+  headerContainer: {
     borderBottomWidth: 1,
   },
   header: {
@@ -550,22 +564,31 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    height: 32,
-    borderRadius: 8,
+    height: 34,
+    borderRadius: 10,
     paddingHorizontal: 10,
     gap: 6,
   },
   urlInputContainer: {
     flex: 1,
-    height: 32,
-    borderRadius: 8,
-    justifyContent: "center",
+    flexDirection: "row",
+    alignItems: "center",
+    height: 34,
+    borderRadius: 10,
+    paddingHorizontal: 8,
+  },
+  urlInputIcon: {
+    marginRight: 6,
   },
   urlInput: {
     flex: 1,
-    height: 32,
-    paddingHorizontal: 10,
-    fontSize: 13,
+    height: 34,
+    fontSize: 14,
+    paddingVertical: 0,
+  },
+  urlInputClose: {
+    padding: 4,
+    marginLeft: 4,
   },
   urlText: {
     flex: 1,
@@ -591,7 +614,8 @@ const styles = StyleSheet.create({
 
 const homeThemedStyles = createThemedStyles((colors, isDark) => ({
   container: { backgroundColor: colors.background },
-  headerGradient: {
+  headerContainer: {
+    backgroundColor: colors.surface,
     borderBottomColor: isDark ? "rgba(155,126,217,0.3)" : colors.border,
   },
   logoContainer: { backgroundColor: colors.primary },
