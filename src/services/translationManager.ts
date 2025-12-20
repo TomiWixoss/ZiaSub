@@ -193,52 +193,56 @@ class TranslationManager {
 
       return result;
     } catch (error: any) {
-      // Save partial result when stopped or error
-      const hasPartialResult = accumulatedSrt && completedRanges.length > 0;
+      // If aborted, partial was already saved in abortTranslation()
+      // Only save here if it's a real error (not user abort)
+      if (!this.isAborted) {
+        const hasPartialResult = accumulatedSrt && completedRanges.length > 0;
 
-      if (hasPartialResult && this.currentJob) {
-        // Save partial translation for resume - MUST complete before notifying
-        try {
-          await savePartialTranslation(videoUrl, accumulatedSrt, config.name, {
-            completedBatches: completedRanges.length,
-            totalBatches: this.currentJob.progress?.totalBatches || 0,
-            rangeStart,
-            rangeEnd,
-            videoDuration,
-            batchSettings,
-          });
-          // Force flush to persist immediately (don't wait for debounce)
-          const { cacheService } = await import("./cacheService");
-          await cacheService.forceFlush();
-          console.log(
-            "[TranslationManager] Saved partial translation:",
-            completedRanges.length,
-            "batches"
-          );
-        } catch (saveError) {
-          console.error(
-            "[TranslationManager] Failed to save partial:",
-            saveError
-          );
+        if (hasPartialResult && this.currentJob) {
+          try {
+            await savePartialTranslation(
+              videoUrl,
+              accumulatedSrt,
+              config.name,
+              {
+                completedBatches: completedRanges.length,
+                totalBatches: this.currentJob.progress?.totalBatches || 0,
+                rangeStart,
+                rangeEnd,
+                videoDuration,
+                batchSettings,
+              }
+            );
+            const { cacheService } = await import("./cacheService");
+            await cacheService.forceFlush();
+            console.log(
+              "[TranslationManager] Saved partial on error:",
+              completedRanges.length,
+              "batches"
+            );
+          } catch (saveError) {
+            console.error(
+              "[TranslationManager] Failed to save partial:",
+              saveError
+            );
+          }
+        }
+
+        // Update job status for real errors
+        if (this.currentJob && this.currentJob.id === jobId) {
+          this.currentJob = {
+            ...this.currentJob,
+            status: "error",
+            error: error.message || "Có lỗi xảy ra",
+            completedAt: Date.now(),
+            partialResult: accumulatedSrt || null,
+            completedBatchRanges: completedRanges,
+          };
+          this.notify();
         }
       }
+      // If aborted, job status was already updated in abortTranslation()
 
-      // Now update job status and notify AFTER saving
-      if (this.currentJob && this.currentJob.id === jobId) {
-        this.currentJob = {
-          ...this.currentJob,
-          status: "error",
-          error: this.isAborted
-            ? hasPartialResult
-              ? `Đã dừng (${completedRanges.length} phần đã dịch)`
-              : "Đã dừng dịch"
-            : error.message || "Có lỗi xảy ra",
-          completedAt: Date.now(),
-          partialResult: accumulatedSrt || null,
-          completedBatchRanges: completedRanges,
-        };
-        this.notify();
-      }
       throw error;
     } finally {
       this.abortController = null;
@@ -258,11 +262,11 @@ class TranslationManager {
     }
   }
 
-  abortTranslation(videoUrl?: string): {
+  async abortTranslation(videoUrl?: string): Promise<{
     aborted: boolean;
     partialResult?: string;
     completedRanges?: Array<{ start: number; end: number }>;
-  } {
+  }> {
     if (!this.currentJob || this.currentJob.status !== "processing") {
       return { aborted: false };
     }
@@ -275,21 +279,53 @@ class TranslationManager {
 
     const partialResult = this.currentJob.partialResult || undefined;
     const completedRanges = this.currentJob.completedBatchRanges || [];
+    const hasPartial = partialResult && completedRanges.length > 0;
 
+    // Save partial translation IMMEDIATELY (don't wait for catch block)
+    if (hasPartial) {
+      try {
+        await savePartialTranslation(
+          this.currentJob.videoUrl,
+          partialResult,
+          this.currentJob.configName,
+          {
+            completedBatches: completedRanges.length,
+            totalBatches: this.currentJob.progress?.totalBatches || 0,
+            rangeStart: this.currentJob.rangeStart,
+            rangeEnd: this.currentJob.rangeEnd,
+            videoDuration: this.currentJob.videoDuration,
+            batchSettings: this.currentJob.batchSettings as any,
+          }
+        );
+        // Force flush to persist immediately
+        const { cacheService } = await import("./cacheService");
+        await cacheService.forceFlush();
+        console.log(
+          "[TranslationManager] Saved partial translation immediately:",
+          completedRanges.length,
+          "batches"
+        );
+      } catch (saveError) {
+        console.error(
+          "[TranslationManager] Failed to save partial:",
+          saveError
+        );
+      }
+    }
+
+    // Abort the signal (this will eventually trigger catch block, but we don't wait)
     if (this.abortController) {
       this.abortController.abort();
       this.abortController = null;
     }
 
-    // Notify immediately so UI updates right away
-    // The catch block will update again after saving partial translation
-    const hasPartial = partialResult && completedRanges.length > 0;
+    // Update job status and notify IMMEDIATELY
     this.currentJob = {
       ...this.currentJob,
       status: "error",
       error: hasPartial
-        ? `Đang lưu (${completedRanges.length} phần)...`
-        : "Đang dừng...",
+        ? `Đã dừng (${completedRanges.length} phần đã dịch)`
+        : "Đã dừng dịch",
       completedAt: Date.now(),
     };
     this.notify();
