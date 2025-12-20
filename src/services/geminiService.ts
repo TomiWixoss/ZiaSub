@@ -486,7 +486,12 @@ export const translateVideoWithGemini = async (
     onChunk?.(result);
     return result;
   } catch (error: any) {
-    console.error("[Gemini] Error:", error);
+    // Don't log error if user stopped translation
+    const isUserStopped =
+      error.message === "Đã dừng dịch" || options?.abortSignal?.aborted;
+    if (!isUserStopped) {
+      console.error("[Gemini] Error:", error);
+    }
     options?.onBatchProgress?.({
       totalBatches: 1,
       completedBatches: 0,
