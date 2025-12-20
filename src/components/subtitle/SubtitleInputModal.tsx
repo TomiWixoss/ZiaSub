@@ -93,6 +93,9 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
     onApplySubtitlesRef.current = onApplySubtitles;
   }, [onApplySubtitles]);
 
+  // Callback to reload translations list in TranslateTab
+  const reloadTranslationsRef = useRef<(() => void) | null>(null);
+
   useEffect(() => {
     const unsubscribe = translationManager.subscribe((job: TranslationJob) => {
       // Compare by video ID to handle different URL formats
@@ -104,9 +107,11 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
         setBatchProgress(job.progress);
         setKeyStatus(job.keyStatus);
         if (job.progress) {
+          // Show current batch being translated (completedBatches + 1)
+          const currentBatch = job.progress.completedBatches + 1;
           setTranslateStatus(
             job.progress.totalBatches > 1
-              ? `Đang dịch phần ${job.progress.completedBatches}/${job.progress.totalBatches}...`
+              ? `Đang dịch phần ${currentBatch}/${job.progress.totalBatches}...`
               : "Đang dịch video..."
           );
           queueManager.updateVideoProgress(
@@ -135,6 +140,8 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
           onApplySubtitlesRef.current?.(job.result);
           queueManager.markVideoCompleted(job.videoUrl, job.configName);
           translationManager.clearCompletedJob(job.videoUrl);
+          // Reload translations list to show new translation
+          reloadTranslationsRef.current?.();
           if (visible)
             alert("Thành công", "Dịch xong rồi! Phụ đề đã sẵn sàng.");
         }
@@ -143,7 +150,7 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
           setKeyStatus(null);
 
           // Don't mark as error in queue if user manually stopped
-          const isUserStopped = job.error === "Đã dừng dịch";
+          const isUserStopped = job.error?.startsWith("Đã dừng");
           if (!isUserStopped) {
             queueManager.markVideoError(
               job.videoUrl,
@@ -152,6 +159,9 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
           }
 
           translationManager.clearCompletedJob(job.videoUrl);
+
+          // Reload translations list to show partial translation (if any)
+          reloadTranslationsRef.current?.();
 
           // Only show error alert if not user-initiated stop
           if (!isUserStopped) {
@@ -376,6 +386,7 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
                   setSrtContent("");
                   onClearSubtitles?.();
                 }}
+                onReloadRef={reloadTranslationsRef}
               />
             )}
           </Animated.View>

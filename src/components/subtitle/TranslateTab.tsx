@@ -44,6 +44,7 @@ interface TranslateTabProps {
   onSelectTranslation: (srtContent: string) => void;
   onBatchSettingsChange?: (settings: BatchSettings) => void;
   onTranslationDeleted?: () => void;
+  onReloadRef?: React.MutableRefObject<(() => void) | null>;
 }
 
 export const TranslateTab: React.FC<TranslateTabProps> = ({
@@ -58,6 +59,7 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
   onSelectTranslation,
   onBatchSettingsChange,
   onTranslationDeleted,
+  onReloadRef,
 }) => {
   const { t } = useTranslation();
   const { colors } = useTheme();
@@ -96,6 +98,18 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
       setPresubMode(batchSettings.presubMode ?? false);
     }
   }, [batchSettings]);
+
+  // Expose loadTranslations to parent via ref
+  useEffect(() => {
+    if (onReloadRef) {
+      onReloadRef.current = loadTranslations;
+    }
+    return () => {
+      if (onReloadRef) {
+        onReloadRef.current = null;
+      }
+    };
+  }, [onReloadRef, videoUrl]);
 
   const loadConfigs = async () => {
     const configs = await getGeminiConfigs();
