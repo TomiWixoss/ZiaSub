@@ -152,6 +152,20 @@ export interface QueueItem {
 }
 
 // ============================================
+// FLOATING UI SETTINGS
+// ============================================
+export type FloatingUIPosition = "left" | "right";
+export type FloatingUILayout = "vertical" | "horizontal";
+
+export interface FloatingUISettings {
+  bottomOffset: number; // Khoảng cách từ đáy màn hình (px)
+  bottomOffsetVideo: number; // Khoảng cách khi đang xem video
+  sideOffset: number; // Khoảng cách từ cạnh trái/phải (px)
+  position: FloatingUIPosition; // Vị trí: trái hoặc phải
+  layout: FloatingUILayout; // Bố cục: dọc hoặc ngang
+}
+
+// ============================================
 // APP SETTINGS TYPES
 // ============================================
 export interface AppSettings {
@@ -159,6 +173,7 @@ export interface AppSettings {
   batch: BatchSettings;
   apiKeys: ApiKeysSettings;
   tts: TTSSettings;
+  floatingUI: FloatingUISettings;
 }
 
 // ============================================

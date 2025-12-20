@@ -3,12 +3,18 @@
  * Uses cache service for immediate updates
  */
 import { useState, useEffect, useCallback } from "react";
-import type { SubtitleSettings, BatchSettings, TTSSettings } from "@src/types";
+import type {
+  SubtitleSettings,
+  BatchSettings,
+  TTSSettings,
+  FloatingUISettings,
+} from "@src/types";
 import { cacheService } from "@services/cacheService";
 import {
   DEFAULT_SUBTITLE_SETTINGS,
   DEFAULT_BATCH_SETTINGS,
   DEFAULT_TTS_SETTINGS,
+  DEFAULT_FLOATING_UI_SETTINGS,
 } from "@constants/defaults";
 import { keyManager } from "@services/keyManager";
 import { ttsService } from "@services/ttsService";
@@ -22,6 +28,8 @@ export const useAppSettings = () => {
   );
   const [ttsSettings, setTTSSettings] =
     useState<TTSSettings>(DEFAULT_TTS_SETTINGS);
+  const [floatingUISettings, setFloatingUISettings] =
+    useState<FloatingUISettings>(DEFAULT_FLOATING_UI_SETTINGS);
   const [apiKeys, setApiKeys] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -35,6 +43,9 @@ export const useAppSettings = () => {
         setSubtitleSettings(settings.subtitle || DEFAULT_SUBTITLE_SETTINGS);
         setBatchSettings(settings.batch || DEFAULT_BATCH_SETTINGS);
         setTTSSettings(settings.tts || DEFAULT_TTS_SETTINGS);
+        setFloatingUISettings(
+          settings.floatingUI || DEFAULT_FLOATING_UI_SETTINGS
+        );
 
         const keys = settings.apiKeys?.keys || [];
         setApiKeys(keys);
@@ -63,6 +74,9 @@ export const useAppSettings = () => {
       setSubtitleSettings(newSettings.subtitle || DEFAULT_SUBTITLE_SETTINGS);
       setBatchSettings(newSettings.batch || DEFAULT_BATCH_SETTINGS);
       setTTSSettings(newSettings.tts || DEFAULT_TTS_SETTINGS);
+      setFloatingUISettings(
+        newSettings.floatingUI || DEFAULT_FLOATING_UI_SETTINGS
+      );
     });
 
     const unsubscribeKeys = cacheService.subscribe("apiKeys", (newKeys) => {
@@ -111,15 +125,27 @@ export const useAppSettings = () => {
     cacheService.setApiKeys(newKeys);
   }, []);
 
+  const updateFloatingUISettings = useCallback(
+    (newSettings: FloatingUISettings) => {
+      setFloatingUISettings(newSettings);
+      const settings = cacheService.getSettings();
+      settings.floatingUI = newSettings;
+      cacheService.setSettings(settings);
+    },
+    []
+  );
+
   return {
     subtitleSettings,
     batchSettings,
     ttsSettings,
+    floatingUISettings,
     apiKeys,
     isLoading,
     updateSubtitleSettings,
     updateBatchSettings,
     updateTTSSettings,
+    updateFloatingUISettings,
     updateApiKeys,
   };
 };

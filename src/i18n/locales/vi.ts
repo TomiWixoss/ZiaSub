@@ -154,6 +154,7 @@ export default {
       ttsDesc: "{{status}}",
       enabled: "Đang bật",
       disabled: "Đang tắt",
+      floatingUIDesc: "Vị trí, bố cục nút nổi",
     },
 
     // Theme
@@ -230,6 +231,22 @@ export default {
       duckVideo: "Giảm âm video",
       duckVideoHint: "Giảm âm lượng video khi đang đọc",
       duckLevel: "Âm lượng video khi đọc: {{level}}%",
+    },
+
+    // Floating UI
+    floatingUI: {
+      title: "Nút nổi",
+      bottomOffset: "Khoảng cách đáy: {{value}}px",
+      bottomOffsetHint: "Khoảng cách từ đáy màn hình khi không xem video",
+      bottomOffsetVideo: "Khoảng cách đáy (video): {{value}}px",
+      bottomOffsetVideoHint: "Khoảng cách từ đáy khi đang xem video",
+      sideOffset: "Khoảng cách cạnh: {{value}}px",
+      position: "Vị trí",
+      positionLeft: "Trái",
+      positionRight: "Phải",
+      layout: "Bố cục",
+      layoutVertical: "Dọc",
+      layoutHorizontal: "Ngang",
     },
 
     // Data & Storage

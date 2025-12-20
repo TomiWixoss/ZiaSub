@@ -4,6 +4,7 @@ import type {
   TTSSettings,
   ApiKeysSettings,
   AppSettings,
+  FloatingUISettings,
 } from "@src/types";
 
 // ============================================
@@ -43,6 +44,17 @@ export const DEFAULT_TTS_SETTINGS: TTSSettings = {
 };
 
 // ============================================
+// DEFAULT FLOATING UI SETTINGS
+// ============================================
+export const DEFAULT_FLOATING_UI_SETTINGS: FloatingUISettings = {
+  bottomOffset: 80, // Khoảng cách từ đáy khi không xem video
+  bottomOffsetVideo: 20, // Khoảng cách từ đáy khi xem video
+  sideOffset: 16, // Khoảng cách từ cạnh
+  position: "right", // Mặc định bên phải
+  layout: "vertical", // Mặc định dọc
+};
+
+// ============================================
 // DEFAULT API KEYS SETTINGS
 // ============================================
 export const DEFAULT_API_KEYS_SETTINGS: ApiKeysSettings = {
@@ -57,6 +69,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   batch: DEFAULT_BATCH_SETTINGS,
   apiKeys: DEFAULT_API_KEYS_SETTINGS,
   tts: DEFAULT_TTS_SETTINGS,
+  floatingUI: DEFAULT_FLOATING_UI_SETTINGS,
 };
 
 // ============================================

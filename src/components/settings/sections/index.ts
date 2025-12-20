@@ -6,3 +6,4 @@ export { default as LanguageSection } from "./LanguageSection";
 export { default as ThemeSection } from "./ThemeSection";
 export { default as UpdateSection } from "./UpdateSection";
 export { DataSection } from "./DataSection";
+export { default as FloatingUISection } from "./FloatingUISection";

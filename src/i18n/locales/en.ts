@@ -154,6 +154,7 @@ export default {
       ttsDesc: "{{status}}",
       enabled: "Enabled",
       disabled: "Disabled",
+      floatingUIDesc: "Position, layout of floating buttons",
     },
 
     // Theme
@@ -232,6 +233,22 @@ export default {
       duckVideo: "Duck video",
       duckVideoHint: "Lower video volume when speaking",
       duckLevel: "Video volume when speaking: {{level}}%",
+    },
+
+    // Floating UI
+    floatingUI: {
+      title: "Floating Buttons",
+      bottomOffset: "Bottom offset: {{value}}px",
+      bottomOffsetHint: "Distance from bottom when not watching video",
+      bottomOffsetVideo: "Bottom offset (video): {{value}}px",
+      bottomOffsetVideoHint: "Distance from bottom when watching video",
+      sideOffset: "Side offset: {{value}}px",
+      position: "Position",
+      positionLeft: "Left",
+      positionRight: "Right",
+      layout: "Layout",
+      layoutVertical: "Vertical",
+      layoutHorizontal: "Horizontal",
     },
 
     // Data & Storage

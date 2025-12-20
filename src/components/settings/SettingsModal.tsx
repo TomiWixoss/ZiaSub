@@ -19,6 +19,7 @@ import type {
   BatchSettings,
   TTSSettings,
   GeminiConfig,
+  FloatingUISettings,
 } from "@src/types";
 import { getGeminiConfigs, saveGeminiConfigs } from "@utils/storage";
 import GeneralTab from "./GeneralTab";
@@ -41,6 +42,8 @@ interface SettingsModalProps {
   onApiKeysChange: (keys: string[]) => void;
   ttsSettings: TTSSettings;
   onTTSSettingsChange: (settings: TTSSettings) => void;
+  floatingUISettings: FloatingUISettings;
+  onFloatingUISettingsChange: (settings: FloatingUISettings) => void;
 }
 
 const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -54,6 +57,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   onApiKeysChange,
   ttsSettings,
   onTTSSettingsChange,
+  floatingUISettings,
+  onFloatingUISettingsChange,
 }) => {
   const { t } = useTranslation();
   const { colors } = useTheme();
@@ -165,6 +170,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
           onApiKeysChange={onApiKeysChange}
           ttsSettings={ttsSettings}
           onTTSChange={onTTSSettingsChange}
+          floatingUISettings={floatingUISettings}
+          onFloatingUIChange={onFloatingUISettingsChange}
         />
       );
     }

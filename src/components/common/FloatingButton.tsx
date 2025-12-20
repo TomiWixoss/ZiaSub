@@ -2,6 +2,7 @@ import React, { useRef, useEffect } from "react";
 import { Animated, Pressable, StyleSheet, View, Easing } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTheme } from "@src/contexts";
+import type { FloatingUISettings } from "@src/types";
 
 interface FloatingButtonProps {
   onPress: () => void;
@@ -17,6 +18,7 @@ interface FloatingButtonProps {
   isInQueue?: boolean;
   isChatLoading?: boolean;
   hasUpdate?: boolean;
+  floatingUISettings?: FloatingUISettings;
 }
 
 const SHADOW_HEIGHT = 4;
@@ -283,11 +285,35 @@ const FloatingButton: React.FC<FloatingButtonProps> = (props) => {
     isInQueue = false,
     isChatLoading = false,
     hasUpdate = false,
+    floatingUISettings,
   } = props;
-  const bottomPosition = isVideoPage ? 20 : 80;
+
+  // Default values if settings not provided
+  const bottomOffset = floatingUISettings?.bottomOffset ?? 80;
+  const bottomOffsetVideo = floatingUISettings?.bottomOffsetVideo ?? 20;
+  const sideOffset = floatingUISettings?.sideOffset ?? 16;
+  const position = floatingUISettings?.position ?? "right";
+  const layout = floatingUISettings?.layout ?? "vertical";
+
+  const bottomPosition = isVideoPage ? bottomOffsetVideo : bottomOffset;
+  const isHorizontal = layout === "horizontal";
+
+  // Determine which side for primary (subtitle/chat) and secondary (settings/queue) buttons
+  const primaryOnRight = position === "right";
+
   return (
     <>
-      <View style={[styles.fabColumnLeft, { bottom: bottomPosition }]}>
+      {/* Secondary buttons (Settings, Queue) */}
+      <View
+        style={[
+          styles.fabColumn,
+          isHorizontal && styles.fabRow,
+          {
+            bottom: bottomPosition,
+            [primaryOnRight ? "left" : "right"]: sideOffset,
+          },
+        ]}
+      >
         <View style={styles.settingsBtnWrapper}>
           <Fab3D onPress={onSettingsPress} icon="cog" size={40} iconSize={20} />
           {hasUpdate && (
@@ -296,7 +322,9 @@ const FloatingButton: React.FC<FloatingButtonProps> = (props) => {
             />
           )}
         </View>
-        <View style={styles.queueRow}>
+        <View
+          style={isHorizontal ? styles.queueRowHorizontal : styles.queueRow}
+        >
           <View style={styles.queueBtnWrapper}>
             <Fab3D
               onPress={onQueuePress}
@@ -327,7 +355,18 @@ const FloatingButton: React.FC<FloatingButtonProps> = (props) => {
           )}
         </View>
       </View>
-      <View style={[styles.fabColumnRight, { bottom: bottomPosition }]}>
+
+      {/* Primary buttons (Chat, Subtitle) */}
+      <View
+        style={[
+          styles.fabColumn,
+          isHorizontal && styles.fabRow,
+          {
+            bottom: bottomPosition,
+            [primaryOnRight ? "right" : "left"]: sideOffset,
+          },
+        ]}
+      >
         <ChatFab onPress={onChatPress} isLoading={isChatLoading} />
         {isVideoPage &&
           (isTranslating ? (
@@ -347,19 +386,14 @@ const FloatingButton: React.FC<FloatingButtonProps> = (props) => {
 };
 
 const styles = StyleSheet.create({
-  fabColumnLeft: {
+  fabColumn: {
     position: "absolute",
-    left: 16,
-    alignItems: "flex-start",
-    gap: 10,
-    zIndex: 20,
-  },
-  fabColumnRight: {
-    position: "absolute",
-    right: 16,
     alignItems: "center",
     gap: 10,
     zIndex: 20,
+  },
+  fabRow: {
+    flexDirection: "row",
   },
   settingsBtnWrapper: { position: "relative" },
   updateBadge: {
@@ -373,6 +407,11 @@ const styles = StyleSheet.create({
     borderColor: "#fff",
   },
   queueRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  queueRowHorizontal: {
+    flexDirection: "column",
+    alignItems: "center",
+    gap: 10,
+  },
   queueBtnWrapper: { position: "relative" },
   queueBadge: {
     position: "absolute",

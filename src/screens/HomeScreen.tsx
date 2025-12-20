@@ -49,10 +49,12 @@ const HomeScreen = () => {
     subtitleSettings,
     batchSettings,
     ttsSettings,
+    floatingUISettings,
     apiKeys,
     updateSubtitleSettings,
     updateBatchSettings,
     updateTTSSettings,
+    updateFloatingUISettings,
     updateApiKeys,
   } = useAppSettings();
 
@@ -493,6 +495,7 @@ const HomeScreen = () => {
         isInQueue={!!currentVideoInQueue}
         isChatLoading={isChatLoading}
         hasUpdate={hasUpdate}
+        floatingUISettings={floatingUISettings}
       />
 
       <SubtitleInputModal
@@ -530,6 +533,8 @@ const HomeScreen = () => {
         onApiKeysChange={updateApiKeys}
         ttsSettings={ttsSettings}
         onTTSSettingsChange={updateTTSSettings}
+        floatingUISettings={floatingUISettings}
+        onFloatingUISettingsChange={updateFloatingUISettings}
       />
 
       <TranslationQueueModal

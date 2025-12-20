@@ -13,7 +13,12 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useTheme, useUpdate } from "@src/contexts";
 import { useThemedStyles, createThemedStyles } from "@hooks/useThemedStyles";
-import type { SubtitleSettings, BatchSettings, TTSSettings } from "@src/types";
+import type {
+  SubtitleSettings,
+  BatchSettings,
+  TTSSettings,
+  FloatingUISettings,
+} from "@src/types";
 import {
   ApiKeysSection,
   SubtitleSection,
@@ -23,6 +28,7 @@ import {
   ThemeSection,
   UpdateSection,
   DataSection,
+  FloatingUISection,
 } from "./sections";
 
 // Enable LayoutAnimation on Android
@@ -42,6 +48,8 @@ interface GeneralTabProps {
   onApiKeysChange: (keys: string[]) => void;
   ttsSettings: TTSSettings;
   onTTSChange: (settings: TTSSettings) => void;
+  floatingUISettings: FloatingUISettings;
+  onFloatingUIChange: (settings: FloatingUISettings) => void;
 }
 
 type SettingGroup =
@@ -50,6 +58,7 @@ type SettingGroup =
   | "subtitle"
   | "batch"
   | "tts"
+  | "floatingUI"
   | "data"
   | "update"
   | null;
@@ -70,6 +79,8 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
   onApiKeysChange,
   ttsSettings,
   onTTSChange,
+  floatingUISettings,
+  onFloatingUIChange,
 }) => {
   const { t } = useTranslation();
   const { colors } = useTheme();
@@ -111,6 +122,12 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
           ? t("settings.groups.enabled")
           : t("settings.groups.disabled"),
       }),
+    },
+    {
+      key: "floatingUI",
+      icon: "gesture-tap-button",
+      labelKey: "settings.floatingUI.title",
+      description: t("settings.groups.floatingUIDesc"),
     },
     {
       key: "data",
@@ -176,6 +193,15 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
         return (
           <View style={styles.groupContent}>
             <TTSSection ttsSettings={ttsSettings} onTTSChange={onTTSChange} />
+          </View>
+        );
+      case "floatingUI":
+        return (
+          <View style={styles.groupContent}>
+            <FloatingUISection
+              floatingUISettings={floatingUISettings}
+              onFloatingUIChange={onFloatingUIChange}
+            />
           </View>
         );
       case "data":
