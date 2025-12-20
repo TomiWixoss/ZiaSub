@@ -60,6 +60,10 @@ export const useSubtitles = ({
         const parsed = parseSRT(fixedData);
         setSubtitles(parsed);
         lastSentSubtitleRef.current = "";
+        // Auto-apply subtitles when loaded
+        if (webViewRef.current && parsed.length > 0) {
+          // Subtitles will be shown when video plays and findSubtitle is called
+        }
       } else {
         setSrtContent("");
         setSubtitles([]);

@@ -35,9 +35,12 @@ export const createChatSession = async (
   configId?: string
 ): Promise<ChatSession> => {
   const sessions = await getChatSessions();
+  // Use provided name or default to "Chat mới" (will be updated with first message)
+  const sessionName = name || "Chat mới";
   const newSession: ChatSession = {
     id: Date.now().toString(),
-    name: name || `Chat ${sessions.length + 1}`,
+    name:
+      sessionName.length > 50 ? sessionName.slice(0, 50) + "..." : sessionName,
     messages: [],
     configId: configId || null,
     createdAt: Date.now(),

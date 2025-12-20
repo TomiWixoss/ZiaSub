@@ -346,6 +346,10 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
                   onLoadSubtitles();
                 }}
                 onBatchSettingsChange={onBatchSettingsChange}
+                onTranslationDeleted={() => {
+                  setSrtContent("");
+                  onLoadSubtitles();
+                }}
               />
             )}
           </Animated.View>

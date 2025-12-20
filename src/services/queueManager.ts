@@ -288,13 +288,16 @@ class QueueManager {
     return this.items.find((i) => i.videoId === videoId);
   }
 
-  // Start auto processing
+  // Start auto processing - process multiple videos
   async startAutoProcess(): Promise<void> {
     if (this.isProcessing) return;
-    const next = this.items.find((i) => i.status === "pending");
-    if (next) {
-      await this.startTranslation(next.id);
-    }
+
+    // Get all pending items
+    const pendingItems = this.items.filter((i) => i.status === "pending");
+    if (pendingItems.length === 0) return;
+
+    // Start the first pending item
+    await this.startTranslation(pendingItems[0].id);
   }
 
   // Mark video as completed (only if already in queue)

@@ -130,7 +130,13 @@ export const deleteTranslation = async (
       if (data.activeTranslationId === translationId) {
         data.activeTranslationId = data.translations[0]?.id || null;
       }
-      await AsyncStorage.setItem(key, JSON.stringify(data));
+
+      // If no translations left, remove the entire entry
+      if (data.translations.length === 0) {
+        await AsyncStorage.removeItem(key);
+      } else {
+        await AsyncStorage.setItem(key, JSON.stringify(data));
+      }
     }
   } catch (error) {
     console.error("Error deleting translation:", error);

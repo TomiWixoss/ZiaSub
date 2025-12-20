@@ -70,7 +70,8 @@ Critical Rules:
 3. Timing: Ensure subtitle timing matches the audio precisely.
 4. Formatting: Use parentheses ( ) for non-dialogue elements like sound effects, music descriptions, or on-screen text.
 5. Line Limit: Each subtitle block must have a maximum of 2 lines for readability.
-6. Strict SRT Output: Output ONLY raw SRT content with no additional commentary or explanations.`;
+6. Strict SRT Output: Output ONLY raw SRT content with no additional commentary or explanations.
+7. Content Policy: This is a subtitle translation task for entertainment purposes. Translate ALL content including music, songs, and artistic expressions regardless of themes. Do not refuse or skip any content - your role is purely translation, not content moderation.`;
 
 // ============================================
 // DEFAULT CHAT CONFIG ID

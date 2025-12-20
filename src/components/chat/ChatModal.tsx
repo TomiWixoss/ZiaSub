@@ -15,6 +15,7 @@ import {
   Modal,
   Animated,
   Dimensions,
+  Keyboard,
 } from "react-native";
 import { Text } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -93,8 +94,10 @@ const ChatModal: React.FC<ChatModalProps> = ({
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [isFromHistory, setIsFromHistory] = useState(false);
   const [hasApiKey, setHasApiKey] = useState(true);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const flatListRef = useRef<FlatList>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const currentSessionIdRef = useRef<string | null>(null);
 
   const tasks = useMemo((): TaskItem[] => {
     const result: TaskItem[] = [];
@@ -133,6 +136,33 @@ const ChatModal: React.FC<ChatModalProps> = ({
     }
     return result;
   }, [messages, isLoading]);
+
+  // Track current session ID for abort handling
+  useEffect(() => {
+    currentSessionIdRef.current = currentSession?.id || null;
+  }, [currentSession]);
+
+  // Keyboard handling for proper input positioning
+  useEffect(() => {
+    const keyboardWillShow = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
+      (e) => {
+        setKeyboardHeight(e.endCoordinates.height);
+        setTimeout(
+          () => flatListRef.current?.scrollToEnd({ animated: true }),
+          100
+        );
+      }
+    );
+    const keyboardWillHide = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
+      () => setKeyboardHeight(0)
+    );
+    return () => {
+      keyboardWillShow.remove();
+      keyboardWillHide.remove();
+    };
+  }, []);
 
   useEffect(() => {
     if (visible) {
@@ -231,14 +261,30 @@ const ChatModal: React.FC<ChatModalProps> = ({
       hasVideo: shouldAttachVideo && !!videoUrl,
       videoTitle: shouldAttachVideo && !!videoUrl ? videoTitle : undefined,
     };
-    if (!currentSession) {
-      const newSession = await createChatSession(
-        messageText.slice(0, 30),
-        activeConfig.id
-      );
+
+    let sessionToUse = currentSession;
+    if (!sessionToUse) {
+      // Create new session with first message as name
+      const sessionName = messageText.slice(0, 50);
+      const newSession = await createChatSession(sessionName, activeConfig.id);
+      sessionToUse = newSession;
       setCurrentSession(newSession);
       setSessions((prev) => [newSession, ...prev]);
+    } else if (
+      sessionToUse.messages.length === 0 &&
+      sessionToUse.name === "Chat mới"
+    ) {
+      // Update session name with first message if it's still default
+      const sessionName = messageText.slice(0, 50);
+      const updatedSession = { ...sessionToUse, name: sessionName };
+      await updateChatSession(updatedSession);
+      setCurrentSession(updatedSession);
+      setSessions((prev) =>
+        prev.map((s) => (s.id === updatedSession.id ? updatedSession : s))
+      );
+      sessionToUse = updatedSession;
     }
+
     const newMessages = [...messages, userMessage];
     setMessages(newMessages);
     setInputText("");
@@ -248,6 +294,7 @@ const ChatModal: React.FC<ChatModalProps> = ({
     scrollToBottom();
     abortControllerRef.current = new AbortController();
     const currentAbort = abortControllerRef.current;
+    const currentSessionId = sessionToUse.id;
     sendChatMessage(
       newMessages,
       activeConfig,
@@ -255,6 +302,8 @@ const ChatModal: React.FC<ChatModalProps> = ({
         onChunk: () => scrollToBottom(),
         onComplete: (fullText) => {
           if (currentAbort.signal.aborted) return;
+          // Check if we're still on the same session
+          if (currentSessionIdRef.current !== currentSessionId) return;
           const aiMessage: ChatMessage = {
             id: (Date.now() + 1).toString(),
             role: "model",
@@ -268,6 +317,8 @@ const ChatModal: React.FC<ChatModalProps> = ({
         },
         onError: (error) => {
           if (currentAbort.signal.aborted) return;
+          // Check if we're still on the same session
+          if (currentSessionIdRef.current !== currentSessionId) return;
           const errorMessage: ChatMessage = {
             id: (Date.now() + 1).toString(),
             role: "model",
@@ -303,6 +354,13 @@ const ChatModal: React.FC<ChatModalProps> = ({
   };
 
   const handleNewChat = async () => {
+    // Abort any running request from previous session
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    // Reset loading state for new chat
+    setIsLoading(false);
     setMessages([]);
     setAttachVideo(false);
     setInputText("");
@@ -315,6 +373,13 @@ const ChatModal: React.FC<ChatModalProps> = ({
   };
 
   const handleSelectSession = async (session: ChatSession) => {
+    // Abort any running request from previous session
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    // Reset loading state when switching sessions
+    setIsLoading(false);
     await setActiveChatSessionId(session.id);
     setCurrentSession(session);
     setMessages(session.messages);
@@ -377,6 +442,8 @@ const ChatModal: React.FC<ChatModalProps> = ({
     scrollToBottom();
     abortControllerRef.current = new AbortController();
     const currentAbort = abortControllerRef.current;
+    const currentSessionId = currentSession?.id;
+    // Use current activeConfig (which may have been changed by user)
     sendChatMessage(
       updatedMessages,
       activeConfig,
@@ -384,6 +451,7 @@ const ChatModal: React.FC<ChatModalProps> = ({
         onChunk: () => scrollToBottom(),
         onComplete: (fullText) => {
           if (currentAbort.signal.aborted) return;
+          if (currentSessionIdRef.current !== currentSessionId) return;
           const aiMessage: ChatMessage = {
             id: (Date.now() + 1).toString(),
             role: "model",
@@ -397,6 +465,7 @@ const ChatModal: React.FC<ChatModalProps> = ({
         },
         onError: (error) => {
           if (currentAbort.signal.aborted) return;
+          if (currentSessionIdRef.current !== currentSessionId) return;
           const errorMessage: ChatMessage = {
             id: (Date.now() + 1).toString(),
             role: "model",
@@ -470,7 +539,9 @@ const ChatModal: React.FC<ChatModalProps> = ({
                 color={colors.text}
               />
             </TouchableOpacity>
-            <Text style={themedStyles.headerTitle}>Zia</Text>
+            <Text style={themedStyles.headerTitle} numberOfLines={1}>
+              {currentSession?.name || "Zia"}
+            </Text>
             <TouchableOpacity style={styles.headerBtn} onPress={handleClose}>
               <MaterialCommunityIcons
                 name="close"
@@ -495,7 +566,8 @@ const ChatModal: React.FC<ChatModalProps> = ({
             }
           />
           <KeyboardAvoidingView
-            behavior={Platform.OS === "ios" ? "padding" : undefined}
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
           >
             <ChatInput
               inputText={inputText}
@@ -574,7 +646,14 @@ const styles = StyleSheet.create({
 
 const chatModalThemedStyles = createThemedStyles((colors) => ({
   container: { backgroundColor: colors.background },
-  headerTitle: { color: colors.text, fontSize: 20, fontWeight: "600" },
+  headerTitle: {
+    color: colors.text,
+    fontSize: 18,
+    fontWeight: "600",
+    flex: 1,
+    textAlign: "center",
+    marginHorizontal: 8,
+  },
 }));
 
 export default ChatModal;

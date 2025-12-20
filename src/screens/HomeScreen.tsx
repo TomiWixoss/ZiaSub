@@ -5,6 +5,7 @@ import {
   StatusBar,
   Text,
   TouchableOpacity,
+  TextInput,
 } from "react-native";
 import { alert, showAlert } from "@components/common/CustomAlert";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -61,11 +62,16 @@ const HomeScreen = () => {
     currentUrlRef,
     currentUrl,
     canGoBack,
+    canGoForward,
     isVideoPlaying,
     isFullscreen,
     videoDuration,
     videoTitle,
     currentVideoInQueue,
+    urlInput,
+    showUrlInput,
+    setUrlInput,
+    setShowUrlInput,
     setVideoDuration,
     setVideoTitle,
     setCurrentVideoInQueue,
@@ -73,7 +79,9 @@ const HomeScreen = () => {
     onFullScreenOpen,
     onFullScreenClose,
     handleGoBack,
+    handleGoForward,
     navigateToVideo,
+    navigateToUrl,
     reloadWebView,
     postMessageToWebView,
   } = useVideoPlayer();
@@ -140,6 +148,16 @@ const HomeScreen = () => {
     if (currentUrl) {
       setCurrentVideoInQueue(queueManager.isInQueue(currentUrl));
     }
+  }, [currentUrl, setCurrentVideoInQueue]);
+
+  // Subscribe to queue changes to update isInQueue status
+  useEffect(() => {
+    const unsubscribe = queueManager.subscribe(() => {
+      if (currentUrl) {
+        setCurrentVideoInQueue(queueManager.isInQueue(currentUrl));
+      }
+    });
+    return () => unsubscribe();
   }, [currentUrl, setCurrentVideoInQueue]);
 
   const handleWebViewMessage = useCallback(
@@ -328,46 +346,106 @@ const HomeScreen = () => {
           ]}
         >
           <View style={styles.header}>
-            <TouchableOpacity
-              style={[styles.headerBtn, !canGoBack && styles.headerBtnDisabled]}
-              onPress={handleGoBack}
-              disabled={!canGoBack}
-              activeOpacity={0.7}
-            >
-              <MaterialCommunityIcons
-                name="arrow-left"
-                size={20}
-                color={canGoBack ? colors.text : colors.textMuted}
-              />
-            </TouchableOpacity>
+            <View style={styles.navButtons}>
+              <TouchableOpacity
+                style={[styles.navBtn, !canGoBack && styles.navBtnDisabled]}
+                onPress={handleGoBack}
+                disabled={!canGoBack}
+                activeOpacity={0.7}
+              >
+                <MaterialCommunityIcons
+                  name="arrow-left"
+                  size={18}
+                  color={canGoBack ? colors.text : colors.textMuted}
+                />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.navBtn, !canGoForward && styles.navBtnDisabled]}
+                onPress={handleGoForward}
+                disabled={!canGoForward}
+                activeOpacity={0.7}
+              >
+                <MaterialCommunityIcons
+                  name="arrow-right"
+                  size={18}
+                  color={canGoForward ? colors.text : colors.textMuted}
+                />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.navBtn}
+                onPress={reloadWebView}
+                activeOpacity={0.7}
+              >
+                <MaterialCommunityIcons
+                  name="reload"
+                  size={18}
+                  color={colors.text}
+                />
+              </TouchableOpacity>
+            </View>
 
-            <View style={styles.titleContainer}>
+            {showUrlInput ? (
+              <View
+                style={[
+                  styles.urlInputContainer,
+                  themedStyles.urlInputContainer,
+                ]}
+              >
+                <TextInput
+                  style={[styles.urlInput, themedStyles.urlInput]}
+                  value={urlInput}
+                  onChangeText={setUrlInput}
+                  placeholder="URL hoặc tìm kiếm..."
+                  placeholderTextColor={colors.textMuted}
+                  autoFocus
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  returnKeyType="go"
+                  onSubmitEditing={() => {
+                    if (urlInput.trim()) {
+                      navigateToUrl(urlInput);
+                      setShowUrlInput(false);
+                      setUrlInput("");
+                    }
+                  }}
+                  onBlur={() => {
+                    setShowUrlInput(false);
+                    setUrlInput("");
+                  }}
+                />
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={[styles.urlBar, themedStyles.urlBar]}
+                onPress={() => setShowUrlInput(true)}
+                activeOpacity={0.7}
+              >
+                <MaterialCommunityIcons
+                  name="magnify"
+                  size={16}
+                  color={colors.textMuted}
+                />
+                <Text
+                  style={[styles.urlText, themedStyles.urlText]}
+                  numberOfLines={1}
+                >
+                  {currentUrl || "m.youtube.com"}
+                </Text>
+              </TouchableOpacity>
+            )}
+
+            <View style={styles.brandContainer}>
               <View style={[styles.logoContainer, themedStyles.logoContainer]}>
                 <MaterialCommunityIcons
                   name="subtitles"
-                  size={16}
+                  size={12}
                   color="#FFFFFF"
                 />
               </View>
-              <Text style={[styles.titleMain, themedStyles.titleMain]}>
+              <Text style={[styles.brandText, themedStyles.brandText]}>
                 Zia
               </Text>
-              <Text style={[styles.titleAccent, themedStyles.titleAccent]}>
-                Sub
-              </Text>
             </View>
-
-            <TouchableOpacity
-              style={styles.headerBtn}
-              onPress={reloadWebView}
-              activeOpacity={0.7}
-            >
-              <MaterialCommunityIcons
-                name="reload"
-                size={20}
-                color={colors.text}
-              />
-            </TouchableOpacity>
           </View>
         </LinearGradient>
       )}
@@ -449,38 +527,64 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
     paddingHorizontal: 8,
     height: 44,
+    gap: 8,
   },
-  headerBtn: {
-    width: 36,
-    height: 36,
+  navButtons: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+  },
+  navBtn: {
+    width: 32,
+    height: 32,
     borderRadius: 8,
     justifyContent: "center",
     alignItems: "center",
   },
-  headerBtnDisabled: {
+  navBtnDisabled: {
     opacity: 0.4,
   },
-  titleContainer: {
+  urlBar: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
+    height: 32,
+    borderRadius: 8,
+    paddingHorizontal: 10,
     gap: 6,
   },
+  urlInputContainer: {
+    flex: 1,
+    height: 32,
+    borderRadius: 8,
+    justifyContent: "center",
+  },
+  urlInput: {
+    flex: 1,
+    height: 32,
+    paddingHorizontal: 10,
+    fontSize: 13,
+  },
+  urlText: {
+    flex: 1,
+    fontSize: 13,
+  },
+  brandContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
   logoContainer: {
-    width: 24,
-    height: 24,
-    borderRadius: 6,
+    width: 20,
+    height: 20,
+    borderRadius: 5,
     justifyContent: "center",
     alignItems: "center",
   },
-  titleMain: {
-    fontSize: 17,
-    fontWeight: "600",
-  },
-  titleAccent: {
-    fontSize: 17,
+  brandText: {
+    fontSize: 14,
     fontWeight: "700",
   },
 });
@@ -491,8 +595,15 @@ const homeThemedStyles = createThemedStyles((colors, isDark) => ({
     borderBottomColor: isDark ? "rgba(155,126,217,0.3)" : colors.border,
   },
   logoContainer: { backgroundColor: colors.primary },
-  titleMain: { color: colors.text },
-  titleAccent: { color: colors.primary },
+  urlBar: {
+    backgroundColor: isDark ? colors.surfaceLight : colors.surfaceElevated,
+  },
+  urlInputContainer: {
+    backgroundColor: isDark ? colors.surfaceLight : colors.surfaceElevated,
+  },
+  urlInput: { color: colors.text },
+  urlText: { color: colors.textSecondary },
+  brandText: { color: colors.primary },
 }));
 
 export default HomeScreen;

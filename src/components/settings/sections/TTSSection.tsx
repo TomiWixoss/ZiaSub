@@ -78,7 +78,7 @@ const TTSSection: React.FC<TTSSectionProps> = ({
           value={ttsSettings.enabled}
           onValueChange={handleTTSEnabledChange}
           trackColor={{ false: colors.border, true: colors.success }}
-          thumbColor={colors.text}
+          thumbColor={ttsSettings.enabled ? "#FFFFFF" : colors.surfaceElevated}
         />
       </View>
       {ttsSettings.enabled && (
@@ -103,7 +103,9 @@ const TTSSection: React.FC<TTSSectionProps> = ({
               value={ttsSettings.autoRate ?? true}
               onValueChange={handleAutoRateChange}
               trackColor={{ false: colors.border, true: colors.success }}
-              thumbColor={colors.text}
+              thumbColor={
+                ttsSettings.autoRate ? "#FFFFFF" : colors.surfaceElevated
+              }
             />
           </View>
           <View style={styles.settingGroup}>
@@ -167,7 +169,9 @@ const TTSSection: React.FC<TTSSectionProps> = ({
               value={ttsSettings.duckVideo ?? true}
               onValueChange={handleDuckVideoChange}
               trackColor={{ false: colors.border, true: colors.success }}
-              thumbColor={colors.text}
+              thumbColor={
+                ttsSettings.duckVideo ? "#FFFFFF" : colors.surfaceElevated
+              }
             />
           </View>
           {ttsSettings.duckVideo && (
@@ -204,6 +208,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
     flex: 1,
+    marginRight: 12,
   },
 });
 
@@ -212,9 +217,14 @@ const ttsThemedStyles = createThemedStyles((colors) => ({
     color: colors.text,
     fontSize: 14,
     fontWeight: "500",
-    marginBottom: 8,
+    marginBottom: 4,
   },
-  settingHint: { color: colors.textMuted, fontSize: 12, marginBottom: 8 },
+  settingHint: {
+    color: colors.textMuted,
+    fontSize: 12,
+    marginBottom: 4,
+    flexShrink: 1,
+  },
   ttsToggleRow: {
     flexDirection: "row",
     alignItems: "center",

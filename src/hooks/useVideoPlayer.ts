@@ -14,6 +14,7 @@ export const useVideoPlayer = () => {
 
   const [currentUrl, setCurrentUrl] = useState("");
   const [canGoBack, setCanGoBack] = useState(false);
+  const [canGoForward, setCanGoForward] = useState(false);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [videoDuration, setVideoDuration] = useState<number | undefined>(
@@ -23,6 +24,8 @@ export const useVideoPlayer = () => {
   const [currentVideoInQueue, setCurrentVideoInQueue] = useState<
     QueueItem | undefined
   >();
+  const [urlInput, setUrlInput] = useState("");
+  const [showUrlInput, setShowUrlInput] = useState(false);
 
   const handleNavigationStateChange = useCallback(
     (
@@ -32,6 +35,7 @@ export const useVideoPlayer = () => {
       syncAllToWebView?: () => void
     ) => {
       setCanGoBack(navState.canGoBack);
+      setCanGoForward(navState.canGoForward);
       const isWatchPage = isVideoPage(navState.url);
       setIsVideoPlaying(isWatchPage);
 
@@ -83,10 +87,44 @@ export const useVideoPlayer = () => {
     }
   }, [canGoBack]);
 
+  const handleGoForward = useCallback(() => {
+    if (webViewRef.current && canGoForward) {
+      webViewRef.current.goForward();
+    }
+  }, [canGoForward]);
+
   const navigateToVideo = useCallback((videoUrl: string) => {
     if (webViewRef.current) {
       webViewRef.current.injectJavaScript(
         `window.location.href = "${videoUrl}"; true;`
+      );
+    }
+  }, []);
+
+  const navigateToUrl = useCallback((url: string) => {
+    if (webViewRef.current) {
+      let targetUrl = url.trim();
+      // Add https if no protocol
+      if (
+        !targetUrl.startsWith("http://") &&
+        !targetUrl.startsWith("https://")
+      ) {
+        // Check if it's a YouTube video ID or search
+        if (targetUrl.match(/^[a-zA-Z0-9_-]{11}$/)) {
+          targetUrl = `https://m.youtube.com/watch?v=${targetUrl}`;
+        } else if (
+          targetUrl.includes("youtube.com") ||
+          targetUrl.includes("youtu.be")
+        ) {
+          targetUrl = `https://${targetUrl}`;
+        } else {
+          targetUrl = `https://m.youtube.com/results?search_query=${encodeURIComponent(
+            targetUrl
+          )}`;
+        }
+      }
+      webViewRef.current.injectJavaScript(
+        `window.location.href = "${targetUrl}"; true;`
       );
     }
   }, []);
@@ -106,11 +144,16 @@ export const useVideoPlayer = () => {
     currentUrlRef,
     currentUrl,
     canGoBack,
+    canGoForward,
     isVideoPlaying,
     isFullscreen,
     videoDuration,
     videoTitle,
     currentVideoInQueue,
+    urlInput,
+    showUrlInput,
+    setUrlInput,
+    setShowUrlInput,
     setVideoDuration,
     setVideoTitle,
     setCurrentVideoInQueue,
@@ -118,7 +161,9 @@ export const useVideoPlayer = () => {
     onFullScreenOpen,
     onFullScreenClose,
     handleGoBack,
+    handleGoForward,
     navigateToVideo,
+    navigateToUrl,
     reloadWebView,
     postMessageToWebView,
   };

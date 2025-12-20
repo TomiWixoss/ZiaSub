@@ -42,6 +42,7 @@ interface TranslateTabProps {
   onClose: () => void;
   onSelectTranslation: (srtContent: string) => void;
   onBatchSettingsChange?: (settings: BatchSettings) => void;
+  onTranslationDeleted?: () => void;
 }
 
 export const TranslateTab: React.FC<TranslateTabProps> = ({
@@ -55,6 +56,7 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
   onClose,
   onSelectTranslation,
   onBatchSettingsChange,
+  onTranslationDeleted,
 }) => {
   const { t } = useTranslation();
   const { colors } = useTheme();
@@ -217,7 +219,30 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
       async () => {
         if (!videoUrl) return;
         await deleteTranslation(videoUrl, translation.id);
-        loadTranslations();
+        // Reload translations to get updated list
+        const data = await getVideoTranslations(videoUrl);
+        if (data && data.translations.length > 0) {
+          setSavedTranslations(data.translations);
+          setActiveTranslationId(data.activeTranslationId);
+          // If deleted translation was active, apply new active one
+          if (
+            translation.id === activeTranslationId &&
+            data.activeTranslationId
+          ) {
+            const newActive = data.translations.find(
+              (t) => t.id === data.activeTranslationId
+            );
+            if (newActive) {
+              onSelectTranslation(newActive.srtContent);
+            }
+          }
+        } else {
+          // No translations left - clear everything
+          setSavedTranslations([]);
+          setActiveTranslationId(null);
+          onSelectTranslation(""); // Clear SRT content
+          onTranslationDeleted?.(); // Notify parent to update state
+        }
       }
     );
   };

@@ -1,7 +1,7 @@
 /**
  * Hook for managing translation queue
  */
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { queueManager, QueueItem } from "@services/queueManager";
 import { translationManager } from "@services/translationManager";
 import { extractVideoId } from "@utils/videoUtils";
@@ -25,6 +25,9 @@ export const useTranslationQueue = ({
     completed: number;
     total: number;
   } | null>(null);
+
+  // Track the video URL that is currently being translated for THIS video
+  const currentTranslatingUrlRef = useRef<string | null>(null);
 
   // Sync translated video IDs to WebView
   const syncTranslatedVideosToWebView = useCallback(async () => {
@@ -80,8 +83,14 @@ export const useTranslationQueue = ({
       const jobVideoId = extractVideoId(job.videoUrl);
       const currentVideoId = extractVideoId(currentUrlRef.current);
 
+      // Only show translating state if this job is for the current video
       if (jobVideoId && currentVideoId && jobVideoId === currentVideoId) {
-        setIsTranslating(job.status === "processing");
+        const isJobProcessing = job.status === "processing";
+        setIsTranslating(isJobProcessing);
+
+        if (isJobProcessing) {
+          currentTranslatingUrlRef.current = job.videoUrl;
+        }
 
         if (job.progress) {
           setTranslationProgress({
@@ -100,15 +109,54 @@ export const useTranslationQueue = ({
           onTranslationComplete?.(job.result);
           syncTranslatedVideosToWebView();
           setTranslationProgress(null);
+          currentTranslatingUrlRef.current = null;
         }
 
         if (job.status === "error") {
           setTranslationProgress(null);
+          currentTranslatingUrlRef.current = null;
+        }
+      } else {
+        // Different video is being translated - reset state for current video
+        // Only reset if we were tracking a different video
+        if (
+          currentTranslatingUrlRef.current &&
+          extractVideoId(currentTranslatingUrlRef.current) !== currentVideoId
+        ) {
+          setIsTranslating(false);
+          setTranslationProgress(null);
+          currentTranslatingUrlRef.current = null;
         }
       }
     });
     return () => unsubscribe();
   }, [currentUrlRef, onTranslationComplete, syncTranslatedVideosToWebView]);
+
+  // Reset state when URL changes
+  useEffect(() => {
+    const currentVideoId = extractVideoId(currentUrlRef.current);
+    const job = translationManager.getCurrentJob();
+
+    if (job) {
+      const jobVideoId = extractVideoId(job.videoUrl);
+      if (jobVideoId === currentVideoId && job.status === "processing") {
+        setIsTranslating(true);
+        currentTranslatingUrlRef.current = job.videoUrl;
+        if (job.progress) {
+          setTranslationProgress({
+            completed: job.progress.completedBatches,
+            total: job.progress.totalBatches,
+          });
+        }
+      } else {
+        setIsTranslating(false);
+        setTranslationProgress(null);
+      }
+    } else {
+      setIsTranslating(false);
+      setTranslationProgress(null);
+    }
+  }, [currentUrlRef.current]);
 
   return {
     queueCount,
