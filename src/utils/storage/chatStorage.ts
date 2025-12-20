@@ -1,19 +1,15 @@
 /**
- * Chat Storage - Chat sessions persistence
+ * Chat Storage - Chat sessions persistence using file system
  */
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { fileStorage, STORAGE_FILES } from "@services/fileStorageService";
 import type { ChatSession, ChatHistory, StoredChatMessage } from "@src/types";
 
-const CHAT_SESSIONS_KEY = "chat_sessions";
-const ACTIVE_CHAT_SESSION_KEY = "active_chat_session";
+const CHAT_FILE = STORAGE_FILES.chatSessions;
+const ACTIVE_SESSION_FILE = "active_chat_session.json";
 
 export const getChatSessions = async (): Promise<ChatSession[]> => {
   try {
-    const data = await AsyncStorage.getItem(CHAT_SESSIONS_KEY);
-    if (data) {
-      return JSON.parse(data);
-    }
-    return [];
+    return await fileStorage.loadData<ChatSession[]>(CHAT_FILE, []);
   } catch (error) {
     console.error("Error getting chat sessions:", error);
     return [];
@@ -24,7 +20,7 @@ export const saveChatSessions = async (
   sessions: ChatSession[]
 ): Promise<void> => {
   try {
-    await AsyncStorage.setItem(CHAT_SESSIONS_KEY, JSON.stringify(sessions));
+    await fileStorage.saveData(CHAT_FILE, sessions);
   } catch (error) {
     console.error("Error saving chat sessions:", error);
   }
@@ -76,7 +72,11 @@ export const deleteChatSession = async (sessionId: string): Promise<void> => {
 
 export const getActiveChatSessionId = async (): Promise<string | null> => {
   try {
-    return await AsyncStorage.getItem(ACTIVE_CHAT_SESSION_KEY);
+    const data = await fileStorage.loadData<{ id: string | null }>(
+      ACTIVE_SESSION_FILE,
+      { id: null }
+    );
+    return data.id;
   } catch (error) {
     return null;
   }
@@ -84,7 +84,7 @@ export const getActiveChatSessionId = async (): Promise<string | null> => {
 
 export const setActiveChatSessionId = async (id: string): Promise<void> => {
   try {
-    await AsyncStorage.setItem(ACTIVE_CHAT_SESSION_KEY, id);
+    await fileStorage.saveData(ACTIVE_SESSION_FILE, { id });
   } catch (error) {
     console.error("Error setting active chat session:", error);
   }

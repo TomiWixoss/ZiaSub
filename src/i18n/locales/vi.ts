@@ -3,12 +3,32 @@ export default {
   onboarding: {
     getStarted: "Bắt đầu",
     skip: "Bỏ qua",
+    back: "Quay lại",
+    continue: "Tiếp tục",
     welcome: {
       title: "Chào mừng đến ZiaSub",
       subtitle: "Dịch phụ đề video YouTube tự động với AI",
       feature1: "Dịch phụ đề tự động bằng Gemini AI",
       feature2: "Hỗ trợ nhiều ngôn ngữ và kiểu dịch",
       feature3: "Xem video với phụ đề ngay trong app",
+    },
+    storage: {
+      title: "Chọn nơi lưu trữ",
+      subtitle:
+        "Dữ liệu app sẽ được lưu vào thư mục này. Bạn có thể backup hoặc chuyển sang thiết bị khác.",
+      noPath: "Chưa chọn thư mục",
+      checking: "Đang kiểm tra...",
+      dataFound: "Phát hiện dữ liệu cũ",
+      dataDetail:
+        "{{chats}} cuộc chat, {{translations}} bản dịch (tạo {{date}})",
+      newStorage: "Thư mục mới, sẽ tạo dữ liệu mới",
+      useDefault: "Dùng thư mục mặc định",
+      existingDataTitle: "Phát hiện dữ liệu",
+      existingDataMessage:
+        "Thư mục này có {{chats}} cuộc chat và {{translations}} bản dịch. Bạn muốn khôi phục hay xóa sạch?",
+      restore: "Khôi phục",
+      clearAndNew: "Xóa và tạo mới",
+      errorSetup: "Không thể thiết lập thư mục lưu trữ",
     },
     theme: {
       title: "Chọn giao diện",
@@ -207,6 +227,32 @@ export default {
       duckVideo: "Giảm âm video",
       duckVideoHint: "Giảm âm lượng video khi đang đọc",
       duckLevel: "Âm lượng video khi đọc: {{level}}%",
+    },
+
+    // Data & Storage
+    data: {
+      title: "Dữ liệu",
+      description: "Quản lý dữ liệu ứng dụng",
+      storagePath: "Thư mục lưu trữ",
+      notConfigured: "Chưa cấu hình",
+      chatSessions: "Cuộc chat",
+      translations: "Bản dịch",
+      clearAll: "Xóa toàn bộ dữ liệu",
+      clearAllDesc: "Xóa tất cả chat, bản dịch và cài đặt",
+      clearAllTitle: "Xóa dữ liệu",
+      clearAllMessage:
+        "Bạn có chắc muốn xóa toàn bộ dữ liệu? Hành động này không thể hoàn tác.",
+      clearConfirm: "Xóa hết",
+      clearSuccess: "Đã xóa toàn bộ dữ liệu",
+      clearError: "Không thể xóa dữ liệu",
+      resetStorage: "Đổi thư mục lưu trữ",
+      resetStorageDesc: "Chọn thư mục khác và thiết lập lại",
+      resetTitle: "Đổi thư mục",
+      resetMessage:
+        "Bạn sẽ cần chọn lại thư mục lưu trữ. Dữ liệu cũ vẫn còn trong thư mục hiện tại.",
+      resetConfirm: "Đổi thư mục",
+      resetSuccess: "Đã reset. Vui lòng khởi động lại app.",
+      resetError: "Không thể reset",
     },
 
     // Gemini Config

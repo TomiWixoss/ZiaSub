@@ -3,12 +3,32 @@ export default {
   onboarding: {
     getStarted: "Get Started",
     skip: "Skip",
+    back: "Back",
+    continue: "Continue",
     welcome: {
       title: "Welcome to ZiaSub",
       subtitle: "Auto-translate YouTube video subtitles with AI",
       feature1: "Auto-translate subtitles with Gemini AI",
       feature2: "Support multiple languages and translation styles",
       feature3: "Watch videos with subtitles right in the app",
+    },
+    storage: {
+      title: "Choose Storage Location",
+      subtitle:
+        "App data will be saved to this folder. You can backup or transfer to another device.",
+      noPath: "No folder selected",
+      checking: "Checking...",
+      dataFound: "Existing data found",
+      dataDetail:
+        "{{chats}} chats, {{translations}} translations (created {{date}})",
+      newStorage: "New folder, will create new data",
+      useDefault: "Use default folder",
+      existingDataTitle: "Data Found",
+      existingDataMessage:
+        "This folder has {{chats}} chats and {{translations}} translations. Restore or start fresh?",
+      restore: "Restore",
+      clearAndNew: "Clear and start fresh",
+      errorSetup: "Cannot setup storage folder",
     },
     theme: {
       title: "Choose Theme",
@@ -209,6 +229,32 @@ export default {
       duckVideo: "Duck video",
       duckVideoHint: "Lower video volume when speaking",
       duckLevel: "Video volume when speaking: {{level}}%",
+    },
+
+    // Data & Storage
+    data: {
+      title: "Data",
+      description: "Manage app data",
+      storagePath: "Storage folder",
+      notConfigured: "Not configured",
+      chatSessions: "Chat sessions",
+      translations: "Translations",
+      clearAll: "Clear all data",
+      clearAllDesc: "Delete all chats, translations and settings",
+      clearAllTitle: "Clear Data",
+      clearAllMessage:
+        "Are you sure you want to delete all data? This action cannot be undone.",
+      clearConfirm: "Clear all",
+      clearSuccess: "All data cleared",
+      clearError: "Cannot clear data",
+      resetStorage: "Change storage folder",
+      resetStorageDesc: "Choose a different folder and reconfigure",
+      resetTitle: "Change Folder",
+      resetMessage:
+        "You will need to select a new storage folder. Old data will remain in the current folder.",
+      resetConfirm: "Change folder",
+      resetSuccess: "Reset complete. Please restart the app.",
+      resetError: "Cannot reset",
     },
 
     // Gemini Config

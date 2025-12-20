@@ -22,6 +22,7 @@ import {
   LanguageSection,
   ThemeSection,
   UpdateSection,
+  DataSection,
 } from "./sections";
 
 // Enable LayoutAnimation on Android
@@ -49,6 +50,7 @@ type SettingGroup =
   | "subtitle"
   | "batch"
   | "tts"
+  | "data"
   | "update"
   | null;
 
@@ -111,6 +113,12 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
       }),
     },
     {
+      key: "data",
+      icon: "database",
+      labelKey: "settings.data.title",
+      description: t("settings.data.description"),
+    },
+    {
       key: "update",
       icon: "update",
       labelKey: "update.title",
@@ -168,6 +176,12 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
         return (
           <View style={styles.groupContent}>
             <TTSSection ttsSettings={ttsSettings} onTTSChange={onTTSChange} />
+          </View>
+        );
+      case "data":
+        return (
+          <View style={styles.groupContent}>
+            <DataSection />
           </View>
         );
       case "update":

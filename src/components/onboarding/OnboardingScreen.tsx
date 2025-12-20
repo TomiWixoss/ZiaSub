@@ -8,6 +8,7 @@ import {
 } from "react-native";
 import { useTheme } from "@src/contexts";
 import { WelcomeStep } from "./steps/WelcomeStep";
+import { StorageStep } from "./steps/StorageStep";
 import { ThemeStep } from "./steps/ThemeStep";
 import { LanguageStep } from "./steps/LanguageStep";
 import { ApiKeyStep } from "./steps/ApiKeyStep";
@@ -28,6 +29,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
 
   const steps = [
     { key: "welcome", component: WelcomeStep },
+    { key: "storage", component: StorageStep },
     { key: "theme", component: ThemeStep },
     { key: "language", component: LanguageStep },
     { key: "apiKey", component: ApiKeyStep },

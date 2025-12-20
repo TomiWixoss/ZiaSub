@@ -14,6 +14,7 @@ import { OnboardingScreen } from "@components/onboarding";
 import { initI18n } from "@i18n/index";
 import { getOnboardingCompleted, setOnboardingCompleted } from "@utils/storage";
 import { UpdateModal } from "@components/common/UpdateModal";
+import { fileStorage } from "@services/fileStorageService";
 
 const AppContent = () => {
   const { colors, isDark } = useTheme();
@@ -29,15 +30,20 @@ const AppContent = () => {
 
   useEffect(() => {
     const init = async () => {
+      // Initialize file storage first
+      const storageReady = await fileStorage.initialize();
+
       const [, onboardingCompleted] = await Promise.all([
         initI18n(),
         getOnboardingCompleted(),
       ]);
       setIsI18nReady(true);
-      setShowOnboarding(!onboardingCompleted);
+
+      // Show onboarding if not completed OR if storage is not configured
+      setShowOnboarding(!onboardingCompleted || !storageReady);
 
       // Check for updates after app loads
-      if (onboardingCompleted) {
+      if (onboardingCompleted && storageReady) {
         checkForUpdate();
       }
     };

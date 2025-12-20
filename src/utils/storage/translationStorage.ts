@@ -1,32 +1,40 @@
 /**
- * Translation Storage - Gemini translations persistence
+ * Translation Storage - Gemini translations persistence using file system
  */
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { fileStorage, STORAGE_FILES } from "@services/fileStorageService";
 import type { SavedTranslation, VideoTranslations } from "@src/types";
 import { extractVideoId } from "@utils/videoUtils";
 
-const TRANSLATION_STORAGE_KEY_PREFIX = "translation_";
+const TRANSLATIONS_DIR = STORAGE_FILES.translations;
 
-// Helper to find the actual storage key for a video URL
-const findTranslationKey = async (videoUrl: string): Promise<string | null> => {
-  const exactKey = `${TRANSLATION_STORAGE_KEY_PREFIX}${videoUrl}`;
-  const exactData = await AsyncStorage.getItem(exactKey);
-  if (exactData) return exactKey;
+// Helper to create safe filename from video URL
+const createSafeFilename = (videoUrl: string): string => {
+  const videoId = extractVideoId(videoUrl);
+  if (videoId) return `${videoId}.json`;
+  // Fallback: hash the URL
+  const hash = videoUrl.split("").reduce((a, b) => {
+    a = (a << 5) - a + b.charCodeAt(0);
+    return a & a;
+  }, 0);
+  return `video_${Math.abs(hash)}.json`;
+};
 
+// Helper to find translation file for a video URL
+const findTranslationFile = async (
+  videoUrl: string
+): Promise<string | null> => {
+  const exactFilename = createSafeFilename(videoUrl);
+  const files = await fileStorage.listSubFiles(TRANSLATIONS_DIR);
+
+  // Check exact match first
+  if (files.includes(exactFilename)) return exactFilename;
+
+  // Check by video ID
   const videoId = extractVideoId(videoUrl);
   if (!videoId) return null;
 
-  const allKeys = await AsyncStorage.getAllKeys();
-  const translationKeys = allKeys.filter((k) =>
-    k.startsWith(TRANSLATION_STORAGE_KEY_PREFIX)
-  );
-
-  for (const k of translationKeys) {
-    const storedUrl = k.replace(TRANSLATION_STORAGE_KEY_PREFIX, "");
-    const storedVideoId = extractVideoId(storedUrl);
-    if (storedVideoId === videoId) {
-      return k;
-    }
+  for (const file of files) {
+    if (file.startsWith(videoId)) return file;
   }
 
   return null;
@@ -38,11 +46,17 @@ export const saveTranslation = async (
   configName: string
 ): Promise<SavedTranslation> => {
   try {
-    const key = `${TRANSLATION_STORAGE_KEY_PREFIX}${videoUrl}`;
-    const existing = await AsyncStorage.getItem(key);
-    const data: VideoTranslations = existing
-      ? JSON.parse(existing)
-      : { videoUrl, translations: [], activeTranslationId: null };
+    const filename = createSafeFilename(videoUrl);
+    const existing = await fileStorage.loadSubData<VideoTranslations | null>(
+      TRANSLATIONS_DIR,
+      filename,
+      null
+    );
+    const data: VideoTranslations = existing || {
+      videoUrl,
+      translations: [],
+      activeTranslationId: null,
+    };
 
     const newTranslation: SavedTranslation = {
       id: Date.now().toString(),
@@ -54,7 +68,7 @@ export const saveTranslation = async (
     data.translations.push(newTranslation);
     data.activeTranslationId = newTranslation.id;
 
-    await AsyncStorage.setItem(key, JSON.stringify(data));
+    await fileStorage.saveSubData(TRANSLATIONS_DIR, filename, data);
     return newTranslation;
   } catch (error) {
     console.error("Error saving translation:", error);
@@ -66,28 +80,13 @@ export const getVideoTranslations = async (
   videoUrl: string
 ): Promise<VideoTranslations | null> => {
   try {
-    const key = `${TRANSLATION_STORAGE_KEY_PREFIX}${videoUrl}`;
-    const data = await AsyncStorage.getItem(key);
-    if (data) return JSON.parse(data);
-
-    const videoId = extractVideoId(videoUrl);
-    if (!videoId) return null;
-
-    const allKeys = await AsyncStorage.getAllKeys();
-    const translationKeys = allKeys.filter((k) =>
-      k.startsWith(TRANSLATION_STORAGE_KEY_PREFIX)
+    const filename = await findTranslationFile(videoUrl);
+    if (!filename) return null;
+    return await fileStorage.loadSubData<VideoTranslations | null>(
+      TRANSLATIONS_DIR,
+      filename,
+      null
     );
-
-    for (const k of translationKeys) {
-      const storedUrl = k.replace(TRANSLATION_STORAGE_KEY_PREFIX, "");
-      const storedVideoId = extractVideoId(storedUrl);
-      if (storedVideoId === videoId) {
-        const storedData = await AsyncStorage.getItem(k);
-        return storedData ? JSON.parse(storedData) : null;
-      }
-    }
-
-    return null;
   } catch (error) {
     console.error("Error getting translations:", error);
     return null;
@@ -99,14 +98,17 @@ export const setActiveTranslation = async (
   translationId: string
 ): Promise<void> => {
   try {
-    const key = await findTranslationKey(videoUrl);
-    if (!key) return;
+    const filename = await findTranslationFile(videoUrl);
+    if (!filename) return;
 
-    const existing = await AsyncStorage.getItem(key);
-    if (existing) {
-      const data: VideoTranslations = JSON.parse(existing);
+    const data = await fileStorage.loadSubData<VideoTranslations | null>(
+      TRANSLATIONS_DIR,
+      filename,
+      null
+    );
+    if (data) {
       data.activeTranslationId = translationId;
-      await AsyncStorage.setItem(key, JSON.stringify(data));
+      await fileStorage.saveSubData(TRANSLATIONS_DIR, filename, data);
     }
   } catch (error) {
     console.error("Error setting active translation:", error);
@@ -118,12 +120,15 @@ export const deleteTranslation = async (
   translationId: string
 ): Promise<void> => {
   try {
-    const key = await findTranslationKey(videoUrl);
-    if (!key) return;
+    const filename = await findTranslationFile(videoUrl);
+    if (!filename) return;
 
-    const existing = await AsyncStorage.getItem(key);
-    if (existing) {
-      const data: VideoTranslations = JSON.parse(existing);
+    const data = await fileStorage.loadSubData<VideoTranslations | null>(
+      TRANSLATIONS_DIR,
+      filename,
+      null
+    );
+    if (data) {
       data.translations = data.translations.filter(
         (t) => t.id !== translationId
       );
@@ -131,11 +136,11 @@ export const deleteTranslation = async (
         data.activeTranslationId = data.translations[0]?.id || null;
       }
 
-      // If no translations left, remove the entire entry
+      // If no translations left, remove the entire file
       if (data.translations.length === 0) {
-        await AsyncStorage.removeItem(key);
+        await fileStorage.deleteSubData(TRANSLATIONS_DIR, filename);
       } else {
-        await AsyncStorage.setItem(key, JSON.stringify(data));
+        await fileStorage.saveSubData(TRANSLATIONS_DIR, filename, data);
       }
     }
   } catch (error) {
@@ -145,13 +150,23 @@ export const deleteTranslation = async (
 
 export const getAllTranslatedVideoUrls = async (): Promise<string[]> => {
   try {
-    const allKeys = await AsyncStorage.getAllKeys();
-    const translationKeys = allKeys.filter((k) =>
-      k.startsWith(TRANSLATION_STORAGE_KEY_PREFIX)
-    );
-    return translationKeys.map((k) =>
-      k.replace(TRANSLATION_STORAGE_KEY_PREFIX, "")
-    );
+    const files = await fileStorage.listSubFiles(TRANSLATIONS_DIR);
+    const urls: string[] = [];
+
+    for (const file of files) {
+      if (file.endsWith(".json")) {
+        const data = await fileStorage.loadSubData<VideoTranslations | null>(
+          TRANSLATIONS_DIR,
+          file,
+          null
+        );
+        if (data?.videoUrl) {
+          urls.push(data.videoUrl);
+        }
+      }
+    }
+
+    return urls;
   } catch (error) {
     console.error("Error getting all translated videos:", error);
     return [];

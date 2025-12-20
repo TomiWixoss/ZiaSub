@@ -2,6 +2,9 @@
  * Storage module - Re-exports all storage functions
  */
 
+// File Storage Service
+export { fileStorage, STORAGE_FILES } from "@services/fileStorageService";
+
 // Settings
 export {
   saveAppSettings,

@@ -1,7 +1,7 @@
 /**
- * Settings Storage - App settings persistence
+ * Settings Storage - App settings persistence using file system
  */
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { fileStorage, STORAGE_FILES } from "@services/fileStorageService";
 import type {
   AppSettings,
   SubtitleSettings,
@@ -16,14 +16,14 @@ import {
   DEFAULT_API_KEYS_SETTINGS,
 } from "@constants/defaults";
 
-const APP_SETTINGS_KEY = "app_settings";
+const SETTINGS_FILE = STORAGE_FILES.settings;
 
 // ============================================
 // APP SETTINGS
 // ============================================
 export const saveAppSettings = async (settings: AppSettings): Promise<void> => {
   try {
-    await AsyncStorage.setItem(APP_SETTINGS_KEY, JSON.stringify(settings));
+    await fileStorage.saveData(SETTINGS_FILE, settings);
   } catch (error) {
     console.error("Error saving app settings:", error);
   }
@@ -31,9 +31,11 @@ export const saveAppSettings = async (settings: AppSettings): Promise<void> => {
 
 export const getAppSettings = async (): Promise<AppSettings> => {
   try {
-    const data = await AsyncStorage.getItem(APP_SETTINGS_KEY);
-    if (data) {
-      const parsed = JSON.parse(data);
+    const parsed = await fileStorage.loadData<Partial<AppSettings>>(
+      SETTINGS_FILE,
+      {}
+    );
+    if (parsed && Object.keys(parsed).length > 0) {
       return {
         subtitle: { ...DEFAULT_SUBTITLE_SETTINGS, ...parsed.subtitle },
         batch: { ...DEFAULT_BATCH_SETTINGS, ...parsed.batch },
@@ -109,8 +111,10 @@ export const getTTSSettings = async (): Promise<TTSSettings> => {
 };
 
 // ============================================
-// ONBOARDING
+// ONBOARDING (uses AsyncStorage since it's needed before storage is configured)
 // ============================================
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
 const ONBOARDING_COMPLETED_KEY = "@onboarding_completed";
 
 export const setOnboardingCompleted = async (

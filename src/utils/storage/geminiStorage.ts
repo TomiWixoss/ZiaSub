@@ -1,16 +1,16 @@
 /**
- * Gemini Config Storage - AI configuration persistence
+ * Gemini Config Storage - AI configuration persistence using file system
  */
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { fileStorage, STORAGE_FILES } from "@services/fileStorageService";
 import type { GeminiConfig } from "@src/types";
 import {
   DEFAULT_SYSTEM_PROMPT,
   DEFAULT_CHAT_CONFIG_ID,
 } from "@constants/defaults";
 
-const GEMINI_CONFIGS_KEY = "gemini_configs";
-const ACTIVE_TRANSLATION_CONFIG_KEY = "active_translation_config";
-const ACTIVE_CHAT_CONFIG_KEY = "active_chat_config";
+const GEMINI_FILE = STORAGE_FILES.geminiConfigs;
+const ACTIVE_TRANSLATION_FILE = "active_translation_config.json";
+const ACTIVE_CHAT_FILE = "active_chat_config.json";
 
 export const createDefaultGeminiConfig = (): GeminiConfig => ({
   id: Date.now().toString(),
@@ -32,7 +32,7 @@ export const saveGeminiConfigs = async (
   configs: GeminiConfig[]
 ): Promise<void> => {
   try {
-    await AsyncStorage.setItem(GEMINI_CONFIGS_KEY, JSON.stringify(configs));
+    await fileStorage.saveData(GEMINI_FILE, configs);
   } catch (error) {
     console.error("Error saving Gemini configs:", error);
   }
@@ -40,8 +40,7 @@ export const saveGeminiConfigs = async (
 
 export const getGeminiConfigs = async (): Promise<GeminiConfig[]> => {
   try {
-    const data = await AsyncStorage.getItem(GEMINI_CONFIGS_KEY);
-    let configs: GeminiConfig[] = data ? JSON.parse(data) : [];
+    let configs = await fileStorage.loadData<GeminiConfig[]>(GEMINI_FILE, []);
 
     // Ensure default chat config exists
     const hasChatConfig = configs.some((c) => c.id === DEFAULT_CHAT_CONFIG_ID);
@@ -73,7 +72,7 @@ export const saveActiveTranslationConfigId = async (
   id: string
 ): Promise<void> => {
   try {
-    await AsyncStorage.setItem(ACTIVE_TRANSLATION_CONFIG_KEY, id);
+    await fileStorage.saveData(ACTIVE_TRANSLATION_FILE, { id });
   } catch (error) {
     console.error("Error saving active translation config:", error);
   }
@@ -83,7 +82,11 @@ export const getActiveTranslationConfigId = async (): Promise<
   string | null
 > => {
   try {
-    return await AsyncStorage.getItem(ACTIVE_TRANSLATION_CONFIG_KEY);
+    const data = await fileStorage.loadData<{ id: string | null }>(
+      ACTIVE_TRANSLATION_FILE,
+      { id: null }
+    );
+    return data.id;
   } catch (error) {
     console.error("Error getting active translation config:", error);
     return null;
@@ -115,7 +118,7 @@ export const getActiveTranslationConfig =
 // Chat config
 export const saveActiveChatConfigId = async (id: string): Promise<void> => {
   try {
-    await AsyncStorage.setItem(ACTIVE_CHAT_CONFIG_KEY, id);
+    await fileStorage.saveData(ACTIVE_CHAT_FILE, { id });
   } catch (error) {
     console.error("Error saving active chat config:", error);
   }
@@ -123,7 +126,11 @@ export const saveActiveChatConfigId = async (id: string): Promise<void> => {
 
 export const getActiveChatConfigId = async (): Promise<string | null> => {
   try {
-    return await AsyncStorage.getItem(ACTIVE_CHAT_CONFIG_KEY);
+    const data = await fileStorage.loadData<{ id: string | null }>(
+      ACTIVE_CHAT_FILE,
+      { id: null }
+    );
+    return data.id;
   } catch (error) {
     console.error("Error getting active chat config:", error);
     return null;
