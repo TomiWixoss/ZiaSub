@@ -1,5 +1,12 @@
-import React, { useEffect, useState, useCallback } from "react";
-import { View, ActivityIndicator, StyleSheet } from "react-native";
+import React, { useEffect, useState, useCallback, useRef } from "react";
+import {
+  View,
+  ActivityIndicator,
+  StyleSheet,
+  Text,
+  AppState,
+  AppStateStatus,
+} from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { PaperProvider, MD3DarkTheme, MD3LightTheme } from "react-native-paper";
 import {
@@ -15,12 +22,16 @@ import { initI18n } from "@i18n/index";
 import { getOnboardingCompleted, setOnboardingCompleted } from "@utils/storage";
 import { UpdateModal } from "@components/common/UpdateModal";
 import { fileStorage } from "@services/fileStorageService";
+import { cacheService } from "@services/cacheService";
+import { keyManager } from "@services/keyManager";
+
+type InitState = "loading" | "onboarding" | "ready" | "error";
 
 const AppContent = () => {
   const { colors, isDark } = useTheme();
-  const [isI18nReady, setIsI18nReady] = useState(false);
-  const [isStorageReady, setIsStorageReady] = useState(false);
-  const [showOnboarding, setShowOnboarding] = useState<boolean | null>(null);
+  const [initState, setInitState] = useState<InitState>("loading");
+  const [loadingMessage, setLoadingMessage] = useState("Đang khởi động...");
+  const appState = useRef(AppState.currentState);
   const {
     updateModalVisible,
     setUpdateModalVisible,
@@ -29,35 +40,96 @@ const AppContent = () => {
     checkForUpdate,
   } = useUpdate();
 
+  // Handle app state changes - flush cache when going to background
   useEffect(() => {
-    const init = async () => {
-      // Initialize file storage first
-      const storageReady = await fileStorage.initialize();
-      setIsStorageReady(storageReady);
-
-      const [, onboardingCompleted] = await Promise.all([
-        initI18n(),
-        getOnboardingCompleted(),
-      ]);
-      setIsI18nReady(true);
-
-      // Show onboarding if not completed OR if storage is not configured
-      setShowOnboarding(!onboardingCompleted || !storageReady);
-
-      // Check for updates after app loads
-      if (onboardingCompleted && storageReady) {
-        checkForUpdate();
+    const handleAppStateChange = (nextAppState: AppStateStatus) => {
+      if (
+        appState.current.match(/active/) &&
+        nextAppState.match(/inactive|background/)
+      ) {
+        // App is going to background, flush pending writes
+        cacheService.forceFlush();
       }
+      appState.current = nextAppState;
     };
-    init();
+
+    const subscription = AppState.addEventListener(
+      "change",
+      handleAppStateChange
+    );
+    return () => subscription.remove();
   }, []);
 
-  const handleOnboardingComplete = useCallback(async () => {
-    await setOnboardingCompleted(true);
-    setShowOnboarding(false);
+  useEffect(() => {
+    const init = async () => {
+      try {
+        // Step 1: Initialize i18n
+        setLoadingMessage("Đang tải ngôn ngữ...");
+        await initI18n();
 
-    // Check for updates after onboarding
-    checkForUpdate();
+        // Step 2: Check onboarding status
+        setLoadingMessage("Đang kiểm tra cài đặt...");
+        const onboardingCompleted = await getOnboardingCompleted();
+
+        // Step 3: Initialize file storage
+        setLoadingMessage("Đang kết nối lưu trữ...");
+        const storageReady = await fileStorage.initialize();
+
+        // If onboarding not completed or storage not ready, show onboarding
+        if (!onboardingCompleted || !storageReady) {
+          setInitState("onboarding");
+          return;
+        }
+
+        // Step 4: Initialize cache with all data from files
+        setLoadingMessage("Đang tải dữ liệu...");
+        await cacheService.initialize(fileStorage);
+
+        // Step 5: Initialize keyManager with API keys from cache
+        const apiKeys = cacheService.getApiKeys();
+        if (apiKeys.length > 0) {
+          keyManager.initialize(apiKeys);
+        }
+
+        // All done!
+        setInitState("ready");
+
+        // Check for updates in background
+        setTimeout(() => checkForUpdate(), 1000);
+      } catch (error) {
+        console.error("App initialization error:", error);
+        setInitState("error");
+      }
+    };
+
+    init();
+  }, [checkForUpdate]);
+
+  const handleOnboardingComplete = useCallback(async () => {
+    try {
+      setInitState("loading");
+      setLoadingMessage("Đang hoàn tất cài đặt...");
+
+      await setOnboardingCompleted(true);
+
+      // Initialize cache after onboarding
+      setLoadingMessage("Đang tải dữ liệu...");
+      await cacheService.initialize(fileStorage);
+
+      // Initialize keyManager
+      const apiKeys = cacheService.getApiKeys();
+      if (apiKeys.length > 0) {
+        keyManager.initialize(apiKeys);
+      }
+
+      setInitState("ready");
+
+      // Check for updates
+      setTimeout(() => checkForUpdate(), 1000);
+    } catch (error) {
+      console.error("Error completing onboarding:", error);
+      setInitState("error");
+    }
   }, [checkForUpdate]);
 
   const paperTheme = {
@@ -72,11 +144,8 @@ const AppContent = () => {
     },
   };
 
-  if (
-    !isI18nReady ||
-    showOnboarding === null ||
-    (!showOnboarding && !isStorageReady)
-  ) {
+  // Loading state
+  if (initState === "loading") {
     return (
       <View
         style={[
@@ -85,11 +154,34 @@ const AppContent = () => {
         ]}
       >
         <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
+          {loadingMessage}
+        </Text>
       </View>
     );
   }
 
-  if (showOnboarding) {
+  // Error state
+  if (initState === "error") {
+    return (
+      <View
+        style={[
+          styles.loadingContainer,
+          { backgroundColor: colors.background },
+        ]}
+      >
+        <Text style={[styles.errorText, { color: colors.error }]}>
+          Có lỗi xảy ra khi khởi động app
+        </Text>
+        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
+          Vui lòng khởi động lại
+        </Text>
+      </View>
+    );
+  }
+
+  // Onboarding state
+  if (initState === "onboarding") {
     return (
       <PaperProvider theme={paperTheme}>
         <AlertProvider>
@@ -99,6 +191,7 @@ const AppContent = () => {
     );
   }
 
+  // Ready state
   return (
     <PaperProvider theme={paperTheme}>
       <AlertProvider>
@@ -131,5 +224,14 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    gap: 16,
+  },
+  loadingText: {
+    fontSize: 14,
+    marginTop: 8,
+  },
+  errorText: {
+    fontSize: 16,
+    fontWeight: "600",
   },
 });

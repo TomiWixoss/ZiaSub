@@ -1,60 +1,58 @@
 /**
- * SRT Storage - Manual subtitle persistence using file system
+ * SRT Storage - Manual subtitle persistence using cache + file system
+ * Uses write-through cache: immediate cache update, background file persistence
  */
+import { cacheService } from "@services/cacheService";
 import { fileStorage, STORAGE_FILES } from "@services/fileStorageService";
 import { extractVideoId } from "@utils/videoUtils";
 
 const SRT_DIR = STORAGE_FILES.srt;
 
-// Helper to create safe filename from URL
-const createSrtFilename = (url: string): string => {
+// Helper to get video ID from URL
+const getVideoIdFromUrl = (url: string): string => {
   const videoId = extractVideoId(url);
-  if (videoId) return `${videoId}.srt`;
+  if (videoId) return videoId;
   // Fallback: hash the URL
   const hash = url.split("").reduce((a, b) => {
     a = (a << 5) - a + b.charCodeAt(0);
     return a & a;
   }, 0);
-  return `srt_${Math.abs(hash)}.srt`;
+  return `srt_${Math.abs(hash)}`;
 };
 
 export const saveSRT = async (
   url: string,
   srtContent: string
 ): Promise<void> => {
-  try {
-    const filename = createSrtFilename(url);
-    // Save as JSON with metadata
-    await fileStorage.saveSubData(SRT_DIR, `${filename}.json`, {
-      url,
-      content: srtContent,
-      savedAt: Date.now(),
-    });
-  } catch (error) {
-    console.error("Error saving SRT:", error);
-  }
+  const videoId = getVideoIdFromUrl(url);
+  cacheService.setSrt(videoId, srtContent);
 };
 
 export const getSRT = async (url: string): Promise<string | null> => {
+  await cacheService.waitForInit();
+  const videoId = getVideoIdFromUrl(url);
+
+  // Check cache first
+  let content = cacheService.getSrt(videoId);
+  if (content) return content;
+
+  // Load from file (legacy format with .json extension)
   try {
-    const filename = createSrtFilename(url);
     const data = await fileStorage.loadSubData<{ content: string } | null>(
       SRT_DIR,
-      `${filename}.json`,
+      `${videoId}.srt.json`,
       null
     );
-    return data?.content || null;
-  } catch (error) {
-    console.error("Error getting SRT:", error);
-    return null;
-  }
+    if (data?.content) {
+      cacheService.setSrt(videoId, data.content);
+      return data.content;
+    }
+  } catch {}
+
+  return null;
 };
 
 export const removeSRT = async (url: string): Promise<void> => {
-  try {
-    const filename = createSrtFilename(url);
-    await fileStorage.deleteSubData(SRT_DIR, `${filename}.json`);
-  } catch (error) {
-    console.error("Error removing SRT:", error);
-  }
+  const videoId = getVideoIdFromUrl(url);
+  cacheService.deleteSrt(videoId);
 };

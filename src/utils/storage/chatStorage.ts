@@ -1,37 +1,48 @@
 /**
- * Chat Storage - Chat sessions persistence using file system
+ * Chat Storage - Chat sessions persistence using cache + file system
+ * Uses write-through cache: immediate cache update, background file persistence
  */
-import { fileStorage, STORAGE_FILES } from "@services/fileStorageService";
-import type { ChatSession, ChatHistory, StoredChatMessage } from "@src/types";
+import { cacheService } from "@services/cacheService";
+import { fileStorage } from "@services/fileStorageService";
+import type { ChatSession, ChatHistory } from "@src/types";
 
-const CHAT_FILE = STORAGE_FILES.chatSessions;
-const ACTIVE_SESSION_FILE = "active_chat_session.json";
+// Active session ID stored separately (not in main cache for simplicity)
+let activeChatSessionId: string | null = null;
+let activeSessionLoaded = false;
+
+const loadActiveSessionId = async (): Promise<string | null> => {
+  if (activeSessionLoaded) return activeChatSessionId;
+
+  try {
+    const data = await fileStorage.loadData<{ id: string | null }>(
+      "active_chat_session.json",
+      { id: null }
+    );
+    activeChatSessionId = data.id;
+    activeSessionLoaded = true;
+    return activeChatSessionId;
+  } catch {
+    activeSessionLoaded = true;
+    return null;
+  }
+};
 
 export const getChatSessions = async (): Promise<ChatSession[]> => {
-  try {
-    return await fileStorage.loadData<ChatSession[]>(CHAT_FILE, []);
-  } catch (error) {
-    console.error("Error getting chat sessions:", error);
-    return [];
-  }
+  await cacheService.waitForInit();
+  return cacheService.getChatSessions();
 };
 
 export const saveChatSessions = async (
   sessions: ChatSession[]
 ): Promise<void> => {
-  try {
-    await fileStorage.saveData(CHAT_FILE, sessions);
-  } catch (error) {
-    console.error("Error saving chat sessions:", error);
-  }
+  cacheService.setChatSessions(sessions);
 };
 
 export const createChatSession = async (
   name?: string,
   configId?: string
 ): Promise<ChatSession> => {
-  const sessions = await getChatSessions();
-  // Use provided name or default to "Chat mới" (will be updated with first message)
+  const sessions = cacheService.getChatSessions();
   const sessionName = name || "Chat mới";
   const newSession: ChatSession = {
     id: Date.now().toString(),
@@ -42,8 +53,9 @@ export const createChatSession = async (
     createdAt: Date.now(),
     updatedAt: Date.now(),
   };
-  sessions.unshift(newSession);
-  await saveChatSessions(sessions);
+
+  const updatedSessions = [newSession, ...sessions];
+  cacheService.setChatSessions(updatedSessions);
   await setActiveChatSessionId(newSession.id);
   return newSession;
 };
@@ -51,18 +63,18 @@ export const createChatSession = async (
 export const updateChatSession = async (
   session: ChatSession
 ): Promise<void> => {
-  const sessions = await getChatSessions();
+  const sessions = cacheService.getChatSessions();
   const index = sessions.findIndex((s) => s.id === session.id);
   if (index !== -1) {
     sessions[index] = { ...session, updatedAt: Date.now() };
-    await saveChatSessions(sessions);
+    cacheService.setChatSessions([...sessions]);
   }
 };
 
 export const deleteChatSession = async (sessionId: string): Promise<void> => {
-  const sessions = await getChatSessions();
+  const sessions = cacheService.getChatSessions();
   const filtered = sessions.filter((s) => s.id !== sessionId);
-  await saveChatSessions(filtered);
+  cacheService.setChatSessions(filtered);
 
   const activeId = await getActiveChatSessionId();
   if (activeId === sessionId && filtered.length > 0) {
@@ -71,28 +83,25 @@ export const deleteChatSession = async (sessionId: string): Promise<void> => {
 };
 
 export const getActiveChatSessionId = async (): Promise<string | null> => {
-  try {
-    const data = await fileStorage.loadData<{ id: string | null }>(
-      ACTIVE_SESSION_FILE,
-      { id: null }
-    );
-    return data.id;
-  } catch (error) {
-    return null;
-  }
+  return await loadActiveSessionId();
 };
 
 export const setActiveChatSessionId = async (id: string): Promise<void> => {
+  activeChatSessionId = id;
+  activeSessionLoaded = true;
+
+  // Save in background
   try {
-    await fileStorage.saveData(ACTIVE_SESSION_FILE, { id });
+    await fileStorage.saveData("active_chat_session.json", { id });
   } catch (error) {
     console.error("Error setting active chat session:", error);
   }
 };
 
 export const getActiveChatSession = async (): Promise<ChatSession | null> => {
-  const sessions = await getChatSessions();
-  const activeId = await getActiveChatSessionId();
+  await cacheService.waitForInit();
+  const sessions = cacheService.getChatSessions();
+  const activeId = await loadActiveSessionId();
 
   if (activeId) {
     const session = sessions.find((s) => s.id === activeId);

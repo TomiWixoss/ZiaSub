@@ -1,7 +1,8 @@
 /**
- * Settings Storage - App settings persistence using file system
+ * Settings Storage - App settings persistence using cache + file system
+ * Uses write-through cache: immediate cache update, background file persistence
  */
-import { fileStorage, STORAGE_FILES } from "@services/fileStorageService";
+import { cacheService } from "@services/cacheService";
 import type {
   AppSettings,
   SubtitleSettings,
@@ -16,79 +17,16 @@ import {
   DEFAULT_API_KEYS_SETTINGS,
 } from "@constants/defaults";
 
-const SETTINGS_FILE = STORAGE_FILES.settings;
-
-// In-memory cache for settings to avoid repeated file reads
-let settingsCache: AppSettings | null = null;
-let cacheTimestamp: number = 0;
-const CACHE_TTL = 5000; // 5 seconds cache
-
-// Clear cache (useful when settings might have changed externally)
-export const clearSettingsCache = (): void => {
-  settingsCache = null;
-  cacheTimestamp = 0;
-};
-
 // ============================================
 // APP SETTINGS
 // ============================================
 export const saveAppSettings = async (settings: AppSettings): Promise<void> => {
-  try {
-    // Ensure storage is initialized
-    if (!fileStorage.isConfigured()) {
-      const initialized = await fileStorage.initialize();
-      if (!initialized) {
-        console.error("Cannot save settings: storage not configured");
-        return;
-      }
-    }
-
-    await fileStorage.saveData(SETTINGS_FILE, settings);
-    // Update cache
-    settingsCache = settings;
-    cacheTimestamp = Date.now();
-  } catch (error) {
-    console.error("Error saving app settings:", error);
-  }
+  cacheService.setSettings(settings);
 };
 
 export const getAppSettings = async (): Promise<AppSettings> => {
-  try {
-    // Return cached settings if still valid
-    if (settingsCache && Date.now() - cacheTimestamp < CACHE_TTL) {
-      return settingsCache;
-    }
-
-    // Ensure storage is initialized
-    if (!fileStorage.isConfigured()) {
-      const initialized = await fileStorage.initialize();
-      if (!initialized) {
-        console.warn("Storage not configured, returning defaults");
-        return DEFAULT_APP_SETTINGS;
-      }
-    }
-
-    const parsed = await fileStorage.loadData<Partial<AppSettings>>(
-      SETTINGS_FILE,
-      {}
-    );
-    if (parsed && Object.keys(parsed).length > 0) {
-      const settings = {
-        subtitle: { ...DEFAULT_SUBTITLE_SETTINGS, ...parsed.subtitle },
-        batch: { ...DEFAULT_BATCH_SETTINGS, ...parsed.batch },
-        apiKeys: { ...DEFAULT_API_KEYS_SETTINGS, ...parsed.apiKeys },
-        tts: { ...DEFAULT_TTS_SETTINGS, ...parsed.tts },
-      };
-      // Update cache
-      settingsCache = settings;
-      cacheTimestamp = Date.now();
-      return settings;
-    }
-    return DEFAULT_APP_SETTINGS;
-  } catch (error) {
-    console.error("Error getting app settings:", error);
-    return DEFAULT_APP_SETTINGS;
-  }
+  await cacheService.waitForInit();
+  return cacheService.getSettings();
 };
 
 // ============================================
@@ -97,14 +35,15 @@ export const getAppSettings = async (): Promise<AppSettings> => {
 export const saveSubtitleSettings = async (
   settings: SubtitleSettings
 ): Promise<void> => {
-  const appSettings = await getAppSettings();
+  const appSettings = cacheService.getSettings();
   appSettings.subtitle = settings;
-  await saveAppSettings(appSettings);
+  cacheService.setSettings(appSettings);
 };
 
 export const getSubtitleSettings = async (): Promise<SubtitleSettings> => {
-  const appSettings = await getAppSettings();
-  return appSettings.subtitle;
+  await cacheService.waitForInit();
+  const appSettings = cacheService.getSettings();
+  return appSettings.subtitle || DEFAULT_SUBTITLE_SETTINGS;
 };
 
 // ============================================
@@ -113,56 +52,42 @@ export const getSubtitleSettings = async (): Promise<SubtitleSettings> => {
 export const saveBatchSettings = async (
   settings: BatchSettings
 ): Promise<void> => {
-  const appSettings = await getAppSettings();
+  const appSettings = cacheService.getSettings();
   appSettings.batch = settings;
-  await saveAppSettings(appSettings);
+  cacheService.setSettings(appSettings);
 };
 
 export const getBatchSettings = async (): Promise<BatchSettings> => {
-  const appSettings = await getAppSettings();
-  return appSettings.batch;
+  await cacheService.waitForInit();
+  const appSettings = cacheService.getSettings();
+  return appSettings.batch || DEFAULT_BATCH_SETTINGS;
 };
 
 // ============================================
 // API KEYS
 // ============================================
 export const saveApiKeys = async (keys: string[]): Promise<void> => {
-  const appSettings = await getAppSettings();
-  appSettings.apiKeys = { keys };
-  await saveAppSettings(appSettings);
+  cacheService.setApiKeys(keys);
 };
 
 export const getApiKeys = async (): Promise<string[]> => {
-  try {
-    // Ensure storage is initialized
-    if (!fileStorage.isConfigured()) {
-      const initialized = await fileStorage.initialize();
-      if (!initialized) {
-        console.warn("Storage not configured, returning empty keys");
-        return [];
-      }
-    }
-
-    const appSettings = await getAppSettings();
-    return appSettings.apiKeys?.keys || [];
-  } catch (error) {
-    console.error("Error getting API keys:", error);
-    return [];
-  }
+  await cacheService.waitForInit();
+  return cacheService.getApiKeys();
 };
 
 // ============================================
 // TTS SETTINGS
 // ============================================
 export const saveTTSSettings = async (settings: TTSSettings): Promise<void> => {
-  const appSettings = await getAppSettings();
+  const appSettings = cacheService.getSettings();
   appSettings.tts = settings;
-  await saveAppSettings(appSettings);
+  cacheService.setSettings(appSettings);
 };
 
 export const getTTSSettings = async (): Promise<TTSSettings> => {
-  const appSettings = await getAppSettings();
-  return appSettings.tts;
+  await cacheService.waitForInit();
+  const appSettings = cacheService.getSettings();
+  return appSettings.tts || DEFAULT_TTS_SETTINGS;
 };
 
 // ============================================
@@ -193,4 +118,9 @@ export const getOnboardingCompleted = async (): Promise<boolean> => {
     console.error("Error getting onboarding status:", error);
     return false;
   }
+};
+
+// Legacy export for compatibility
+export const clearSettingsCache = (): void => {
+  // No-op, cache is managed by cacheService
 };

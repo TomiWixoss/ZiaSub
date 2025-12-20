@@ -5,6 +5,9 @@
 // File Storage Service
 export { fileStorage, STORAGE_FILES } from "@services/fileStorageService";
 
+// Cache Service
+export { cacheService } from "@services/cacheService";
+
 // Settings
 export {
   saveAppSettings,

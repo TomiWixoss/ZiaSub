@@ -1,16 +1,13 @@
 /**
- * Gemini Config Storage - AI configuration persistence using file system
+ * Gemini Config Storage - AI configuration persistence using cache + file system
+ * Uses write-through cache: immediate cache update, background file persistence
  */
-import { fileStorage, STORAGE_FILES } from "@services/fileStorageService";
+import { cacheService } from "@services/cacheService";
 import type { GeminiConfig } from "@src/types";
 import {
   DEFAULT_SYSTEM_PROMPT,
   DEFAULT_CHAT_CONFIG_ID,
 } from "@constants/defaults";
-
-const GEMINI_FILE = STORAGE_FILES.geminiConfigs;
-const ACTIVE_TRANSLATION_FILE = "active_translation_config.json";
-const ACTIVE_CHAT_FILE = "active_chat_config.json";
 
 export const createDefaultGeminiConfig = (): GeminiConfig => ({
   id: Date.now().toString(),
@@ -31,138 +28,89 @@ export const createDefaultChatConfig = (): GeminiConfig => ({
 export const saveGeminiConfigs = async (
   configs: GeminiConfig[]
 ): Promise<void> => {
-  try {
-    await fileStorage.saveData(GEMINI_FILE, configs);
-  } catch (error) {
-    console.error("Error saving Gemini configs:", error);
-  }
+  cacheService.setGeminiConfigs(configs);
 };
 
 export const getGeminiConfigs = async (): Promise<GeminiConfig[]> => {
-  try {
-    // Ensure storage is initialized
-    if (!fileStorage.isConfigured()) {
-      const initialized = await fileStorage.initialize();
-      if (!initialized) {
-        console.warn("Storage not configured, returning defaults");
-        return [createDefaultChatConfig(), createDefaultGeminiConfig()];
-      }
-    }
+  await cacheService.waitForInit();
+  let configs = cacheService.getGeminiConfigs();
 
-    let configs = await fileStorage.loadData<GeminiConfig[]>(GEMINI_FILE, []);
-
-    // Ensure default chat config exists
-    const hasChatConfig = configs.some((c) => c.id === DEFAULT_CHAT_CONFIG_ID);
-    if (!hasChatConfig) {
-      const chatConfig = createDefaultChatConfig();
-      configs = [chatConfig, ...configs];
-      await saveGeminiConfigs(configs);
-    }
-
-    // Ensure at least one translation config exists
-    const hasTranslationConfig = configs.some(
-      (c) => c.id !== DEFAULT_CHAT_CONFIG_ID
-    );
-    if (!hasTranslationConfig) {
-      const defaultConfig = createDefaultGeminiConfig();
-      configs.push(defaultConfig);
-      await saveGeminiConfigs(configs);
-    }
-
-    return configs;
-  } catch (error) {
-    console.error("Error getting Gemini configs:", error);
-    return [createDefaultChatConfig(), createDefaultGeminiConfig()];
+  // Ensure default chat config exists
+  const hasChatConfig = configs.some((c) => c.id === DEFAULT_CHAT_CONFIG_ID);
+  if (!hasChatConfig) {
+    const chatConfig = createDefaultChatConfig();
+    configs = [chatConfig, ...configs];
+    cacheService.setGeminiConfigs(configs);
   }
+
+  // Ensure at least one translation config exists
+  const hasTranslationConfig = configs.some(
+    (c) => c.id !== DEFAULT_CHAT_CONFIG_ID
+  );
+  if (!hasTranslationConfig) {
+    const defaultConfig = createDefaultGeminiConfig();
+    configs = [...configs, defaultConfig];
+    cacheService.setGeminiConfigs(configs);
+  }
+
+  return configs;
 };
 
 // Translation config (for subtitle translation)
 export const saveActiveTranslationConfigId = async (
   id: string
 ): Promise<void> => {
-  try {
-    await fileStorage.saveData(ACTIVE_TRANSLATION_FILE, { id });
-  } catch (error) {
-    console.error("Error saving active translation config:", error);
-  }
+  cacheService.setActiveTranslationConfigId(id);
 };
 
 export const getActiveTranslationConfigId = async (): Promise<
   string | null
 > => {
-  try {
-    const data = await fileStorage.loadData<{ id: string | null }>(
-      ACTIVE_TRANSLATION_FILE,
-      { id: null }
-    );
-    return data.id;
-  } catch (error) {
-    console.error("Error getting active translation config:", error);
-    return null;
-  }
+  await cacheService.waitForInit();
+  return cacheService.getActiveTranslationConfigId();
 };
 
 export const getActiveTranslationConfig =
   async (): Promise<GeminiConfig | null> => {
-    try {
-      const configs = await getGeminiConfigs();
-      const activeId = await getActiveTranslationConfigId();
+    await cacheService.waitForInit();
+    const configs = cacheService.getGeminiConfigs();
+    const activeId = cacheService.getActiveTranslationConfigId();
 
-      if (activeId) {
-        const config = configs.find((c) => c.id === activeId);
-        if (config && config.id !== DEFAULT_CHAT_CONFIG_ID) return config;
-      }
-
-      // Return first translation config (not chat config) as default
-      const translationConfig = configs.find(
-        (c) => c.id !== DEFAULT_CHAT_CONFIG_ID
-      );
-      return translationConfig || null;
-    } catch (error) {
-      console.error("Error getting active translation config:", error);
-      return null;
+    if (activeId) {
+      const config = configs.find((c) => c.id === activeId);
+      if (config && config.id !== DEFAULT_CHAT_CONFIG_ID) return config;
     }
+
+    // Return first translation config (not chat config) as default
+    const translationConfig = configs.find(
+      (c) => c.id !== DEFAULT_CHAT_CONFIG_ID
+    );
+    return translationConfig || null;
   };
 
 // Chat config
 export const saveActiveChatConfigId = async (id: string): Promise<void> => {
-  try {
-    await fileStorage.saveData(ACTIVE_CHAT_FILE, { id });
-  } catch (error) {
-    console.error("Error saving active chat config:", error);
-  }
+  cacheService.setActiveChatConfigId(id);
 };
 
 export const getActiveChatConfigId = async (): Promise<string | null> => {
-  try {
-    const data = await fileStorage.loadData<{ id: string | null }>(
-      ACTIVE_CHAT_FILE,
-      { id: null }
-    );
-    return data.id;
-  } catch (error) {
-    console.error("Error getting active chat config:", error);
-    return null;
-  }
+  await cacheService.waitForInit();
+  return cacheService.getActiveChatConfigId();
 };
 
 export const getActiveChatConfig = async (): Promise<GeminiConfig | null> => {
-  try {
-    const configs = await getGeminiConfigs();
-    const activeId = await getActiveChatConfigId();
+  await cacheService.waitForInit();
+  const configs = cacheService.getGeminiConfigs();
+  const activeId = cacheService.getActiveChatConfigId();
 
-    if (activeId) {
-      const config = configs.find((c) => c.id === activeId);
-      if (config) return config;
-    }
-
-    // Return default chat config
-    const chatConfig = configs.find((c) => c.id === DEFAULT_CHAT_CONFIG_ID);
-    return chatConfig || configs[0] || null;
-  } catch (error) {
-    console.error("Error getting active chat config:", error);
-    return null;
+  if (activeId) {
+    const config = configs.find((c) => c.id === activeId);
+    if (config) return config;
   }
+
+  // Return default chat config
+  const chatConfig = configs.find((c) => c.id === DEFAULT_CHAT_CONFIG_ID);
+  return chatConfig || configs[0] || null;
 };
 
 // Legacy support - maps to translation config

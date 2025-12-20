@@ -1,18 +1,10 @@
 /**
  * Hook for managing app settings
+ * Uses cache service for immediate updates
  */
 import { useState, useEffect, useCallback } from "react";
 import type { SubtitleSettings, BatchSettings, TTSSettings } from "@src/types";
-import {
-  getSubtitleSettings,
-  saveSubtitleSettings,
-  getBatchSettings,
-  saveBatchSettings,
-  getTTSSettings,
-  saveTTSSettings,
-  getApiKeys,
-  saveApiKeys,
-} from "@utils/storage";
+import { cacheService } from "@services/cacheService";
 import {
   DEFAULT_SUBTITLE_SETTINGS,
   DEFAULT_BATCH_SETTINGS,
@@ -33,60 +25,90 @@ export const useAppSettings = () => {
   const [apiKeys, setApiKeys] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load all settings on mount
+  // Load all settings from cache on mount
   useEffect(() => {
-    const loadSettings = async () => {
+    const loadSettings = () => {
       try {
-        const [subtitleS, batchS, keys, ttsS] = await Promise.all([
-          getSubtitleSettings(),
-          getBatchSettings(),
-          getApiKeys(),
-          getTTSSettings(),
-        ]);
-        setSubtitleSettings(subtitleS);
-        setBatchSettings(batchS);
+        // Cache is already initialized by App.tsx, just read from it
+        const settings = cacheService.getSettings();
+
+        setSubtitleSettings(settings.subtitle || DEFAULT_SUBTITLE_SETTINGS);
+        setBatchSettings(settings.batch || DEFAULT_BATCH_SETTINGS);
+        setTTSSettings(settings.tts || DEFAULT_TTS_SETTINGS);
+
+        const keys = settings.apiKeys?.keys || [];
         setApiKeys(keys);
-        keyManager.initialize(keys);
-        setTTSSettings(ttsS);
-        ttsService.setSettings(ttsS);
+
+        // Initialize services with loaded settings
+        if (keys.length > 0) {
+          keyManager.initialize(keys);
+        }
+        ttsService.setSettings(settings.tts || DEFAULT_TTS_SETTINGS);
       } catch (error) {
         console.error("Error loading settings:", error);
       } finally {
         setIsLoading(false);
       }
     };
-    loadSettings();
+
+    // Wait for cache to be ready
+    if (cacheService.isInitialized()) {
+      loadSettings();
+    } else {
+      cacheService.waitForInit().then(loadSettings);
+    }
+
+    // Subscribe to settings changes
+    const unsubscribe = cacheService.subscribe("settings", (newSettings) => {
+      setSubtitleSettings(newSettings.subtitle || DEFAULT_SUBTITLE_SETTINGS);
+      setBatchSettings(newSettings.batch || DEFAULT_BATCH_SETTINGS);
+      setTTSSettings(newSettings.tts || DEFAULT_TTS_SETTINGS);
+    });
+
+    const unsubscribeKeys = cacheService.subscribe("apiKeys", (newKeys) => {
+      setApiKeys(newKeys);
+    });
+
+    return () => {
+      unsubscribe();
+      unsubscribeKeys();
+    };
   }, []);
 
   const updateSubtitleSettings = useCallback(
-    async (newSettings: SubtitleSettings) => {
+    (newSettings: SubtitleSettings) => {
       setSubtitleSettings(newSettings);
-      await saveSubtitleSettings(newSettings);
+      const settings = cacheService.getSettings();
+      settings.subtitle = newSettings;
+      cacheService.setSettings(settings);
     },
     []
   );
 
-  const updateBatchSettings = useCallback(
-    async (newSettings: BatchSettings) => {
-      setBatchSettings(newSettings);
-      await saveBatchSettings(newSettings);
-    },
-    []
-  );
+  const updateBatchSettings = useCallback((newSettings: BatchSettings) => {
+    setBatchSettings(newSettings);
+    const settings = cacheService.getSettings();
+    settings.batch = newSettings;
+    cacheService.setSettings(settings);
+  }, []);
 
-  const updateTTSSettings = useCallback(async (newSettings: TTSSettings) => {
+  const updateTTSSettings = useCallback((newSettings: TTSSettings) => {
     setTTSSettings(newSettings);
     ttsService.setSettings(newSettings);
-    await saveTTSSettings(newSettings);
+
+    const settings = cacheService.getSettings();
+    settings.tts = newSettings;
+    cacheService.setSettings(settings);
+
     if (!newSettings.enabled) {
       ttsService.stop();
     }
   }, []);
 
-  const updateApiKeys = useCallback(async (newKeys: string[]) => {
+  const updateApiKeys = useCallback((newKeys: string[]) => {
     setApiKeys(newKeys);
-    await saveApiKeys(newKeys);
     keyManager.initialize(newKeys);
+    cacheService.setApiKeys(newKeys);
   }, []);
 
   return {
