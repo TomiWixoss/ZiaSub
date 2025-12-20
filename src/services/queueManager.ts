@@ -287,41 +287,11 @@ class QueueManager {
         }
 
         if (job.status === "error") {
-          // Check if this was a user-initiated stop
+          // Check if this was a user-initiated stop - if so, stopTranslation already handled it
           const wasUserStopped = this.userStoppedItemId === item.id;
           if (wasUserStopped) {
-            // User stopped - check if has partial data
-            const hasPartial =
-              job.partialResult &&
-              job.completedBatchRanges &&
-              job.completedBatchRanges.length > 0;
-            if (hasPartial) {
-              // Keep as translating with partial data - can resume
-              this.updateItem(item.id, {
-                status: "translating",
-                partialSrt: job.partialResult || undefined,
-                completedBatches: job.completedBatchRanges?.length || 0,
-                totalBatches: job.progress?.totalBatches || 0,
-                completedBatchRanges: job.completedBatchRanges,
-                error: `Đã dừng (${job.completedBatchRanges?.length || 0}/${
-                  job.progress?.totalBatches || 0
-                } phần)`,
-              });
-            } else {
-              // No partial - move to pending
-              this.updateItem(item.id, {
-                status: "pending",
-                error: undefined,
-                progress: undefined,
-                startedAt: undefined,
-                partialSrt: undefined,
-                completedBatches: undefined,
-                totalBatches: undefined,
-                completedBatchRanges: undefined,
-              });
-            }
-            this.userStoppedItemId = null;
-            this.isProcessing = false;
+            // User stopped - stopTranslation() already handled the state update
+            // Just cleanup subscription and return
             unsubscribe();
             return;
           }
@@ -339,6 +309,7 @@ class QueueManager {
               completedBatches: job.completedBatchRanges?.length || 0,
               totalBatches: job.progress?.totalBatches || 0,
               completedBatchRanges: job.completedBatchRanges,
+              progress: undefined, // Clear progress to show paused state
               error: job.error || "Có lỗi xảy ra",
             });
           } else {
@@ -591,8 +562,13 @@ class QueueManager {
     // Set flag to indicate user-initiated stop
     this.userStoppedItemId = itemId;
 
-    // If this item is currently being processed, abort it
-    if (this.isProcessing) {
+    // Check if this specific item is currently being processed by translationManager
+    const isThisItemProcessing = translationManager.isTranslatingUrl(
+      item.videoUrl
+    );
+
+    if (isThisItemProcessing) {
+      // This item is actively being translated - abort it
       const result = translationManager.abortTranslation(item.videoUrl);
       if (result.aborted) {
         this.isProcessing = false;
@@ -603,13 +579,14 @@ class QueueManager {
           result.completedRanges &&
           result.completedRanges.length > 0
         ) {
-          // Keep as translating with partial data
+          // Keep as translating with partial data - can resume
           await this.updateItem(itemId, {
             status: "translating",
             partialSrt: result.partialResult,
             completedBatchRanges: result.completedRanges,
             completedBatches: result.completedRanges.length,
-            error: `Đã dừng (${result.completedRanges.length} phần đã dịch)`,
+            progress: undefined, // Clear progress to show paused state
+            error: undefined,
           });
         } else {
           // No partial - move to pending
@@ -624,27 +601,45 @@ class QueueManager {
             completedBatchRanges: undefined,
           });
         }
+
+        // Clear the user stopped flag after handling
+        this.userStoppedItemId = null;
+
+        // Process next item in queue if auto-process is enabled
+        if (this.autoProcessEnabled) {
+          this.processNextInQueue();
+        }
       }
     } else {
-      // Not currently processing - just check if has partial
+      // Item is in translating queue but not actively being processed
+      // Check if has partial data from previous run
       if (
         item.partialSrt &&
         item.completedBatchRanges &&
         item.completedBatchRanges.length > 0
       ) {
-        // Keep partial data
+        // Keep as translating with partial data - already in paused state
+        // Just ensure progress is cleared to show paused UI
         await this.updateItem(itemId, {
-          error: `Đã dừng (${item.completedBatchRanges.length} phần đã dịch)`,
+          progress: undefined,
+          error: undefined,
         });
       } else {
-        // Move back to pending
+        // No partial data - move back to pending
         await this.updateItem(itemId, {
           status: "pending",
           error: undefined,
           progress: undefined,
           startedAt: undefined,
+          partialSrt: undefined,
+          completedBatches: undefined,
+          totalBatches: undefined,
+          completedBatchRanges: undefined,
         });
       }
+
+      // Clear the user stopped flag
+      this.userStoppedItemId = null;
     }
   }
 
