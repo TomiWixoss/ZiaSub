@@ -197,7 +197,7 @@ class TranslationManager {
       const hasPartialResult = accumulatedSrt && completedRanges.length > 0;
 
       if (hasPartialResult && this.currentJob) {
-        // Save partial translation for resume
+        // Save partial translation for resume - MUST complete before notifying
         try {
           await savePartialTranslation(videoUrl, accumulatedSrt, config.name, {
             completedBatches: completedRanges.length,
@@ -207,6 +207,14 @@ class TranslationManager {
             videoDuration,
             batchSettings,
           });
+          // Force flush to persist immediately (don't wait for debounce)
+          const { cacheService } = await import("./cacheService");
+          await cacheService.forceFlush();
+          console.log(
+            "[TranslationManager] Saved partial translation:",
+            completedRanges.length,
+            "batches"
+          );
         } catch (saveError) {
           console.error(
             "[TranslationManager] Failed to save partial:",
@@ -215,6 +223,7 @@ class TranslationManager {
         }
       }
 
+      // Now update job status and notify AFTER saving
       if (this.currentJob && this.currentJob.id === jobId) {
         this.currentJob = {
           ...this.currentJob,
@@ -272,17 +281,8 @@ class TranslationManager {
       this.abortController = null;
     }
 
-    const hasPartial = partialResult && completedRanges.length > 0;
-    this.currentJob = {
-      ...this.currentJob,
-      status: "error",
-      error: hasPartial
-        ? `Đã dừng (${completedRanges.length} phần đã dịch)`
-        : "Đã dừng dịch",
-      completedAt: Date.now(),
-    };
-    this.notify();
-
+    // Don't notify here - let the catch block in startTranslation handle it
+    // after saving partial translation
     return { aborted: true, partialResult, completedRanges };
   }
 

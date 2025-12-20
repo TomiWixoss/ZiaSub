@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { View, StyleSheet, ScrollView } from "react-native";
 import { alert, confirm, confirmDestructive } from "../common/CustomAlert";
 import { Text } from "react-native-paper";
@@ -45,6 +45,7 @@ interface TranslateTabProps {
   onBatchSettingsChange?: (settings: BatchSettings) => void;
   onTranslationDeleted?: () => void;
   onReloadRef?: React.MutableRefObject<(() => void) | null>;
+  visible?: boolean;
 }
 
 export const TranslateTab: React.FC<TranslateTabProps> = ({
@@ -60,6 +61,7 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
   onBatchSettingsChange,
   onTranslationDeleted,
   onReloadRef,
+  visible,
 }) => {
   const { t } = useTranslation();
   const { colors } = useTheme();
@@ -85,32 +87,6 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
   const [rangeStartStr, setRangeStartStr] = useState("");
   const [rangeEndStr, setRangeEndStr] = useState("");
 
-  useEffect(() => {
-    loadConfigs();
-    checkApiKeys();
-  }, []);
-  useEffect(() => {
-    if (videoUrl) loadTranslations();
-  }, [videoUrl]);
-  useEffect(() => {
-    if (batchSettings) {
-      setStreamingMode(batchSettings.streamingMode ?? false);
-      setPresubMode(batchSettings.presubMode ?? false);
-    }
-  }, [batchSettings]);
-
-  // Expose loadTranslations to parent via ref
-  useEffect(() => {
-    if (onReloadRef) {
-      onReloadRef.current = loadTranslations;
-    }
-    return () => {
-      if (onReloadRef) {
-        onReloadRef.current = null;
-      }
-    };
-  }, [onReloadRef, videoUrl]);
-
   const loadConfigs = async () => {
     const configs = await getGeminiConfigs();
     // Filter out chat config for translation picker
@@ -129,7 +105,7 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
     const keys = await getApiKeys();
     setHasApiKey(keys.length > 0);
   };
-  const loadTranslations = async () => {
+  const loadTranslations = useCallback(async () => {
     if (!videoUrl) return;
     try {
       const data = await getVideoTranslations(videoUrl);
@@ -145,7 +121,39 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
       setSavedTranslations([]);
       setActiveTranslationId(null);
     }
-  };
+  }, [videoUrl]);
+
+  useEffect(() => {
+    loadConfigs();
+    checkApiKeys();
+  }, []);
+  useEffect(() => {
+    if (videoUrl) loadTranslations();
+  }, [videoUrl, loadTranslations]);
+  // Reload translations when modal becomes visible
+  useEffect(() => {
+    if (visible && videoUrl) {
+      loadTranslations();
+    }
+  }, [visible, videoUrl, loadTranslations]);
+  useEffect(() => {
+    if (batchSettings) {
+      setStreamingMode(batchSettings.streamingMode ?? false);
+      setPresubMode(batchSettings.presubMode ?? false);
+    }
+  }, [batchSettings]);
+
+  // Expose loadTranslations to parent via ref
+  useEffect(() => {
+    if (onReloadRef) {
+      onReloadRef.current = loadTranslations;
+    }
+    return () => {
+      if (onReloadRef) {
+        onReloadRef.current = null;
+      }
+    };
+  }, [onReloadRef, loadTranslations]);
 
   const handleStreamingModeChange = (value: boolean) => {
     setStreamingMode(value);

@@ -387,6 +387,7 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
                   onClearSubtitles?.();
                 }}
                 onReloadRef={reloadTranslationsRef}
+                visible={visible}
               />
             )}
           </Animated.View>
