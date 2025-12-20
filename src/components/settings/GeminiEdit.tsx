@@ -5,6 +5,8 @@ import {
   TouchableOpacity,
   TextInput as RNTextInput,
   ScrollView,
+  StatusBar,
+  Platform,
 } from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -71,11 +73,16 @@ const GeminiEdit: React.FC<GeminiEditProps> = ({
   );
   const thinkingDisplayName = selectedThinking?.name || "Cao (High)";
 
+  // Tính toán padding top cho status bar
+  const statusBarHeight =
+    Platform.OS === "android" ? StatusBar.currentHeight || 0 : 0;
+  const topPadding = Math.max(insets.top, statusBarHeight);
+
   return (
     <View
       style={[
         styles.fullScreen,
-        { paddingTop: insets.top, paddingBottom: insets.bottom },
+        { paddingTop: topPadding, paddingBottom: insets.bottom },
       ]}
     >
       <View style={styles.header}>
@@ -285,7 +292,11 @@ const GeminiEdit: React.FC<GeminiEditProps> = ({
 
 const themedStyles = createThemedStyles((colors) => ({
   fullScreen: {
-    ...StyleSheet.absoluteFillObject,
+    position: "absolute" as const,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: colors.surface,
     zIndex: 100,
   },
@@ -354,6 +365,7 @@ const themedStyles = createThemedStyles((colors) => ({
     borderWidth: 1,
     borderColor: colors.border,
     overflow: "hidden" as const,
+    zIndex: 10,
   },
   modelOption: {
     padding: 14,
