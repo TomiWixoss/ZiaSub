@@ -311,6 +311,7 @@ export default {
       notSelected: "Chưa chọn",
       notSelectedMessage: "Chọn kiểu dịch trước nhé.",
       alreadyTranslating: "Video này đang dịch rồi.",
+      anotherTranslating: "Đang dịch video khác, vui lòng đợi hoặc dừng trước.",
 
       savedTranslations: "Đã dịch",
       deleteTitle: "Xóa bản dịch",

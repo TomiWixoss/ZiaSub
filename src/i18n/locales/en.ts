@@ -313,6 +313,8 @@ export default {
       notSelected: "Not selected",
       notSelectedMessage: "Select a translation style first.",
       alreadyTranslating: "This video is already being translated.",
+      anotherTranslating:
+        "Another video is being translated. Please wait or stop it first.",
 
       savedTranslations: "Translated",
       deleteTitle: "Delete translation",

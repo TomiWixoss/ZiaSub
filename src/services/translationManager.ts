@@ -75,6 +75,11 @@ class TranslationManager {
       throw new Error("Video này đang dịch rồi");
     }
 
+    // Check if another video is being translated
+    if (this.isTranslating()) {
+      throw new Error("Đang dịch video khác, vui lòng đợi hoặc dừng trước");
+    }
+
     // Create new job
     const jobId = `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
     this.currentJob = {

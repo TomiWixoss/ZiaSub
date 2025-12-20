@@ -162,6 +162,12 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
         t("common.notice"),
         t("subtitleModal.translate.alreadyTranslating")
       );
+    // Check if another video is being translated
+    if (translationManager.isTranslating())
+      return alert(
+        t("common.notice"),
+        t("subtitleModal.translate.anotherTranslating")
+      );
     let rangeStart: number | undefined;
     let rangeEnd: number | undefined;
     if (useCustomRange) {

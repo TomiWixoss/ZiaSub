@@ -498,6 +498,7 @@ const HomeScreen = () => {
         srtContent={srtContent}
         setSrtContent={setSrtContent}
         onLoadSubtitles={handleLoadSubtitles}
+        onApplySubtitles={(content) => applySrtContent(content, currentUrl)}
         onClearSubtitles={() => {
           clearSubtitles(currentUrl);
           syncTranslatedVideosToWebView();

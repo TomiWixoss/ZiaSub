@@ -42,6 +42,7 @@ interface SubtitleInputModalProps {
   srtContent: string;
   setSrtContent: (text: string) => void;
   onLoadSubtitles: () => void;
+  onApplySubtitles?: (content: string) => void;
   onClearSubtitles?: () => void;
   videoUrl?: string;
   videoDuration?: number;
@@ -59,6 +60,7 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
   srtContent,
   setSrtContent,
   onLoadSubtitles,
+  onApplySubtitles,
   onClearSubtitles,
   videoUrl,
   videoDuration,
@@ -124,7 +126,8 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
           setTranslateStatus("Xong rồi!");
           setKeyStatus(null);
           setSrtContent(job.result);
-          onLoadSubtitles();
+          // Apply subtitles directly with the result content
+          onApplySubtitles?.(job.result);
           queueManager.markVideoCompleted(job.videoUrl, job.configName);
           translationManager.clearCompletedJob(job.videoUrl);
           if (visible)
