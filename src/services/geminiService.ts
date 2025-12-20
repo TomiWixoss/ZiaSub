@@ -7,7 +7,7 @@ import type {
 } from "@src/types";
 import { DEFAULT_BATCH_SETTINGS } from "@constants/defaults";
 import { mergeSrtContents } from "@utils/srtParser";
-import { normalizeYouTubeUrl } from "@utils/videoUtils";
+import { normalizeYouTubeUrl, isShortsUrl } from "@utils/videoUtils";
 import { keyManager } from "./keyManager";
 
 // Run promises with concurrency limit - continues on error, collects partial results
@@ -213,6 +213,7 @@ export const translateVideoWithGemini = async (
   }
 
   const normalizedUrl = normalizeYouTubeUrl(videoUrl);
+  const isShorts = isShortsUrl(videoUrl);
   const batchSettings = options?.batchSettings || DEFAULT_BATCH_SETTINGS;
   const maxDuration = batchSettings.maxVideoDuration;
   const maxConcurrent = batchSettings.maxConcurrentBatches;
@@ -231,6 +232,7 @@ export const translateVideoWithGemini = async (
 
   console.log("[Gemini] Starting video translation...");
   console.log("[Gemini] Normalized URL:", normalizedUrl);
+  console.log("[Gemini] Is Shorts:", isShorts);
   console.log("[Gemini] Using key:", keyManager.getCurrentKeyMasked());
   console.log("[Gemini] Max duration per batch:", maxDuration, "seconds");
   console.log("[Gemini] Batch offset tolerance:", batchOffset, "seconds");
@@ -244,11 +246,14 @@ export const translateVideoWithGemini = async (
   );
 
   try {
+    // Shorts videos are typically under 60 seconds, so skip batching for them
     // Check if we need to split into batches
-    // Only split if effective duration exceeds (maxDuration + batchOffset)
+    // Only split if effective duration exceeds (maxDuration + batchOffset) AND not a Shorts video
     const effectiveMaxDuration = maxDuration + batchOffset;
     const shouldSplit =
-      effectiveDuration && effectiveDuration > effectiveMaxDuration;
+      !isShorts &&
+      effectiveDuration &&
+      effectiveDuration > effectiveMaxDuration;
 
     if (shouldSplit) {
       // Calculate batches with presub mode support

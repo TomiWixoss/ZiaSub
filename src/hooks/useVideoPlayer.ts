@@ -4,7 +4,7 @@
 import { useState, useRef, useCallback } from "react";
 import { WebView, WebViewNavigation } from "react-native-webview";
 import * as ScreenOrientation from "expo-screen-orientation";
-import { isVideoPage, extractVideoId } from "@utils/videoUtils";
+import { isVideoPage, extractVideoId, isShortsUrl } from "@utils/videoUtils";
 import { ttsService } from "@services/ttsService";
 import { queueManager, QueueItem } from "@services/queueManager";
 
@@ -97,8 +97,12 @@ export const useVideoPlayer = () => {
     if (webViewRef.current) {
       // Normalize URL to mobile YouTube format
       const videoId = extractVideoId(videoUrl);
+      // Keep Shorts URL format if it's a Shorts video
+      const isShorts = isShortsUrl(videoUrl);
       const normalizedUrl = videoId
-        ? `https://m.youtube.com/watch?v=${videoId}`
+        ? isShorts
+          ? `https://m.youtube.com/shorts/${videoId}`
+          : `https://m.youtube.com/watch?v=${videoId}`
         : videoUrl;
       webViewRef.current.injectJavaScript(
         `window.location.href = "${normalizedUrl}"; true;`

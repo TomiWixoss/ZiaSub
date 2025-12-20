@@ -78,3 +78,24 @@ export const parseTime = (timeStr: string): number | null => {
 export const isVideoPage = (url: string): boolean => {
   return url.includes("/watch") || url.includes("/shorts/");
 };
+
+/**
+ * Check if URL is a YouTube Shorts video
+ */
+export const isShortsUrl = (url: string): boolean => {
+  return url.includes("/shorts/");
+};
+
+/**
+ * Get the appropriate YouTube URL format for a video
+ * Shorts videos use /shorts/ format, regular videos use /watch?v= format
+ */
+export const getYouTubeUrl = (
+  videoId: string,
+  isShorts: boolean = false
+): string => {
+  if (isShorts) {
+    return `https://m.youtube.com/shorts/${videoId}`;
+  }
+  return `https://m.youtube.com/watch?v=${videoId}`;
+};

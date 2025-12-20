@@ -11,6 +11,7 @@ export const INJECTED_JAVASCRIPT = `
     let parentCheckId = null;
     let isPolling = false;
     let isPortrait = window.innerHeight > window.innerWidth;
+    let isShorts = false;
     
     // Subtitle style settings (defaults should match DEFAULT_SUBTITLE_SETTINGS in storage.ts)
     let subtitleFontSize = 15;
@@ -48,15 +49,25 @@ export const INJECTED_JAVASCRIPT = `
       const textStroke = '-webkit-text-stroke:0.8px #000;paint-order:stroke fill;';
       const textShadow = 'text-shadow:0 0 2px #000,-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000,0 -1px 0 #000,0 1px 0 #000,-1px 0 0 #000,1px 0 0 #000;';
       
-      const bgStyle = isPortrait 
+      // Check if current page is Shorts
+      isShorts = window.location.href.includes('/shorts/');
+      
+      // Shorts videos need special styling (vertical video)
+      const bgStyle = (isPortrait || isShorts)
         ? 'background:rgba(0,0,0,0.7);padding:8px 16px;border-radius:8px;' 
         : '';
       
-      const bottomPos = isPortrait ? portraitBottom : landscapeBottom;
+      // Shorts videos need higher bottom position due to UI elements
+      let bottomPos;
+      if (isShorts) {
+        bottomPos = 180; // Higher position for Shorts to avoid bottom UI
+      } else {
+        bottomPos = isPortrait ? portraitBottom : landscapeBottom;
+      }
       
       // Use fixed position in portrait mode to prevent scrolling with page
       // Use absolute position in fullscreen mode (attached to fullscreen element)
-      const positionType = isPortrait ? 'fixed' : 'absolute';
+      const positionType = (isPortrait || isShorts) ? 'fixed' : 'absolute';
       subtitleLayer.style.cssText = 'position:' + positionType + ';bottom:' + bottomPos + 'px;left:5%;right:5%;max-width:90%;margin:0 auto;text-align:center;color:#FFF;font-size:' + subtitleFontSize + 'px;font-weight:' + weight + ';font-style:' + subtitleFontStyle + ';font-family:system-ui,sans-serif;' + textStroke + textShadow + bgStyle + 'pointer-events:none;z-index:2147483647;display:' + (lastSubtitle ? 'block' : 'none') + ';line-height:1.5;white-space:pre-line;transform:translateZ(0);backface-visibility:hidden;contain:layout style paint';
     }
 
@@ -117,8 +128,13 @@ export const INJECTED_JAVASCRIPT = `
               }
             }
             
-            // Send video title - try multiple selectors for mobile YouTube
+            // Send video title - try multiple selectors for mobile YouTube (including Shorts)
             const titleSelectors = [
+              // Shorts title selectors
+              '.shorts-video-title-text',
+              'ytm-shorts-video-title-view-model .yt-core-attributed-string',
+              '.reel-video-in-sequence .title',
+              // Regular video title selectors
               '.slim-video-information-title .yt-core-attributed-string',
               '.slim-video-information-title',
               'h1.title',
@@ -221,17 +237,21 @@ export const INJECTED_JAVASCRIPT = `
         return;
       }
       
-      // Find all links that contain video thumbnails
-      document.querySelectorAll('a[href*="/watch?v="]').forEach(link => {
+      // Find all links that contain video thumbnails (including Shorts)
+      document.querySelectorAll('a[href*="/watch?v="], a[href*="/shorts/"]').forEach(link => {
         // Check if this link contains a thumbnail image
-        const hasThumb = link.querySelector('img[src*="ytimg.com"], img[src*="i.ytimg"], ytm-thumbnail-cover, ytm-compact-thumbnail');
+        const hasThumb = link.querySelector('img[src*="ytimg.com"], img[src*="i.ytimg"], ytm-thumbnail-cover, ytm-compact-thumbnail, ytm-shorts-lockup-view-model-v2');
         if (!hasThumb) return;
         
         const href = link.getAttribute('href') || '';
         const videoId = extractVideoId(href);
         if (!videoId) return;
         
-        const videoUrl = 'https://m.youtube.com/watch?v=' + videoId;
+        // Determine if this is a Shorts video
+        const isShorts = href.includes('/shorts/');
+        const videoUrl = isShorts 
+          ? 'https://m.youtube.com/shorts/' + videoId
+          : 'https://m.youtube.com/watch?v=' + videoId;
         
         // Get title and duration from parent
         let title = 'Video YouTube';
