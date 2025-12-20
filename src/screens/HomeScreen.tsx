@@ -94,16 +94,22 @@ const HomeScreen = () => {
     applySrtContent,
     findSubtitle,
     updateFromTranslation,
+    clearSubtitles,
     hasSubtitles,
   } = useSubtitles({ webViewRef, ttsSettings });
 
   // Translation queue hook
-  const { queueCount, isTranslating, translationProgress, syncAllToWebView } =
-    useTranslationQueue({
-      webViewRef,
-      currentUrlRef,
-      onTranslationComplete: updateFromTranslation,
-    });
+  const {
+    queueCount,
+    isTranslating,
+    translationProgress,
+    syncAllToWebView,
+    syncTranslatedVideosToWebView,
+  } = useTranslationQueue({
+    webViewRef,
+    currentUrlRef,
+    onTranslationComplete: updateFromTranslation,
+  });
 
   // Set up TTS speaking callback for video ducking
   useEffect(() => {
@@ -492,6 +498,10 @@ const HomeScreen = () => {
         srtContent={srtContent}
         setSrtContent={setSrtContent}
         onLoadSubtitles={handleLoadSubtitles}
+        onClearSubtitles={() => {
+          clearSubtitles(currentUrl);
+          syncTranslatedVideosToWebView();
+        }}
         videoUrl={currentUrl}
         videoDuration={videoDuration}
         batchSettings={batchSettings}

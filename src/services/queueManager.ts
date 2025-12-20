@@ -172,9 +172,10 @@ class QueueManager {
     const batchSettings = await getBatchSettings();
     this.isProcessing = true;
 
+    // Keep existing startedAt to maintain order, only set if not exists
     await this.updateItem(item.id, {
       status: "translating",
-      startedAt: Date.now(),
+      startedAt: item.startedAt || Date.now(),
       configName: config.name,
       error: undefined,
     });

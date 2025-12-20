@@ -84,19 +84,21 @@ export const useTranslationQueue = ({
       const currentVideoId = extractVideoId(currentUrlRef.current);
 
       // Only show translating state if this job is for the current video
-      if (jobVideoId && currentVideoId && jobVideoId === currentVideoId) {
+      const isCurrentVideo =
+        jobVideoId && currentVideoId && jobVideoId === currentVideoId;
+
+      if (isCurrentVideo) {
         const isJobProcessing = job.status === "processing";
         setIsTranslating(isJobProcessing);
 
         if (isJobProcessing) {
           currentTranslatingUrlRef.current = job.videoUrl;
-        }
-
-        if (job.progress) {
-          setTranslationProgress({
-            completed: job.progress.completedBatches,
-            total: job.progress.totalBatches,
-          });
+          if (job.progress) {
+            setTranslationProgress({
+              completed: job.progress.completedBatches,
+              total: job.progress.totalBatches,
+            });
+          }
         }
 
         // Streaming mode: Apply partial result
@@ -108,24 +110,25 @@ export const useTranslationQueue = ({
         if (job.status === "completed" && job.result) {
           onTranslationComplete?.(job.result);
           syncTranslatedVideosToWebView();
+          setIsTranslating(false);
           setTranslationProgress(null);
           currentTranslatingUrlRef.current = null;
         }
 
         if (job.status === "error") {
+          setIsTranslating(false);
           setTranslationProgress(null);
           currentTranslatingUrlRef.current = null;
         }
       } else {
-        // Different video is being translated - reset state for current video
-        // Only reset if we were tracking a different video
-        if (
-          currentTranslatingUrlRef.current &&
-          extractVideoId(currentTranslatingUrlRef.current) !== currentVideoId
-        ) {
+        // Different video is being translated - ensure current video shows correct state
+        // Check if current video has its own active job
+        const currentJob = translationManager.getJobForUrl(
+          currentUrlRef.current
+        );
+        if (!currentJob || currentJob.status !== "processing") {
           setIsTranslating(false);
           setTranslationProgress(null);
-          currentTranslatingUrlRef.current = null;
         }
       }
     });

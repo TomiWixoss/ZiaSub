@@ -87,6 +87,14 @@ export const useSubtitles = ({
       setSubtitles(parsed);
       setSrtContent(fixedData);
       lastSentSubtitleRef.current = "";
+      setCurrentSubtitle("");
+
+      // Clear subtitle display in WebView when content is empty
+      if (!fixedData && webViewRef.current) {
+        webViewRef.current.postMessage(
+          JSON.stringify({ type: "setSubtitle", payload: "" })
+        );
+      }
 
       if (videoUrl) {
         if (fixedData) {
@@ -98,7 +106,7 @@ export const useSubtitles = ({
 
       return { fixCount, parsed };
     },
-    []
+    [webViewRef]
   );
 
   // Find and display subtitle for current time
@@ -147,6 +155,29 @@ export const useSubtitles = ({
     lastSentSubtitleRef.current = "";
   }, []);
 
+  // Clear all subtitles
+  const clearSubtitles = useCallback(
+    async (videoUrl?: string) => {
+      setSrtContent("");
+      setSubtitles([]);
+      setCurrentSubtitle("");
+      lastSentSubtitleRef.current = "";
+
+      // Clear subtitle display in WebView
+      if (webViewRef.current) {
+        webViewRef.current.postMessage(
+          JSON.stringify({ type: "setSubtitle", payload: "" })
+        );
+      }
+
+      // Remove saved SRT if videoUrl provided
+      if (videoUrl) {
+        await removeSRT(videoUrl);
+      }
+    },
+    [webViewRef]
+  );
+
   return {
     srtContent,
     setSrtContent,
@@ -156,6 +187,7 @@ export const useSubtitles = ({
     applySrtContent,
     findSubtitle,
     updateFromTranslation,
+    clearSubtitles,
     hasSubtitles: subtitles.length > 0,
   };
 };

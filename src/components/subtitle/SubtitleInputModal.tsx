@@ -20,6 +20,7 @@ import { useThemedStyles, createThemedStyles } from "@hooks/useThemedStyles";
 import type { BatchSettings, BatchProgress, TranslationJob } from "@src/types";
 import { translationManager } from "@services/translationManager";
 import { queueManager } from "@services/queueManager";
+import { extractVideoId } from "@utils/videoUtils";
 import { SrtTab } from "./SrtTab";
 import { TranslateTab } from "./TranslateTab";
 
@@ -41,6 +42,7 @@ interface SubtitleInputModalProps {
   srtContent: string;
   setSrtContent: (text: string) => void;
   onLoadSubtitles: () => void;
+  onClearSubtitles?: () => void;
   videoUrl?: string;
   videoDuration?: number;
   batchSettings?: BatchSettings;
@@ -57,6 +59,7 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
   srtContent,
   setSrtContent,
   onLoadSubtitles,
+  onClearSubtitles,
   videoUrl,
   videoDuration,
   batchSettings,
@@ -85,7 +88,11 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
 
   useEffect(() => {
     const unsubscribe = translationManager.subscribe((job: TranslationJob) => {
-      if (job.videoUrl === videoUrl) {
+      // Compare by video ID to handle different URL formats
+      const jobVideoId = extractVideoId(job.videoUrl);
+      const currentVideoId = videoUrl ? extractVideoId(videoUrl) : null;
+
+      if (jobVideoId && currentVideoId && jobVideoId === currentVideoId) {
         setIsTranslating(job.status === "processing");
         setBatchProgress(job.progress);
         setKeyStatus(job.keyStatus);
@@ -119,7 +126,7 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
           setSrtContent(job.result);
           onLoadSubtitles();
           queueManager.markVideoCompleted(job.videoUrl, job.configName);
-          translationManager.clearCompletedJob(videoUrl);
+          translationManager.clearCompletedJob(job.videoUrl);
           if (visible)
             alert("Thành công", "Dịch xong rồi! Phụ đề đã sẵn sàng.");
         }
@@ -130,13 +137,13 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
             job.videoUrl,
             job.error || "Có lỗi xảy ra"
           );
-          translationManager.clearCompletedJob(videoUrl);
+          translationManager.clearCompletedJob(job.videoUrl);
           alert("Không dịch được", job.error || "Không thể dịch video này.");
         }
       }
     });
     return () => unsubscribe();
-  }, [videoUrl]);
+  }, [videoUrl, visible, setSrtContent, onLoadSubtitles]);
 
   useEffect(() => {
     if (videoUrl) {
@@ -347,8 +354,9 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
                 }}
                 onBatchSettingsChange={onBatchSettingsChange}
                 onTranslationDeleted={() => {
+                  // Clear SRT content directly - don't rely on state update
                   setSrtContent("");
-                  onLoadSubtitles();
+                  onClearSubtitles?.();
                 }}
               />
             )}
