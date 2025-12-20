@@ -64,9 +64,35 @@ class QueueManager {
       await this.save();
       this.initialized = true;
       this.notify();
+
+      // Subscribe to translationManager to know when it becomes free
+      // This allows queue to continue processing after user finishes direct translation
+      this.subscribeToTranslationManager();
     } catch (e) {
       console.error("[QueueManager] Init error:", e);
     }
+  }
+
+  // Subscribe to translationManager to detect when it becomes free
+  private subscribeToTranslationManager(): void {
+    translationManager.subscribe((job) => {
+      // When a job completes or errors (and it's not a queue item), try to process next
+      if (job.status === "completed" || job.status === "error") {
+        // Check if this was NOT a queue item (queue items are handled separately)
+        const isQueueItem = this.items.some(
+          (item) =>
+            item.videoUrl === job.videoUrl && item.status === "translating"
+        );
+
+        if (!isQueueItem && this.autoProcessEnabled) {
+          // User finished direct translation, queue can continue
+          console.log(
+            "[QueueManager] Direct translation finished, checking queue..."
+          );
+          setTimeout(() => this.processNextInQueue(), 2000);
+        }
+      }
+    });
   }
 
   private async save(): Promise<void> {
@@ -200,6 +226,14 @@ class QueueManager {
     isResume: boolean = false
   ): Promise<void> {
     if (this.isProcessing) return;
+
+    // Double-check translationManager is not busy
+    if (translationManager.isTranslating()) {
+      console.log(
+        "[QueueManager] translationManager busy, skipping processItem"
+      );
+      return;
+    }
 
     // Get config - use saved configId if resuming, otherwise get active config
     let config = null;
@@ -343,6 +377,12 @@ class QueueManager {
 
   // Process next item in queue (translating status first by startedAt order)
   private async processNextInQueue(): Promise<void> {
+    // Check if translationManager is already busy (e.g., user translating directly)
+    if (translationManager.isTranslating()) {
+      console.log("[QueueManager] translationManager busy, waiting...");
+      return;
+    }
+
     // First, check for items already marked as "translating" (in queue)
     // Sort by startedAt to process in order they were added to translating
     const translatingItems = this.items
