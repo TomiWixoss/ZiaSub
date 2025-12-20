@@ -134,6 +134,7 @@ class TranslationManager {
           rangeEnd,
           abortSignal: this.abortController.signal,
           skipRanges: resumeData?.completedBatchRanges,
+          existingPartialSrt: resumeData?.partialSrt,
           onBatchProgress: (progress: BatchProgress) => {
             if (
               this.currentJob &&

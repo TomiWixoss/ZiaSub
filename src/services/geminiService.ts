@@ -376,8 +376,6 @@ export const translateVideoWithGemini = async (
         );
       }
 
-      let accumulatedResults: { content: string; offsetSeconds: number }[] = [];
-
       // Calculate which batch indices to skip based on skipRanges
       const skipIndices: number[] = [];
       if (options?.skipRanges && options.skipRanges.length > 0) {
@@ -394,6 +392,18 @@ export const translateVideoWithGemini = async (
         console.log(
           `[Gemini] Resuming: skipping ${skipIndices.length} completed batches`
         );
+      }
+
+      let accumulatedResults: { content: string; offsetSeconds: number }[] = [];
+
+      // If resuming with existing partial SRT, add it as the first "result"
+      // Use offsetSeconds: -1 as a marker that this content already has correct absolute timestamps
+      if (options?.existingPartialSrt) {
+        accumulatedResults.push({
+          content: options.existingPartialSrt,
+          offsetSeconds: -1, // Special marker: already has absolute timestamps
+        });
+        console.log(`[Gemini] Resuming with existing partial SRT`);
       }
 
       // Use streaming mode (sequential) or concurrent mode based on settings

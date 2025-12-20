@@ -335,6 +335,7 @@ export const adjustSrtTimestamps = (
 
 /**
  * Merge multiple SRT contents with smart time offset adjustment.
+ * If offsetSeconds is -1, the content already has absolute timestamps and should not be adjusted.
  */
 export const mergeSrtContents = (
   srtParts: { content: string; offsetSeconds: number }[]
@@ -343,6 +344,18 @@ export const mergeSrtContents = (
 
   for (const part of srtParts) {
     const subtitles = parseSrtRaw(part.content);
+
+    // offsetSeconds === -1 means content already has absolute timestamps (e.g., from resume)
+    if (part.offsetSeconds === -1) {
+      console.log(
+        `[Merge] Part with absolute timestamps (resume), subtitles=${subtitles.length}`
+      );
+      for (const sub of subtitles) {
+        allSubtitles.push(sub);
+      }
+      continue;
+    }
+
     const mode = detectTimestampMode(subtitles, part.offsetSeconds);
 
     console.log(

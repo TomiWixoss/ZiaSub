@@ -235,4 +235,6 @@ export interface VideoTranslateOptions {
   ) => void;
   // Resume support - skip already completed ranges
   skipRanges?: Array<{ start: number; end: number }>;
+  // Existing partial SRT to merge with new results (for resume)
+  existingPartialSrt?: string;
 }
