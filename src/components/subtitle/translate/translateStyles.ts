@@ -11,7 +11,7 @@ export const createTranslateStyles = (colors: ThemeColors) =>
       fontWeight: "600",
       marginBottom: 8,
     },
-    translationsList: { maxHeight: 140, overflow: "hidden" },
+    translationsList: { gap: 0 },
     translationItem: {
       flexDirection: "row",
       alignItems: "center",

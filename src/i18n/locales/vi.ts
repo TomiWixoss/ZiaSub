@@ -65,6 +65,7 @@ export default {
     stoppedByUser: "Đã dừng bởi người dùng",
     file: "File",
     start: "Bắt đầu",
+    stop: "Dừng",
   },
 
   // Home Screen
@@ -262,6 +263,10 @@ export default {
       clearCompletedTitle: "Xóa tất cả",
       clearCompletedConfirm: "Bỏ hết video đã dịch khỏi danh sách?",
       translate: "Dịch",
+      stopTitle: "Dừng dịch",
+      stopConfirm: 'Dừng dịch "{{title}}" và chuyển về chưa dịch?',
+      abortTitle: "Hủy và xóa",
+      abortConfirm: 'Hủy dịch "{{title}}" và xóa khỏi danh sách?',
     },
 
     addedToQueue: "Đã thêm",
@@ -338,6 +343,7 @@ export default {
       success: "Dịch xong rồi! Phụ đề đã sẵn sàng.",
       error: "Không dịch được",
       errorMessage: "Không thể dịch video này.",
+      stopTranslation: "Dừng dịch",
     },
   },
 

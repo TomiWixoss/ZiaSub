@@ -255,6 +255,7 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
     <View style={styles.tabContent}>
       <ScrollView
         style={styles.scrollContent}
+        contentContainerStyle={styles.scrollContentContainer}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
@@ -306,17 +307,26 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
         />
       </ScrollView>
       <View style={styles.translateButtonContainer}>
-        <Button3D
-          onPress={handleTranslate}
-          icon="translate"
-          title={
-            isTranslating
-              ? t("subtitleModal.translate.translating")
-              : t("subtitleModal.translate.newTranslation")
-          }
-          variant="primary"
-          disabled={isTranslating || !videoUrl || !hasApiKey}
-        />
+        {isTranslating ? (
+          <Button3D
+            onPress={() => {
+              if (videoUrl) {
+                translationManager.abortTranslation(videoUrl);
+              }
+            }}
+            icon="stop"
+            title={t("subtitleModal.translate.stopTranslation")}
+            variant="destructive"
+          />
+        ) : (
+          <Button3D
+            onPress={handleTranslate}
+            icon="translate"
+            title={t("subtitleModal.translate.newTranslation")}
+            variant="primary"
+            disabled={!videoUrl || !hasApiKey}
+          />
+        )}
       </View>
     </View>
   );
@@ -325,7 +335,8 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
 const styles = StyleSheet.create({
   tabContent: { flex: 1 },
   scrollContent: { flex: 1 },
-  translateButtonContainer: { marginTop: "auto", marginBottom: 8 },
+  scrollContentContainer: { paddingBottom: 8 },
+  translateButtonContainer: { marginTop: 8, marginBottom: 8 },
 });
 
 const translateTabThemedStyles = createThemedStyles((colors) => ({

@@ -14,6 +14,7 @@ class TranslationManager {
   private static instance: TranslationManager;
   private currentJob: TranslationJob | null = null;
   private listeners: Set<TranslationListener> = new Set();
+  private abortController: AbortController | null = null;
 
   private constructor() {}
 
@@ -184,6 +185,45 @@ class TranslationManager {
         this.notify();
       }
     }
+  }
+
+  // Abort current translation
+  abortTranslation(videoUrl?: string): boolean {
+    if (!this.currentJob || this.currentJob.status !== "processing") {
+      return false;
+    }
+
+    // If videoUrl specified, only abort if it matches
+    if (videoUrl && this.currentJob.videoUrl !== videoUrl) {
+      return false;
+    }
+
+    // Abort the request
+    if (this.abortController) {
+      this.abortController.abort();
+      this.abortController = null;
+    }
+
+    // Update job status
+    this.currentJob = {
+      ...this.currentJob,
+      status: "error",
+      error: "Đã dừng dịch",
+      completedAt: Date.now(),
+    };
+    this.notify();
+    return true;
+  }
+
+  // Check if can abort
+  canAbort(videoUrl?: string): boolean {
+    if (!this.currentJob || this.currentJob.status !== "processing") {
+      return false;
+    }
+    if (videoUrl && this.currentJob.videoUrl !== videoUrl) {
+      return false;
+    }
+    return true;
   }
 }
 

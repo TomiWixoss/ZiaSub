@@ -204,6 +204,21 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
   const handleRequeue = (item: QueueItem) => {
     queueManager.moveToPending(item.id);
   };
+  const handleStopTranslation = (item: QueueItem) => {
+    confirm(
+      t("queue.dialogs.stopTitle"),
+      t("queue.dialogs.stopConfirm", { title: item.title }),
+      () => queueManager.stopTranslation(item.id),
+      t("common.stop")
+    );
+  };
+  const handleAbortTranslation = (item: QueueItem) => {
+    confirmDestructive(
+      t("queue.dialogs.abortTitle"),
+      t("queue.dialogs.abortConfirm", { title: item.title }),
+      () => queueManager.abortAndRemove(item.id)
+    );
+  };
   const handleClearPending = () => {
     confirmDestructive(
       t("queue.dialogs.clearPendingTitle"),
@@ -310,10 +325,15 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
               <QueueItemCard
                 item={item}
                 hasApiKey={hasApiKey}
+                isCurrentlyProcessing={queueManager.isCurrentlyProcessing(
+                  item.id
+                )}
                 onSelect={handleSelectVideo}
                 onStart={handleStartTranslation}
                 onRequeue={handleRequeue}
                 onRemove={handleRemove}
+                onStop={handleStopTranslation}
+                onAbort={handleAbortTranslation}
               />
             )}
             ListEmptyComponent={<QueueEmpty activeTab={activeTab} />}

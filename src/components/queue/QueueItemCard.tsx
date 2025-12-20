@@ -11,10 +11,13 @@ import { createQueueStyles } from "./queueStyles";
 interface QueueItemCardProps {
   item: QueueItem;
   hasApiKey: boolean;
+  isCurrentlyProcessing?: boolean;
   onSelect: (item: QueueItem) => void;
   onStart: (item: QueueItem) => void;
   onRequeue: (item: QueueItem) => void;
   onRemove: (item: QueueItem) => void;
+  onStop?: (item: QueueItem) => void;
+  onAbort?: (item: QueueItem) => void;
 }
 
 const formatDuration = (seconds?: number) => {
@@ -35,10 +38,13 @@ const formatDate = (timestamp?: number) => {
 const QueueItemCard: React.FC<QueueItemCardProps> = ({
   item,
   hasApiKey,
+  isCurrentlyProcessing,
   onSelect,
   onStart,
   onRequeue,
   onRemove,
+  onStop,
+  onAbort,
 }) => {
   const { t } = useTranslation();
   const { colors } = useTheme();
@@ -108,6 +114,30 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
             />
           </TouchableOpacity>
         )}
+        {item.status === "translating" && (
+          <>
+            <TouchableOpacity
+              style={styles.actionBtn}
+              onPress={() => onStop?.(item)}
+            >
+              <MaterialCommunityIcons
+                name="pause"
+                size={20}
+                color={colors.warning}
+              />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.actionBtn}
+              onPress={() => onAbort?.(item)}
+            >
+              <MaterialCommunityIcons
+                name="close-circle-outline"
+                size={20}
+                color={colors.error}
+              />
+            </TouchableOpacity>
+          </>
+        )}
         {item.status === "completed" && (
           <TouchableOpacity
             style={styles.actionBtn}
@@ -120,16 +150,18 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
             />
           </TouchableOpacity>
         )}
-        <TouchableOpacity
-          style={styles.actionBtn}
-          onPress={() => onRemove(item)}
-        >
-          <MaterialCommunityIcons
-            name="delete-outline"
-            size={20}
-            color={colors.error}
-          />
-        </TouchableOpacity>
+        {item.status !== "translating" && (
+          <TouchableOpacity
+            style={styles.actionBtn}
+            onPress={() => onRemove(item)}
+          >
+            <MaterialCommunityIcons
+              name="delete-outline"
+              size={20}
+              color={colors.error}
+            />
+          </TouchableOpacity>
+        )}
       </View>
     </TouchableOpacity>
   );

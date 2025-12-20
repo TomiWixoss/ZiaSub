@@ -65,6 +65,7 @@ export default {
     stoppedByUser: "Stopped by user",
     file: "File",
     start: "Start",
+    stop: "Stop",
   },
 
   // Home Screen
@@ -264,6 +265,10 @@ export default {
       clearCompletedTitle: "Clear all",
       clearCompletedConfirm: "Remove all completed videos from the list?",
       translate: "Translate",
+      stopTitle: "Stop translation",
+      stopConfirm: 'Stop translating "{{title}}" and move to pending?',
+      abortTitle: "Abort and remove",
+      abortConfirm: 'Abort translating "{{title}}" and remove from list?',
     },
 
     addedToQueue: "Added",
@@ -338,6 +343,7 @@ export default {
       success: "Translation complete! Subtitles are ready.",
       error: "Translation failed",
       errorMessage: "Cannot translate this video.",
+      stopTranslation: "Stop translation",
     },
   },
 

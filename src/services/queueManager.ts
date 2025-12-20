@@ -21,6 +21,8 @@ class QueueManager {
   private listeners: Set<QueueListener> = new Set();
   private isProcessing = false;
   private initialized = false;
+  private autoProcessEnabled = false; // Flag to track if auto-process is active
+  private userStoppedItemId: string | null = null; // Track item being stopped by user
 
   private constructor() {}
 
@@ -123,30 +125,54 @@ class QueueManager {
     return { item, isExisting: false, pendingCount };
   }
 
-  // Move item to translating and start
+  // Start translation for a single item - adds to translating queue and processes
   async startTranslation(itemId: string): Promise<void> {
     const item = this.items.find((i) => i.id === itemId);
-    if (!item || item.status === "translating") return;
+    if (!item) return;
 
-    // Check if already translating another
+    // If item is already completed or currently translating, skip
+    if (item.status === "completed" || item.status === "translating") return;
+
+    // Enable auto-process mode so it continues after this item
+    this.autoProcessEnabled = true;
+
+    // Mark as translating (add to queue)
+    await this.updateItem(itemId, {
+      status: "translating",
+      startedAt: Date.now(),
+      error: undefined,
+    });
+
+    // If already processing another video, this item will be picked up automatically
     if (this.isProcessing) {
-      console.log("[QueueManager] Already processing, queued");
+      console.log(
+        "[QueueManager] Added to translation queue, will process after current"
+      );
       return;
     }
 
+    // Start processing this item
+    await this.processItem(item);
+  }
+
+  // Internal: Process a specific item
+  private async processItem(item: QueueItem): Promise<void> {
+    if (this.isProcessing) return;
+
     const config = await getActiveGeminiConfig();
     if (!config) {
-      this.updateItem(itemId, {
+      await this.updateItem(item.id, {
         status: "error",
         error: "Chưa chọn kiểu dịch",
       });
+      this.processNextInQueue();
       return;
     }
 
     const batchSettings = await getBatchSettings();
     this.isProcessing = true;
 
-    this.updateItem(itemId, {
+    await this.updateItem(item.id, {
       status: "translating",
       startedAt: Date.now(),
       configName: config.name,
@@ -157,7 +183,7 @@ class QueueManager {
     const unsubscribe = translationManager.subscribe((job) => {
       if (job.videoUrl === item.videoUrl) {
         if (job.progress) {
-          this.updateItem(itemId, {
+          this.updateItem(item.id, {
             progress: {
               completed: job.progress.completedBatches,
               total: job.progress.totalBatches,
@@ -166,7 +192,7 @@ class QueueManager {
         }
 
         if (job.status === "completed") {
-          this.updateItem(itemId, {
+          this.updateItem(item.id, {
             status: "completed",
             completedAt: Date.now(),
             progress: undefined,
@@ -177,7 +203,17 @@ class QueueManager {
         }
 
         if (job.status === "error") {
-          this.updateItem(itemId, {
+          // Check if this was a user-initiated stop
+          const wasUserStopped = this.userStoppedItemId === item.id;
+          if (wasUserStopped) {
+            // User stopped - don't update status (already set to pending) and don't process next
+            this.userStoppedItemId = null;
+            this.isProcessing = false;
+            unsubscribe();
+            return;
+          }
+
+          this.updateItem(item.id, {
             status: "error",
             error: job.error || "Có lỗi xảy ra",
             progress: undefined,
@@ -201,12 +237,35 @@ class QueueManager {
     }
   }
 
-  // Process next pending item
+  // Process next item in queue (translating status first by startedAt order)
   private async processNextInQueue(): Promise<void> {
-    const next = this.items.find((i) => i.status === "pending");
-    if (next) {
-      // Small delay before next
-      setTimeout(() => this.startTranslation(next.id), 2000);
+    // First, check for items already marked as "translating" (in queue)
+    // Sort by startedAt to process in order they were added to translating
+    const translatingItems = this.items
+      .filter((i) => i.status === "translating")
+      .sort((a, b) => (a.startedAt || 0) - (b.startedAt || 0));
+
+    const nextTranslating = translatingItems[0];
+
+    if (nextTranslating && !this.isProcessing) {
+      setTimeout(() => this.processItem(nextTranslating), 2000);
+      return;
+    }
+
+    // If auto-process is enabled, also pick up pending items
+    if (this.autoProcessEnabled && !this.isProcessing) {
+      const nextPending = this.items.find((i) => i.status === "pending");
+      if (nextPending) {
+        // Mark as translating first
+        await this.updateItem(nextPending.id, {
+          status: "translating",
+          startedAt: Date.now(),
+        });
+        setTimeout(() => this.processItem(nextPending), 2000);
+      } else {
+        // No more items to process, disable auto-process
+        this.autoProcessEnabled = false;
+      }
     }
   }
 
@@ -255,7 +314,7 @@ class QueueManager {
       if (status === "completed")
         return (b.completedAt || 0) - (a.completedAt || 0);
       if (status === "translating")
-        return (b.startedAt || 0) - (a.startedAt || 0);
+        return (a.startedAt || 0) - (b.startedAt || 0); // FIFO order for translating
       return b.addedAt - a.addedAt;
     });
 
@@ -288,16 +347,40 @@ class QueueManager {
     return this.items.find((i) => i.videoId === videoId);
   }
 
-  // Start auto processing - process multiple videos
+  // Start auto processing - mark ALL pending/error as translating and process sequentially
   async startAutoProcess(): Promise<void> {
-    if (this.isProcessing) return;
+    // Get all pending and error items sorted by addedAt descending (same order as displayed in pending tab)
+    const pendingItems = this.items
+      .filter((i) => i.status === "pending" || i.status === "error")
+      .sort((a, b) => b.addedAt - a.addedAt);
 
-    // Get all pending items
-    const pendingItems = this.items.filter((i) => i.status === "pending");
     if (pendingItems.length === 0) return;
 
-    // Start the first pending item
-    await this.startTranslation(pendingItems[0].id);
+    // Enable auto-process mode
+    this.autoProcessEnabled = true;
+
+    // Mark ALL pending/error items as "translating" (in queue) with sequential startedAt
+    // First item in display order gets smallest startedAt
+    const baseTime = Date.now();
+    for (let i = 0; i < pendingItems.length; i++) {
+      await this.updateItem(pendingItems[i].id, {
+        status: "translating",
+        startedAt: baseTime + i, // Sequential timestamps to maintain order
+        error: undefined,
+      });
+    }
+
+    // If not already processing, start with the first one
+    if (!this.isProcessing) {
+      // Get first item by startedAt order (smallest = first in display)
+      const translatingItems = this.items
+        .filter((i) => i.status === "translating")
+        .sort((a, b) => (a.startedAt || 0) - (b.startedAt || 0));
+
+      if (translatingItems[0]) {
+        await this.processItem(translatingItems[0]);
+      }
+    }
   }
 
   // Mark video as completed (only if already in queue)
@@ -364,6 +447,66 @@ class QueueManager {
     );
     await this.save();
     this.notify();
+  }
+
+  // Stop translation - move back to pending
+  async stopTranslation(itemId: string): Promise<void> {
+    const item = this.items.find((i) => i.id === itemId);
+    if (!item || item.status !== "translating") return;
+
+    // Set flag to indicate user-initiated stop
+    this.userStoppedItemId = itemId;
+
+    // Move back to pending first (before abort triggers error callback)
+    await this.updateItem(itemId, {
+      status: "pending",
+      error: undefined,
+      progress: undefined,
+      startedAt: undefined,
+    });
+
+    // If this item is currently being processed, abort it
+    if (this.isProcessing) {
+      const aborted = translationManager.abortTranslation(item.videoUrl);
+      if (aborted) {
+        this.isProcessing = false;
+      }
+    }
+  }
+
+  // Abort and remove from queue
+  async abortAndRemove(itemId: string): Promise<void> {
+    const item = this.items.find((i) => i.id === itemId);
+    if (!item) return;
+
+    // If this item is currently being processed, abort it
+    if (item.status === "translating" && this.isProcessing) {
+      const aborted = translationManager.abortTranslation(item.videoUrl);
+      if (aborted) {
+        this.isProcessing = false;
+      }
+    }
+
+    // Remove from queue
+    this.items = this.items.filter((i) => i.id !== itemId);
+    await this.save();
+    this.notify();
+
+    // Process next if auto-process is enabled
+    if (this.autoProcessEnabled) {
+      this.processNextInQueue();
+    }
+  }
+
+  // Check if a specific item is currently being processed
+  isCurrentlyProcessing(itemId: string): boolean {
+    const item = this.items.find((i) => i.id === itemId);
+    if (!item) return false;
+    return (
+      item.status === "translating" &&
+      this.isProcessing &&
+      translationManager.isTranslatingUrl(item.videoUrl)
+    );
   }
 }
 
