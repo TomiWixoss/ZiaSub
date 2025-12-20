@@ -241,7 +241,7 @@ class FileStorageService {
       let chatCount = 0;
       let translationCount = 0;
 
-      const markerFile = files.find((f) => f.includes(FILES.marker));
+      const markerFile = this.findSafFile(files, FILES.marker);
       if (markerFile) {
         try {
           const content =
@@ -253,7 +253,7 @@ class FileStorageService {
         } catch {}
       }
 
-      const chatFile = files.find((f) => f.includes(FILES.chatSessions));
+      const chatFile = this.findSafFile(files, FILES.chatSessions);
       if (chatFile) {
         try {
           const content =
@@ -263,7 +263,7 @@ class FileStorageService {
         } catch {}
       }
 
-      const translationsDir = files.find((f) => f.includes(FILES.translations));
+      const translationsDir = this.findSafDir(files, FILES.translations);
       if (translationsDir) {
         try {
           const translationFiles =
@@ -383,16 +383,8 @@ class FileStorageService {
     }
 
     for (const dir of dirs) {
-      // Check if directory already exists
-      const dirExists = existingItems.some((item) => {
-        // SAF URIs contain the directory name
-        const decodedItem = decodeURIComponent(item);
-        return (
-          decodedItem.endsWith(`/${dir}`) ||
-          decodedItem.includes(`/${dir}%`) ||
-          decodedItem.endsWith(`%2F${dir}`)
-        );
-      });
+      // Check if directory already exists using helper
+      const dirExists = this.findSafDir(existingItems, dir);
 
       if (!dirExists) {
         try {
@@ -422,6 +414,48 @@ class FileStorageService {
   }
 
   /**
+   * Helper to find a file in SAF directory by filename
+   */
+  private findSafFile(files: string[], filename: string): string | undefined {
+    const encodedFilename = encodeURIComponent(filename);
+    return files.find((f) => {
+      const decodedUri = decodeURIComponent(f);
+      const lastSegment = f.split("/").pop() || "";
+      const decodedLastSegment = decodeURIComponent(lastSegment);
+
+      return (
+        f.endsWith(`/${filename}`) ||
+        f.endsWith(`/${encodedFilename}`) ||
+        decodedUri.endsWith(`/${filename}`) ||
+        lastSegment === filename ||
+        lastSegment === encodedFilename ||
+        decodedLastSegment === filename
+      );
+    });
+  }
+
+  /**
+   * Helper to find a directory in SAF by name
+   */
+  private findSafDir(items: string[], dirname: string): string | undefined {
+    const encodedDirname = encodeURIComponent(dirname);
+    return items.find((item) => {
+      const decodedUri = decodeURIComponent(item);
+      const lastSegment = item.split("/").pop() || "";
+      const decodedLastSegment = decodeURIComponent(lastSegment);
+
+      return (
+        item.endsWith(`/${dirname}`) ||
+        item.endsWith(`/${encodedDirname}`) ||
+        decodedUri.endsWith(`/${dirname}`) ||
+        lastSegment === dirname ||
+        lastSegment === encodedDirname ||
+        decodedLastSegment === dirname
+      );
+    });
+  }
+
+  /**
    * Write data to a file (SAF)
    */
   private async writeFileSaf(
@@ -433,7 +467,8 @@ class FileStorageService {
       const files = await FileSystem.StorageAccessFramework.readDirectoryAsync(
         directoryUri
       );
-      const existingFile = files.find((f) => f.includes(filename));
+
+      const existingFile = this.findSafFile(files, filename);
 
       if (existingFile) {
         await FileSystem.StorageAccessFramework.writeAsStringAsync(
@@ -487,7 +522,7 @@ class FileStorageService {
       const files = await FileSystem.StorageAccessFramework.readDirectoryAsync(
         directoryUri
       );
-      const fileUri = files.find((f) => f.includes(filename));
+      const fileUri = this.findSafFile(files, filename);
       if (!fileUri) return null;
       return await FileSystem.StorageAccessFramework.readAsStringAsync(fileUri);
     } catch {
@@ -540,7 +575,7 @@ class FileStorageService {
           await FileSystem.StorageAccessFramework.readDirectoryAsync(
             this.storagePath
           );
-        const fileUri = files.find((f) => f.includes(filename));
+        const fileUri = this.findSafFile(files, filename);
         if (fileUri) {
           await FileSystem.StorageAccessFramework.deleteAsync(fileUri);
         }
@@ -568,7 +603,7 @@ class FileStorageService {
       const files = await FileSystem.StorageAccessFramework.readDirectoryAsync(
         this.storagePath
       );
-      let subdirUri = files.find((f) => f.includes(subdir));
+      let subdirUri = this.findSafDir(files, subdir);
 
       if (!subdirUri) {
         subdirUri = await FileSystem.StorageAccessFramework.makeDirectoryAsync(
@@ -603,7 +638,7 @@ class FileStorageService {
           await FileSystem.StorageAccessFramework.readDirectoryAsync(
             this.storagePath
           );
-        const subdirUri = files.find((f) => f.includes(subdir));
+        const subdirUri = this.findSafDir(files, subdir);
         if (!subdirUri) return defaultValue;
 
         const content = await this.readFileSaf(subdirUri, filename);
@@ -631,12 +666,12 @@ class FileStorageService {
           await FileSystem.StorageAccessFramework.readDirectoryAsync(
             this.storagePath
           );
-        const subdirUri = files.find((f) => f.includes(subdir));
+        const subdirUri = this.findSafDir(files, subdir);
         if (!subdirUri) return;
 
         const subFiles =
           await FileSystem.StorageAccessFramework.readDirectoryAsync(subdirUri);
-        const fileUri = subFiles.find((f) => f.includes(filename));
+        const fileUri = this.findSafFile(subFiles, filename);
         if (fileUri) {
           await FileSystem.StorageAccessFramework.deleteAsync(fileUri);
         }
@@ -660,7 +695,7 @@ class FileStorageService {
           await FileSystem.StorageAccessFramework.readDirectoryAsync(
             this.storagePath
           );
-        const subdirUri = files.find((f) => f.includes(subdir));
+        const subdirUri = this.findSafDir(files, subdir);
         if (!subdirUri) return [];
 
         const subFiles =
