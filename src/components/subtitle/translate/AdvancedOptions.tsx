@@ -8,19 +8,59 @@ import { useThemedStyles } from "@hooks/useThemedStyles";
 import { formatDuration } from "@utils/videoUtils";
 import { createTranslateStyles } from "./translateStyles";
 
-// Helper: parse time string "m:ss" to seconds
+// Helper: parse time string to seconds
+// Supports: "5" (5 min), "5:30" (5m30s), "1:05:30" (1h5m30s)
 const parseTimeToSeconds = (timeStr: string): number => {
-  const parts = timeStr.split(":").map((p) => parseInt(p, 10) || 0);
-  if (parts.length === 1) return parts[0];
-  if (parts.length === 2) return parts[0] * 60 + parts[1];
-  return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  if (!timeStr) return 0;
+  // Remove non-numeric except ":"
+  const cleaned = timeStr.replace(/[^\d:]/g, "");
+  const parts = cleaned.split(":").map((p) => parseInt(p, 10) || 0);
+  if (parts.length === 1) return parts[0] * 60; // Just minutes
+  if (parts.length === 2) return parts[0] * 60 + parts[1]; // m:ss
+  return parts[0] * 3600 + parts[1] * 60 + parts[2]; // h:mm:ss
 };
 
-// Helper: format seconds to "m:ss"
+// Helper: format seconds to time string
+// Under 1 hour: "m:ss", 1 hour+: "h:mm:ss"
 const formatSecondsToTime = (seconds: number): string => {
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  return `${mins}:${secs.toString().padStart(2, "0")}`;
+  if (seconds < 0) seconds = 0;
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.floor(seconds % 60);
+  if (h > 0) {
+    return `${h}:${m.toString().padStart(2, "0")}:${s
+      .toString()
+      .padStart(2, "0")}`;
+  }
+  return `${m}:${s.toString().padStart(2, "0")}`;
+};
+
+// Auto-format time input as user types
+// "5" -> "5" (typing minutes)
+// "530" -> "5:30" (auto add colon)
+// "10530" -> "1:05:30" (with hours)
+const formatTimeInput = (input: string): string => {
+  // Only keep digits
+  const digits = input.replace(/\D/g, "");
+  if (!digits) return "";
+
+  const len = digits.length;
+
+  // 1-2 digits: just minutes (e.g., "5" or "12")
+  if (len <= 2) return digits;
+
+  // 3-4 digits: m:ss or mm:ss (e.g., "530" -> "5:30", "1230" -> "12:30")
+  if (len <= 4) {
+    const secs = digits.slice(-2);
+    const mins = digits.slice(0, -2);
+    return `${mins}:${secs}`;
+  }
+
+  // 5-6 digits: h:mm:ss or hh:mm:ss (e.g., "10530" -> "1:05:30")
+  const secs = digits.slice(-2);
+  const mins = digits.slice(-4, -2);
+  const hours = digits.slice(0, -4);
+  return `${hours}:${mins}:${secs}`;
 };
 
 interface TimeInputProps {
@@ -53,6 +93,24 @@ const TimeInput: React.FC<TimeInputProps> = ({
     [value, onChange, maxSeconds]
   );
 
+  const handleTextChange = useCallback(
+    (text: string) => {
+      const formatted = formatTimeInput(text);
+      onChange(formatted);
+    },
+    [onChange]
+  );
+
+  // Format on blur to ensure valid time
+  const handleBlur = useCallback(() => {
+    if (!value) return;
+    let seconds = parseTimeToSeconds(value);
+    if (maxSeconds !== undefined && seconds > maxSeconds) {
+      seconds = maxSeconds;
+    }
+    onChange(formatSecondsToTime(seconds));
+  }, [value, onChange, maxSeconds]);
+
   return (
     <View style={styles.timeInputWrapper}>
       <TouchableOpacity
@@ -65,10 +123,12 @@ const TimeInput: React.FC<TimeInputProps> = ({
       <TextInput
         style={styles.timeInputField}
         value={value}
-        onChangeText={onChange}
+        onChangeText={handleTextChange}
+        onBlur={handleBlur}
         placeholder={placeholder}
         placeholderTextColor={colors.textMuted}
         keyboardType="numeric"
+        maxLength={8}
       />
       <TouchableOpacity
         style={styles.timeAdjustBtn}
