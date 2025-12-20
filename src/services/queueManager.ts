@@ -568,8 +568,8 @@ class QueueManager {
     );
 
     if (isThisItemProcessing) {
-      // This item is actively being translated - abort it
-      const result = translationManager.abortTranslation(item.videoUrl);
+      // This item is actively being translated - abort it (now async)
+      const result = await translationManager.abortTranslation(item.videoUrl);
       if (result.aborted) {
         this.isProcessing = false;
 
@@ -648,10 +648,10 @@ class QueueManager {
     const item = this.items.find((i) => i.id === itemId);
     if (!item) return;
 
-    // If this item is currently being processed, abort it
+    // If this item is currently being processed, abort it (now async)
     if (item.status === "translating" && this.isProcessing) {
-      const aborted = translationManager.abortTranslation(item.videoUrl);
-      if (aborted) {
+      const result = await translationManager.abortTranslation(item.videoUrl);
+      if (result.aborted) {
         this.isProcessing = false;
       }
     }
