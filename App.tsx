@@ -86,7 +86,9 @@ const AppContent = () => {
   if (showOnboarding) {
     return (
       <PaperProvider theme={paperTheme}>
-        <OnboardingScreen onComplete={handleOnboardingComplete} />
+        <AlertProvider>
+          <OnboardingScreen onComplete={handleOnboardingComplete} />
+        </AlertProvider>
       </PaperProvider>
     );
   }
