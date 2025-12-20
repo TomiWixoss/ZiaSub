@@ -227,11 +227,6 @@ const AdvancedOptions: React.FC<AdvancedOptionsProps> = ({
                   styles={styles}
                 />
               </View>
-              <MaterialCommunityIcons
-                name="arrow-right"
-                size={20}
-                color={colors.textMuted}
-              />
               <View style={styles.rangeInputGroup}>
                 <Text style={styles.rangeLabel}>
                   {t("subtitleModal.translate.rangeTo")}

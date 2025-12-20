@@ -163,9 +163,7 @@ export const createTranslateStyles = (colors: ThemeColors) =>
       marginTop: 2,
     },
     rangeInputContainer: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "center",
+      flexDirection: "column",
       gap: 12,
       marginTop: 12,
       paddingTop: 12,
@@ -173,8 +171,10 @@ export const createTranslateStyles = (colors: ThemeColors) =>
       borderTopColor: colors.border,
     },
     rangeInputGroup: {
+      flexDirection: "row",
       alignItems: "center",
-      gap: 4,
+      justifyContent: "space-between",
+      gap: 10,
     },
     rangeLabel: {
       color: colors.textMuted,
