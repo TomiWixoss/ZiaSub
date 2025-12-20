@@ -11,7 +11,7 @@ import {
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { useTheme } from "@src/contexts";
+import { useTheme, useUpdate } from "@src/contexts";
 import { useThemedStyles, createThemedStyles } from "@hooks/useThemedStyles";
 import type { SubtitleSettings, BatchSettings, TTSSettings } from "@src/types";
 import {
@@ -23,7 +23,6 @@ import {
   ThemeSection,
   UpdateSection,
 } from "./sections";
-import { useUpdate } from "../../../App";
 
 // Enable LayoutAnimation on Android
 if (

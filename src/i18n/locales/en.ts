@@ -377,6 +377,7 @@ export default {
     checkNow: "Check for updates",
     checkError: "Cannot check for updates",
     downloadError: "Download failed",
+    downloading: "Downloading...",
     upToDate: "You're on the latest version!",
     available: "New version available!",
     currentVersion: "Current version",

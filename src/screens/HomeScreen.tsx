@@ -13,12 +13,11 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { WebViewMessageEvent, WebViewNavigation } from "react-native-webview";
 import { useTranslation } from "react-i18next";
 
-import { useTheme } from "@src/contexts";
+import { useTheme, useUpdate } from "@src/contexts";
 import { useThemedStyles, createThemedStyles } from "@hooks/useThemedStyles";
 import { hasTranslation } from "@utils/storage";
 import { ttsService } from "@services/ttsService";
 import { queueManager } from "@services/queueManager";
-import { useUpdate } from "../../App";
 
 import { useAppSettings } from "@hooks/useAppSettings";
 import { useVideoPlayer } from "@hooks/useVideoPlayer";

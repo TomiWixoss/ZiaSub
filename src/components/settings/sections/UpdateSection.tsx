@@ -12,10 +12,9 @@ import {
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { useTheme } from "@src/contexts";
+import { useTheme, useUpdate } from "@src/contexts";
 import { useThemedStyles, createThemedStyles } from "@hooks/useThemedStyles";
 import { updateService } from "@services/updateService";
-import { useUpdate } from "../../../../App";
 
 const UpdateSection: React.FC = () => {
   const { t } = useTranslation();

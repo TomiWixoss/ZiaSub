@@ -1,7 +1,7 @@
 /**
  * Update Modal - Shows update notification and download progress
  */
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useRef } from "react";
 import {
   View,
   Text,
@@ -9,17 +9,14 @@ import {
   Modal,
   ScrollView,
   TouchableOpacity,
-  ActivityIndicator,
   Platform,
+  Animated,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@src/contexts";
 import { useTranslation } from "react-i18next";
-import {
-  updateService,
-  ReleaseInfo,
-  UpdateCheckResult,
-} from "@services/updateService";
+import { updateService, UpdateCheckResult } from "@services/updateService";
+import Button3D from "./Button3D";
 
 interface UpdateModalProps {
   visible: boolean;
@@ -40,18 +37,20 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
   const [downloading, setDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const downloadingRef = useRef(false);
 
   const updateResult = externalResult;
   const release = updateResult?.latestRelease;
 
   const handleDownload = async () => {
-    if (!release?.apkUrl) {
-      if (release?.htmlUrl) {
+    if (!release?.apkUrl || downloadingRef.current) {
+      if (release?.htmlUrl && !downloadingRef.current) {
         await updateService.openReleasePage(release.htmlUrl);
       }
       return;
     }
 
+    downloadingRef.current = true;
     setDownloading(true);
     setDownloadProgress(0);
     setError(null);
@@ -59,16 +58,33 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
     try {
       const fileUri = await updateService.downloadApk(
         release.apkUrl,
-        (progress) => setDownloadProgress(progress)
+        (progress) => {
+          if (downloadingRef.current) {
+            setDownloadProgress(progress);
+          }
+        }
       );
 
-      if (fileUri) {
-        await updateService.installApk(fileUri);
+      if (fileUri && downloadingRef.current) {
+        setDownloadProgress(1);
+        setDownloading(false);
+        downloadingRef.current = false;
+        // Small delay before installing
+        setTimeout(async () => {
+          await updateService.installApk(fileUri);
+        }, 500);
+      } else if (downloadingRef.current) {
+        setError(t("update.downloadError"));
+        setDownloading(false);
+        downloadingRef.current = false;
       }
     } catch (err) {
-      setError(t("update.downloadError"));
-    } finally {
-      setDownloading(false);
+      console.error("Download error:", err);
+      if (downloadingRef.current) {
+        setError(t("update.downloadError"));
+        setDownloading(false);
+        downloadingRef.current = false;
+      }
     }
   };
 
@@ -79,6 +95,11 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
   };
 
   const handleDismiss = () => {
+    // Cancel download if in progress
+    downloadingRef.current = false;
+    setDownloading(false);
+    setDownloadProgress(0);
+    setError(null);
     onDismissUpdate?.();
     onClose();
   };
@@ -88,7 +109,6 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
   };
 
   const formatChangelog = (body: string) => {
-    // Simple markdown-like formatting
     return body
       .split("\n")
       .map((line) => line.trim())
@@ -98,6 +118,8 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
   if (!updateResult?.hasUpdate || !release) {
     return null;
   }
+
+  const changelogLines = release.body ? formatChangelog(release.body) : [];
 
   return (
     <Modal
@@ -164,7 +186,7 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
           </View>
 
           {/* Changelog */}
-          {release.body && (
+          {changelogLines.length > 0 && (
             <View style={styles.changelogSection}>
               <Text style={[styles.changelogTitle, { color: colors.text }]}>
                 {t("update.changelog")}
@@ -174,10 +196,17 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
                   styles.changelogScroll,
                   { backgroundColor: colors.surfaceLight },
                 ]}
+                contentContainerStyle={styles.changelogContent}
                 showsVerticalScrollIndicator={false}
               >
-                {formatChangelog(release.body).map((line, index) => (
-                  <View key={index} style={styles.changelogLine}>
+                {changelogLines.map((line, index) => (
+                  <View
+                    key={index}
+                    style={[
+                      styles.changelogLine,
+                      index === changelogLines.length - 1 && styles.lastLine,
+                    ]}
+                  >
                     {line.startsWith("-") || line.startsWith("*") ? (
                       <>
                         <Text
@@ -243,7 +272,7 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
                   { backgroundColor: colors.surfaceLight },
                 ]}
               >
-                <View
+                <Animated.View
                   style={[
                     styles.progressFill,
                     {
@@ -256,7 +285,7 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
               <Text
                 style={[styles.progressText, { color: colors.textSecondary }]}
               >
-                {Math.round(downloadProgress * 100)}%
+                {t("update.downloading")} {Math.round(downloadProgress * 100)}%
               </Text>
             </View>
           )}
@@ -264,47 +293,30 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
           {/* Buttons */}
           {!downloading && (
             <View style={styles.buttonRow}>
-              <TouchableOpacity
-                style={[styles.laterButton, { borderColor: colors.border }]}
-                onPress={handleDismiss}
-              >
-                <Text
-                  style={[
-                    styles.laterButtonText,
-                    { color: colors.textSecondary },
-                  ]}
-                >
-                  {t("update.later")}
-                </Text>
-              </TouchableOpacity>
-
-              {Platform.OS === "android" && release.apkUrl ? (
-                <TouchableOpacity
-                  style={[
-                    styles.downloadButton,
-                    { backgroundColor: colors.primary },
-                  ]}
-                  onPress={handleDownload}
-                >
-                  <Ionicons name="download" size={18} color="#fff" />
-                  <Text style={styles.downloadButtonText}>
-                    {t("update.download")}
-                  </Text>
-                </TouchableOpacity>
-              ) : (
-                <TouchableOpacity
-                  style={[
-                    styles.downloadButton,
-                    { backgroundColor: colors.primary },
-                  ]}
-                  onPress={handleOpenRelease}
-                >
-                  <Ionicons name="open-outline" size={18} color="#fff" />
-                  <Text style={styles.downloadButtonText}>
-                    {t("update.viewRelease")}
-                  </Text>
-                </TouchableOpacity>
-              )}
+              <View style={styles.buttonWrapper}>
+                <Button3D
+                  title={t("update.later")}
+                  variant="outline"
+                  onPress={handleDismiss}
+                />
+              </View>
+              <View style={styles.buttonWrapper}>
+                {Platform.OS === "android" && release.apkUrl ? (
+                  <Button3D
+                    title={t("update.download")}
+                    icon="download"
+                    variant="primary"
+                    onPress={handleDownload}
+                  />
+                ) : (
+                  <Button3D
+                    title={t("update.viewRelease")}
+                    icon="open-in-new"
+                    variant="primary"
+                    onPress={handleOpenRelease}
+                  />
+                )}
+              </View>
             </View>
           )}
         </View>
@@ -382,11 +394,17 @@ const styles = StyleSheet.create({
   changelogScroll: {
     maxHeight: 180,
     borderRadius: 10,
+  },
+  changelogContent: {
     padding: 12,
+    paddingBottom: 16,
   },
   changelogLine: {
     flexDirection: "row",
     marginBottom: 6,
+  },
+  lastLine: {
+    marginBottom: 0,
   },
   bullet: {
     fontSize: 14,
@@ -420,20 +438,21 @@ const styles = StyleSheet.create({
   downloadProgress: {
     marginHorizontal: 16,
     marginBottom: 16,
-    gap: 6,
+    gap: 8,
   },
   progressBar: {
-    height: 8,
-    borderRadius: 4,
+    height: 10,
+    borderRadius: 5,
     overflow: "hidden",
   },
   progressFill: {
     height: "100%",
-    borderRadius: 4,
+    borderRadius: 5,
   },
   progressText: {
-    fontSize: 12,
+    fontSize: 13,
     textAlign: "center",
+    fontWeight: "500",
   },
   buttonRow: {
     flexDirection: "row",
@@ -441,30 +460,8 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     gap: 12,
   },
-  laterButton: {
+  buttonWrapper: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 10,
-    borderWidth: 1,
-    alignItems: "center",
-  },
-  laterButtonText: {
-    fontSize: 15,
-    fontWeight: "600",
-  },
-  downloadButton: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 12,
-    borderRadius: 10,
-    gap: 6,
-  },
-  downloadButtonText: {
-    color: "#fff",
-    fontSize: 15,
-    fontWeight: "600",
   },
 });
 

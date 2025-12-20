@@ -1,7 +1,7 @@
 /**
  * Update Service - Check for app updates from GitHub releases
  */
-import { Paths, File } from "expo-file-system/next";
+import * as FileSystem from "expo-file-system/legacy";
 import { Linking, Platform } from "react-native";
 import * as Application from "expo-application";
 import * as IntentLauncher from "expo-intent-launcher";
@@ -30,7 +30,7 @@ export interface UpdateCheckResult {
  * Get current app version from app.json
  */
 export const getCurrentVersion = (): string => {
-  return Application.nativeApplicationVersion || "1.0.0";
+  return Application.nativeApplicationVersion || "0.0.1";
 };
 
 /**
@@ -129,6 +129,23 @@ export const openReleasePage = async (url: string): Promise<void> => {
   }
 };
 
+// Store download resumable for cancellation
+let currentDownload: FileSystem.DownloadResumable | null = null;
+
+/**
+ * Cancel current download
+ */
+export const cancelDownload = async (): Promise<void> => {
+  if (currentDownload) {
+    try {
+      await currentDownload.pauseAsync();
+      currentDownload = null;
+    } catch (error) {
+      console.error("Error cancelling download:", error);
+    }
+  }
+};
+
 /**
  * Download APK file (Android only)
  */
@@ -141,50 +158,42 @@ export const downloadApk = async (
   }
 
   try {
-    const fileName = apkUrl.split("/").pop() || "update.apk";
-    const fileUri = `${Paths.cache.uri}/${fileName}`;
+    // Cancel any existing download
+    await cancelDownload();
 
-    // Download using fetch and write to file
-    const response = await fetch(apkUrl);
-    if (!response.ok) {
-      throw new Error(`Download failed: ${response.status}`);
-    }
+    const fileName = `ziasub-update-${Date.now()}.apk`;
+    const fileUri = FileSystem.documentDirectory + fileName;
 
-    const contentLength = response.headers.get("content-length");
-    const total = contentLength ? parseInt(contentLength, 10) : 0;
-    let loaded = 0;
+    console.log("Starting download from:", apkUrl);
+    console.log("Saving to:", fileUri);
 
-    const reader = response.body?.getReader();
-    if (!reader) {
-      throw new Error("Cannot read response body");
-    }
-
-    const chunks: Uint8Array[] = [];
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      chunks.push(value);
-      loaded += value.length;
-      if (total > 0) {
-        onProgress?.(loaded / total);
+    // Create download resumable with progress callback
+    currentDownload = FileSystem.createDownloadResumable(
+      apkUrl,
+      fileUri,
+      {},
+      (downloadProgress) => {
+        const progress =
+          downloadProgress.totalBytesWritten /
+          downloadProgress.totalBytesExpectedToWrite;
+        console.log("Download progress:", Math.round(progress * 100) + "%");
+        onProgress?.(progress);
       }
+    );
+
+    const result = await currentDownload.downloadAsync();
+    currentDownload = null;
+
+    console.log("Download result:", result);
+
+    if (result?.uri) {
+      return result.uri;
     }
 
-    // Combine chunks and write to file
-    const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0);
-    const combined = new Uint8Array(totalLength);
-    let offset = 0;
-    for (const chunk of chunks) {
-      combined.set(chunk, offset);
-      offset += chunk.length;
-    }
-
-    const file = new File(fileUri);
-    await file.write(combined);
-
-    return fileUri;
+    return null;
   } catch (error) {
     console.error("Error downloading APK:", error);
+    currentDownload = null;
     return null;
   }
 };
@@ -197,21 +206,24 @@ export const installApk = async (fileUri: string): Promise<void> => {
     return;
   }
 
+  console.log("Installing APK from:", fileUri);
+
   try {
-    // Use IntentLauncher to open APK installer
+    // Get content URI for the file
+    const contentUri = await FileSystem.getContentUriAsync(fileUri);
+    console.log("Content URI:", contentUri);
+
+    // Open APK installer
     await IntentLauncher.startActivityAsync("android.intent.action.VIEW", {
-      data: fileUri,
+      data: contentUri,
       flags: 1, // FLAG_GRANT_READ_URI_PERMISSION
       type: "application/vnd.android.package-archive",
     });
+
+    console.log("APK installer opened");
   } catch (error) {
     console.error("Error installing APK:", error);
-    // Fallback to Linking
-    try {
-      await Linking.openURL(fileUri);
-    } catch (linkError) {
-      console.error("Fallback linking failed:", linkError);
-    }
+    throw error;
   }
 };
 
@@ -222,4 +234,5 @@ export const updateService = {
   openReleasePage,
   downloadApk,
   installApk,
+  cancelDownload,
 };

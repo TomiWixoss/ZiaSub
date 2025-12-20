@@ -376,6 +376,7 @@ export default {
     checkNow: "Kiểm tra cập nhật",
     checkError: "Không thể kiểm tra cập nhật",
     downloadError: "Không thể tải xuống",
+    downloading: "Đang tải...",
     upToDate: "Bạn đang dùng phiên bản mới nhất!",
     available: "Có phiên bản mới!",
     currentVersion: "Phiên bản hiện tại",
