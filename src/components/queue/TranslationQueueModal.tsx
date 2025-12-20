@@ -8,6 +8,8 @@ import {
   Animated,
   Dimensions,
   useWindowDimensions,
+  StatusBar,
+  Platform,
 } from "react-native";
 import { confirm, confirmDestructive } from "../common/CustomAlert";
 import { Text } from "react-native-paper";
@@ -239,6 +241,11 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
   };
 
   const pendingCount = counts.pending + counts.error;
+
+  // Tính toán padding cho safe area
+  const statusBarHeight =
+    Platform.OS === "android" ? StatusBar.currentHeight || 0 : 0;
+  const topPadding = Math.max(insets.top, statusBarHeight, 24);
   const bottomPadding = isPortrait
     ? Math.max(insets.bottom, 20) + FLOATING_BUTTON_HEIGHT
     : Math.max(insets.bottom, 20);
@@ -253,20 +260,11 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
     >
       <View style={styles.modalOverlay}>
         <Animated.View
-          style={[themedStyles.modalBackdrop, { opacity: fadeAnim }]}
-        >
-          <TouchableOpacity
-            style={StyleSheet.absoluteFill}
-            activeOpacity={1}
-            onPress={handleClose}
-          />
-        </Animated.View>
-        <Animated.View
           style={[
             styles.container,
             themedStyles.container,
             {
-              marginTop: insets.top + 10,
+              paddingTop: topPadding,
               paddingBottom: bottomPadding,
               transform: [{ translateY: slideAnim }],
             },
@@ -355,27 +353,29 @@ const styles = StyleSheet.create({
   modalOverlay: { flex: 1 },
   container: {
     flex: 1,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingTop: 16,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    overflow: "hidden",
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingBottom: 12,
+    paddingVertical: 12,
   },
-  closeBtn: { padding: 4 },
+  closeBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   list: { paddingHorizontal: 16 },
   emptyList: { flex: 1 },
 });
 
 const queueModalThemedStyles = createThemedStyles((colors) => ({
-  modalBackdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: colors.overlay,
-  },
   container: { backgroundColor: colors.background },
   headerTitle: { color: colors.text, fontSize: 18, fontWeight: "700" },
 }));
