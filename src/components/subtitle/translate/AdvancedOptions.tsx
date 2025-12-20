@@ -321,10 +321,12 @@ const AdvancedOptions: React.FC<AdvancedOptionsProps> = ({
             </Text>
           )}
           {onSelectPreset && (
-            <PresetPromptPicker
-              onSelectPreset={onSelectPreset}
-              currentPresetId={currentPresetId}
-            />
+            <View style={{ marginTop: 12 }}>
+              <PresetPromptPicker
+                onSelectPreset={onSelectPreset}
+                currentPresetId={currentPresetId}
+              />
+            </View>
           )}
         </View>
       )}

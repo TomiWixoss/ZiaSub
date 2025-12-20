@@ -93,6 +93,7 @@ const QueueActions: React.FC<QueueActionsProps> = ({
       <PresetPromptPicker
         onSelectPreset={handleSelectPreset}
         currentPresetId={currentPresetId}
+        style={{ marginBottom: 12 }}
       />
       <View style={styles.actionButtons}>
         <View style={styles.actionButtonPrimary}>

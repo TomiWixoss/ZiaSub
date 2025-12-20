@@ -1,28 +1,86 @@
-import React, { useState } from "react";
-import { View, TouchableOpacity, ScrollView, StyleSheet } from "react-native";
-import { Text, Portal, Modal } from "react-native-paper";
+import React, { useState, useRef, useEffect } from "react";
+import {
+  View,
+  TouchableOpacity,
+  ScrollView,
+  StyleSheet,
+  Modal,
+  Animated,
+  Dimensions,
+  Pressable,
+  ViewStyle,
+} from "react-native";
+import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@src/contexts";
+import { useThemedStyles, createThemedStyles } from "@hooks/useThemedStyles";
 import { PRESET_PROMPTS, type PresetPromptType } from "@constants/defaults";
+
+const { height: SCREEN_HEIGHT } = Dimensions.get("window");
+const SHEET_HEIGHT = SCREEN_HEIGHT * 0.75;
 
 interface PresetPromptPickerProps {
   onSelectPreset: (prompt: string, presetId: PresetPromptType) => void;
   currentPresetId?: PresetPromptType;
+  style?: ViewStyle;
 }
 
 const PresetPromptPicker: React.FC<PresetPromptPickerProps> = ({
   onSelectPreset,
   currentPresetId,
+  style,
 }) => {
   const { t, i18n } = useTranslation();
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const [visible, setVisible] = useState(false);
   const isVi = i18n.language === "vi";
+  const styles = useThemedStyles(themedStyles);
+
+  const slideAnim = useRef(new Animated.Value(SHEET_HEIGHT)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (visible) {
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.spring(slideAnim, {
+          toValue: 0,
+          tension: 65,
+          friction: 11,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      slideAnim.setValue(SHEET_HEIGHT);
+      fadeAnim.setValue(0);
+    }
+  }, [visible]);
+
+  const handleClose = () => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: SHEET_HEIGHT,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start(() => setVisible(false));
+  };
 
   const handleSelect = (preset: (typeof PRESET_PROMPTS)[0]) => {
     onSelectPreset(preset.prompt, preset.id);
-    setVisible(false);
+    handleClose();
   };
 
   const currentPreset = currentPresetId
@@ -32,26 +90,23 @@ const PresetPromptPicker: React.FC<PresetPromptPickerProps> = ({
   return (
     <>
       <TouchableOpacity
-        style={[
-          styles.pickerButton,
-          { backgroundColor: colors.surface, borderColor: colors.border },
-        ]}
+        style={[styles.pickerButton, style]}
         onPress={() => setVisible(true)}
+        activeOpacity={0.7}
       >
         <View style={styles.pickerLeft}>
-          <MaterialCommunityIcons
-            name={(currentPreset?.icon as any) || "file-document-outline"}
-            size={20}
-            color={colors.primary}
-          />
+          <View style={styles.pickerIconContainer}>
+            <MaterialCommunityIcons
+              name={(currentPreset?.icon as any) || "file-document-outline"}
+              size={20}
+              color="#FFFFFF"
+            />
+          </View>
           <View style={styles.pickerTextContainer}>
-            <Text style={[styles.pickerLabel, { color: colors.textMuted }]}>
+            <Text style={styles.pickerLabel}>
               {t("settings.geminiConfig.presetPrompts")}
             </Text>
-            <Text
-              style={[styles.pickerValue, { color: colors.text }]}
-              numberOfLines={1}
-            >
+            <Text style={styles.pickerValue} numberOfLines={1}>
               {currentPreset
                 ? isVi
                   ? currentPreset.nameVi
@@ -67,168 +122,239 @@ const PresetPromptPicker: React.FC<PresetPromptPickerProps> = ({
         />
       </TouchableOpacity>
 
-      <Portal>
-        <Modal
-          visible={visible}
-          onDismiss={() => setVisible(false)}
-          contentContainerStyle={[
-            styles.modalContainer,
-            { backgroundColor: colors.surface },
-          ]}
-        >
-          <View style={styles.modalHeader}>
-            <Text style={[styles.modalTitle, { color: colors.text }]}>
-              {t("settings.geminiConfig.selectPreset")}
-            </Text>
-            <TouchableOpacity onPress={() => setVisible(false)}>
-              <MaterialCommunityIcons
-                name="close"
-                size={24}
-                color={colors.textMuted}
-              />
-            </TouchableOpacity>
-          </View>
+      <Modal
+        visible={visible}
+        transparent
+        animationType="none"
+        onRequestClose={handleClose}
+        statusBarTranslucent
+      >
+        <View style={styles.modalOverlay}>
+          <Animated.View style={[styles.modalBackdrop, { opacity: fadeAnim }]}>
+            <Pressable style={StyleSheet.absoluteFill} onPress={handleClose} />
+          </Animated.View>
 
-          <ScrollView
-            style={styles.presetList}
-            showsVerticalScrollIndicator={false}
+          <Animated.View
+            style={[
+              styles.bottomSheet,
+              {
+                paddingBottom: Math.max(insets.bottom, 20),
+                transform: [{ translateY: slideAnim }],
+              },
+            ]}
           >
-            {PRESET_PROMPTS.map((preset) => {
-              const isSelected = preset.id === currentPresetId;
-              return (
-                <TouchableOpacity
-                  key={preset.id}
-                  style={[
-                    styles.presetItem,
-                    {
-                      backgroundColor: isSelected
-                        ? colors.primaryLight
-                        : colors.surfaceElevated,
-                      borderColor: isSelected ? colors.primary : colors.border,
-                    },
-                  ]}
-                  onPress={() => handleSelect(preset)}
-                >
-                  <View
+            <View style={styles.sheetHeader}>
+              <View style={styles.dragHandle} />
+              <Text style={styles.title}>
+                {t("settings.geminiConfig.selectPreset")}
+              </Text>
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={handleClose}
+              >
+                <MaterialCommunityIcons
+                  name="close"
+                  size={20}
+                  color={colors.textSecondary}
+                />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView
+              style={styles.presetList}
+              contentContainerStyle={styles.presetListContent}
+              showsVerticalScrollIndicator={false}
+            >
+              {PRESET_PROMPTS.map((preset) => {
+                const isSelected = preset.id === currentPresetId;
+                return (
+                  <TouchableOpacity
+                    key={preset.id}
                     style={[
-                      styles.presetIcon,
-                      { backgroundColor: colors.surface },
+                      styles.presetItem,
+                      isSelected && styles.presetItemSelected,
                     ]}
+                    onPress={() => handleSelect(preset)}
+                    activeOpacity={0.7}
                   >
-                    <MaterialCommunityIcons
-                      name={preset.icon as any}
-                      size={24}
-                      color={isSelected ? colors.primary : colors.textMuted}
-                    />
-                  </View>
-                  <View style={styles.presetInfo}>
-                    <Text
+                    <View
                       style={[
-                        styles.presetName,
-                        { color: isSelected ? colors.primary : colors.text },
+                        styles.presetIcon,
+                        isSelected && styles.presetIconSelected,
                       ]}
                     >
-                      {isVi ? preset.nameVi : preset.name}
-                    </Text>
-                    <Text
-                      style={[styles.presetDesc, { color: colors.textMuted }]}
-                      numberOfLines={2}
-                    >
-                      {preset.description}
-                    </Text>
-                  </View>
-                  {isSelected && (
-                    <MaterialCommunityIcons
-                      name="check-circle"
-                      size={22}
-                      color={colors.primary}
-                    />
-                  )}
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-        </Modal>
-      </Portal>
+                      <MaterialCommunityIcons
+                        name={preset.icon as any}
+                        size={22}
+                        color={isSelected ? "#FFFFFF" : colors.textSecondary}
+                      />
+                    </View>
+                    <View style={styles.presetInfo}>
+                      <Text
+                        style={[
+                          styles.presetName,
+                          isSelected && styles.presetNameSelected,
+                        ]}
+                      >
+                        {isVi ? preset.nameVi : preset.name}
+                      </Text>
+                      <Text style={styles.presetDesc} numberOfLines={1}>
+                        {preset.description}
+                      </Text>
+                    </View>
+                    {isSelected && (
+                      <MaterialCommunityIcons
+                        name="check-circle"
+                        size={22}
+                        color={colors.primary}
+                      />
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </Animated.View>
+        </View>
+      </Modal>
     </>
   );
 };
 
-const styles = StyleSheet.create({
+const themedStyles = createThemedStyles((colors) => ({
+  // Picker Button
   pickerButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    justifyContent: "space-between" as const,
     padding: 12,
     borderRadius: 12,
     borderWidth: 1,
-    marginBottom: 12,
+    backgroundColor: colors.surfaceElevated,
+    borderColor: colors.border,
   },
   pickerLeft: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
     flex: 1,
     gap: 12,
+  },
+  pickerIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    backgroundColor: colors.primary,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
   },
   pickerTextContainer: {
     flex: 1,
   },
   pickerLabel: {
     fontSize: 11,
+    color: colors.textSecondary,
     marginBottom: 2,
   },
   pickerValue: {
     fontSize: 14,
-    fontWeight: "500",
+    fontWeight: "600" as const,
+    color: colors.text,
   },
-  modalContainer: {
-    margin: 20,
-    borderRadius: 16,
-    maxHeight: "80%",
+
+  // Modal
+  modalOverlay: {
+    flex: 1,
+    justifyContent: "flex-end" as const,
   },
-  modalHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(0,0,0,0.1)",
+  modalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: colors.overlay,
   },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: "600",
+  bottomSheet: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    paddingTop: 12,
+    width: "100%" as const,
+    height: SHEET_HEIGHT,
+    backgroundColor: colors.background,
+    borderTopWidth: 1,
+    borderColor: colors.border,
   },
+  sheetHeader: {
+    alignItems: "center" as const,
+    marginBottom: 16,
+    position: "relative" as const,
+  },
+  dragHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    marginBottom: 16,
+    backgroundColor: colors.borderLight,
+  },
+  title: {
+    color: colors.text,
+    fontSize: 17,
+    fontWeight: "700" as const,
+  },
+  closeButton: {
+    position: "absolute" as const,
+    right: 0,
+    top: 12,
+    padding: 8,
+  },
+
+  // Preset List
   presetList: {
-    padding: 12,
+    flex: 1,
+  },
+  presetListContent: {
+    paddingBottom: 20,
   },
   presetItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 12,
-    borderRadius: 12,
-    marginBottom: 8,
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    padding: 14,
+    borderRadius: 14,
+    marginBottom: 10,
+    backgroundColor: colors.surface,
     borderWidth: 1,
+    borderColor: colors.border,
     gap: 12,
   },
+  presetItemSelected: {
+    backgroundColor: colors.primary + "20",
+    borderColor: colors.primary,
+    borderWidth: 2,
+  },
   presetIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
+    width: 46,
+    height: 46,
+    borderRadius: 12,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+    backgroundColor: colors.surfaceElevated,
+  },
+  presetIconSelected: {
+    backgroundColor: colors.primary,
   },
   presetInfo: {
     flex: 1,
   },
   presetName: {
     fontSize: 15,
-    fontWeight: "600",
-    marginBottom: 2,
+    fontWeight: "600" as const,
+    color: colors.text,
+    marginBottom: 3,
+  },
+  presetNameSelected: {
+    color: colors.primary,
   },
   presetDesc: {
     fontSize: 12,
+    color: colors.textSecondary,
     lineHeight: 16,
   },
-});
+}));
 
 export default PresetPromptPicker;
