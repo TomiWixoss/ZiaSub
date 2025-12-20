@@ -50,7 +50,8 @@ const QueueActions: React.FC<QueueActionsProps> = ({
       const matchingPreset = PRESET_PROMPTS.find(
         (p) => p.prompt === selectedConfig.systemPrompt
       );
-      setCurrentPresetId(matchingPreset?.id);
+      // If no matching preset, it's custom
+      setCurrentPresetId(matchingPreset?.id || ("custom" as PresetPromptType));
     }
   }, [selectedConfigId, configs]);
 
@@ -58,6 +59,11 @@ const QueueActions: React.FC<QueueActionsProps> = ({
     prompt: string,
     presetId: PresetPromptType
   ) => {
+    // If custom selected, just update the presetId without changing prompt
+    if (presetId === "custom" || !prompt) {
+      setCurrentPresetId(presetId);
+      return;
+    }
     const configIndex = configs.findIndex((c) => c.id === selectedConfigId);
     if (configIndex >= 0) {
       const updatedConfigs = [...configs];

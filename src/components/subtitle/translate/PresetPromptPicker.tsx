@@ -21,6 +21,9 @@ import { PRESET_PROMPTS, type PresetPromptType } from "@constants/defaults";
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 const SHEET_HEIGHT = SCREEN_HEIGHT * 0.75;
 
+// Custom option for user-defined prompt
+const CUSTOM_PRESET_ID = "custom" as PresetPromptType;
+
 interface PresetPromptPickerProps {
   onSelectPreset: (prompt: string, presetId: PresetPromptType) => void;
   currentPresetId?: PresetPromptType;
@@ -83,9 +86,19 @@ const PresetPromptPicker: React.FC<PresetPromptPickerProps> = ({
     handleClose();
   };
 
-  const currentPreset = currentPresetId
-    ? PRESET_PROMPTS.find((p) => p.id === currentPresetId)
-    : null;
+  const handleSelectCustom = () => {
+    // Don't change the prompt, just mark as custom
+    onSelectPreset("", CUSTOM_PRESET_ID);
+    handleClose();
+  };
+
+  const currentPreset =
+    currentPresetId && currentPresetId !== CUSTOM_PRESET_ID
+      ? PRESET_PROMPTS.find((p) => p.id === currentPresetId)
+      : null;
+
+  const isCustomSelected =
+    currentPresetId === CUSTOM_PRESET_ID || !currentPresetId;
 
   return (
     <>
@@ -111,7 +124,9 @@ const PresetPromptPicker: React.FC<PresetPromptPickerProps> = ({
                 ? isVi
                   ? currentPreset.nameVi
                   : currentPreset.name
-                : t("settings.geminiConfig.selectPreset")}
+                : isVi
+                ? "Tùy chỉnh"
+                : "Custom"}
             </Text>
           </View>
         </View>
@@ -165,8 +180,63 @@ const PresetPromptPicker: React.FC<PresetPromptPickerProps> = ({
               contentContainerStyle={styles.presetListContent}
               showsVerticalScrollIndicator={false}
             >
+              {/* Custom option - use user's own system prompt */}
+              <TouchableOpacity
+                style={[
+                  styles.presetItem,
+                  isCustomSelected && styles.presetItemSelected,
+                ]}
+                onPress={handleSelectCustom}
+                activeOpacity={0.7}
+              >
+                <View
+                  style={[
+                    styles.presetIcon,
+                    isCustomSelected && styles.presetIconSelected,
+                  ]}
+                >
+                  <MaterialCommunityIcons
+                    name="pencil-outline"
+                    size={22}
+                    color={isCustomSelected ? "#FFFFFF" : colors.textSecondary}
+                  />
+                </View>
+                <View style={styles.presetInfo}>
+                  <Text
+                    style={[
+                      styles.presetName,
+                      isCustomSelected && styles.presetNameSelected,
+                    ]}
+                  >
+                    {isVi ? "Tùy chỉnh" : "Custom"}
+                  </Text>
+                  <Text style={styles.presetDesc} numberOfLines={1}>
+                    {isVi
+                      ? "Sử dụng prompt tự định nghĩa trong cài đặt"
+                      : "Use your own prompt defined in settings"}
+                  </Text>
+                </View>
+                {isCustomSelected && (
+                  <MaterialCommunityIcons
+                    name="check-circle"
+                    size={22}
+                    color={colors.primary}
+                  />
+                )}
+              </TouchableOpacity>
+
+              {/* Divider */}
+              <View style={styles.divider}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>
+                  {isVi ? "Mẫu có sẵn" : "Presets"}
+                </Text>
+                <View style={styles.dividerLine} />
+              </View>
+
               {PRESET_PROMPTS.map((preset) => {
-                const isSelected = preset.id === currentPresetId;
+                const isSelected =
+                  preset.id === currentPresetId && !isCustomSelected;
                 return (
                   <TouchableOpacity
                     key={preset.id}
@@ -354,6 +424,24 @@ const themedStyles = createThemedStyles((colors) => ({
     fontSize: 12,
     color: colors.textSecondary,
     lineHeight: 16,
+  },
+
+  // Divider
+  divider: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    marginVertical: 12,
+    gap: 12,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.border,
+  },
+  dividerText: {
+    fontSize: 12,
+    color: colors.textMuted,
+    fontWeight: "500" as const,
   },
 }));
 

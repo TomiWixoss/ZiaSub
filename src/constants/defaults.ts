@@ -269,7 +269,8 @@ export type PresetPromptType =
   | "sports"
   | "asmr"
   | "cooking"
-  | "review";
+  | "review"
+  | "custom";
 
 export interface PresetPrompt {
   id: PresetPromptType;

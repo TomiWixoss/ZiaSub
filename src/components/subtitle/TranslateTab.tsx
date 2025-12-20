@@ -98,7 +98,8 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
       const matchingPreset = PRESET_PROMPTS.find(
         (p) => p.prompt === selectedConfig.systemPrompt
       );
-      setCurrentPresetId(matchingPreset?.id);
+      // If no matching preset, it's custom
+      setCurrentPresetId(matchingPreset?.id || ("custom" as PresetPromptType));
     }
   }, [selectedConfigId, geminiConfigs]);
 
@@ -615,6 +616,11 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
           videoDuration={videoDuration}
           currentPresetId={currentPresetId}
           onSelectPreset={async (prompt, presetId) => {
+            // If custom selected, just update the presetId without changing prompt
+            if (presetId === "custom" || !prompt) {
+              setCurrentPresetId(presetId);
+              return;
+            }
             // Update current config's systemPrompt with selected preset
             const configIndex = geminiConfigs.findIndex(
               (c) => c.id === selectedConfigId
