@@ -15,6 +15,7 @@ class TranslationManager {
   private currentJob: TranslationJob | null = null;
   private listeners: Set<TranslationListener> = new Set();
   private abortController: AbortController | null = null;
+  private isAborted: boolean = false;
 
   private constructor() {}
 
@@ -80,6 +81,10 @@ class TranslationManager {
       throw new Error("Đang dịch video khác, vui lòng đợi hoặc dừng trước");
     }
 
+    // Create new abort controller for this translation
+    this.abortController = new AbortController();
+    this.isAborted = false;
+
     // Create new job
     const jobId = `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
     this.currentJob = {
@@ -101,7 +106,7 @@ class TranslationManager {
 
     // Key status callback
     const onKeyStatus: KeyStatusCallback = (status) => {
-      if (this.currentJob && this.currentJob.id === jobId) {
+      if (this.currentJob && this.currentJob.id === jobId && !this.isAborted) {
         this.currentJob = {
           ...this.currentJob,
           keyStatus: status.message,
@@ -120,8 +125,13 @@ class TranslationManager {
           batchSettings,
           rangeStart,
           rangeEnd,
+          abortSignal: this.abortController.signal,
           onBatchProgress: (progress: BatchProgress) => {
-            if (this.currentJob && this.currentJob.id === jobId) {
+            if (
+              this.currentJob &&
+              this.currentJob.id === jobId &&
+              !this.isAborted
+            ) {
               this.currentJob = {
                 ...this.currentJob,
                 progress,
@@ -133,10 +143,14 @@ class TranslationManager {
           // Streaming mode callback - update partial result as each batch completes
           onBatchComplete: (
             partialSrt: string,
-            batchIndex: number,
-            totalBatches: number
+            _batchIndex: number,
+            _totalBatches: number
           ) => {
-            if (this.currentJob && this.currentJob.id === jobId) {
+            if (
+              this.currentJob &&
+              this.currentJob.id === jobId &&
+              !this.isAborted
+            ) {
               this.currentJob = {
                 ...this.currentJob,
                 partialResult: partialSrt,
@@ -147,11 +161,16 @@ class TranslationManager {
         }
       );
 
+      // Check if aborted during translation
+      if (this.isAborted) {
+        throw new Error("Đã dừng dịch");
+      }
+
       // Save translation to storage
       await saveTranslation(videoUrl, result, config.name);
 
       // Update job with result
-      if (this.currentJob && this.currentJob.id === jobId) {
+      if (this.currentJob && this.currentJob.id === jobId && !this.isAborted) {
         this.currentJob = {
           ...this.currentJob,
           status: "completed",
@@ -170,12 +189,16 @@ class TranslationManager {
         this.currentJob = {
           ...this.currentJob,
           status: "error",
-          error: error.message || "Có lỗi xảy ra",
+          error: this.isAborted
+            ? "Đã dừng dịch"
+            : error.message || "Có lỗi xảy ra",
           completedAt: Date.now(),
         };
         this.notify();
       }
       throw error;
+    } finally {
+      this.abortController = null;
     }
   }
 
@@ -202,6 +225,9 @@ class TranslationManager {
     if (videoUrl && this.currentJob.videoUrl !== videoUrl) {
       return false;
     }
+
+    // Set abort flag first
+    this.isAborted = true;
 
     // Abort the request
     if (this.abortController) {

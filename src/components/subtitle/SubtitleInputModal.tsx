@@ -141,12 +141,22 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
         if (job.status === "error") {
           setTranslateStatus("");
           setKeyStatus(null);
-          queueManager.markVideoError(
-            job.videoUrl,
-            job.error || "Có lỗi xảy ra"
-          );
+
+          // Don't mark as error in queue if user manually stopped
+          const isUserStopped = job.error === "Đã dừng dịch";
+          if (!isUserStopped) {
+            queueManager.markVideoError(
+              job.videoUrl,
+              job.error || "Có lỗi xảy ra"
+            );
+          }
+
           translationManager.clearCompletedJob(job.videoUrl);
-          alert("Không dịch được", job.error || "Không thể dịch video này.");
+
+          // Only show error alert if not user-initiated stop
+          if (!isUserStopped) {
+            alert("Không dịch được", job.error || "Không thể dịch video này.");
+          }
         }
       }
     });

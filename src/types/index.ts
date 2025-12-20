@@ -179,6 +179,7 @@ export interface VideoTranslateOptions {
   onKeyStatus?: KeyStatusCallback;
   rangeStart?: number;
   rangeEnd?: number;
+  abortSignal?: AbortSignal;
   onBatchComplete?: (
     partialSrt: string,
     batchIndex: number,

@@ -18,11 +18,13 @@ const runWithConcurrency = async <T>(
     completed: number,
     total: number,
     statuses: Array<"pending" | "processing" | "completed" | "error">
-  ) => void
+  ) => void,
+  abortSignal?: AbortSignal
 ): Promise<{
   results: (T | null)[];
   hasErrors: boolean;
   errorMessage?: string;
+  aborted?: boolean;
 }> => {
   const results: (T | null)[] = new Array(tasks.length).fill(null);
   const statuses: Array<"pending" | "processing" | "completed" | "error"> =
@@ -31,8 +33,15 @@ const runWithConcurrency = async <T>(
   let completedCount = 0;
   let hasErrors = false;
   let lastError: string | undefined;
+  let aborted = false;
 
   const runNext = async (): Promise<void> => {
+    // Check abort before starting next task
+    if (abortSignal?.aborted) {
+      aborted = true;
+      return;
+    }
+
     const index = currentIndex++;
     if (index >= tasks.length) return;
 
@@ -40,12 +49,26 @@ const runWithConcurrency = async <T>(
     onProgress?.(completedCount, tasks.length, [...statuses]);
 
     try {
+      // Check abort again before executing
+      if (abortSignal?.aborted) {
+        aborted = true;
+        statuses[index] = "error";
+        return;
+      }
+
       // Each batch task uses keyManager.executeWithRetry internally
       // which handles retry + key rotation for that specific batch
       results[index] = await tasks[index]();
       statuses[index] = "completed";
       completedCount++;
     } catch (error: any) {
+      // Check if aborted
+      if (abortSignal?.aborted) {
+        aborted = true;
+        statuses[index] = "error";
+        return;
+      }
+
       // Only reaches here after all retries exhausted (executeWithRetry handles retries)
       statuses[index] = "error";
       hasErrors = true;
@@ -57,7 +80,11 @@ const runWithConcurrency = async <T>(
     }
 
     onProgress?.(completedCount, tasks.length, [...statuses]);
-    await runNext();
+
+    // Don't continue if aborted
+    if (!abortSignal?.aborted) {
+      await runNext();
+    }
   };
 
   const workers = Array(Math.min(maxConcurrent, tasks.length))
@@ -65,7 +92,7 @@ const runWithConcurrency = async <T>(
     .map(() => runNext());
 
   await Promise.all(workers);
-  return { results, hasErrors, errorMessage: lastError };
+  return { results, hasErrors, errorMessage: lastError, aborted };
 };
 
 // Translate a single video batch with automatic key rotation
@@ -119,11 +146,13 @@ const runSequentialStreaming = async <T>(
     completed: number,
     total: number,
     statuses: Array<"pending" | "processing" | "completed" | "error">
-  ) => void
+  ) => void,
+  abortSignal?: AbortSignal
 ): Promise<{
   results: (T | null)[];
   hasErrors: boolean;
   errorMessage?: string;
+  aborted?: boolean;
 }> => {
   const results: (T | null)[] = new Array(tasks.length).fill(null);
   const statuses: Array<"pending" | "processing" | "completed" | "error"> =
@@ -132,11 +161,24 @@ const runSequentialStreaming = async <T>(
   let lastError: string | undefined;
 
   for (let i = 0; i < tasks.length; i++) {
+    // Check abort before each batch
+    if (abortSignal?.aborted) {
+      console.log(`[Gemini] Aborted at batch ${i + 1}`);
+      return { results, hasErrors, errorMessage: lastError, aborted: true };
+    }
+
     statuses[i] = "processing";
     onProgress?.(i, tasks.length, [...statuses]);
 
     try {
       const result = await tasks[i]();
+
+      // Check abort after batch completes
+      if (abortSignal?.aborted) {
+        console.log(`[Gemini] Aborted after batch ${i + 1}`);
+        return { results, hasErrors, errorMessage: lastError, aborted: true };
+      }
+
       results[i] = result;
       statuses[i] = "completed";
       // Immediately notify about completed batch for streaming
@@ -272,7 +314,7 @@ export const translateVideoWithGemini = async (
       if (streamingMode) {
         console.log("[Gemini] Using streaming mode (sequential batches)...");
 
-        const { results, hasErrors, errorMessage } =
+        const { results, hasErrors, errorMessage, aborted } =
           await runSequentialStreaming(
             batchTasks,
             (result, index, total) => {
@@ -292,8 +334,14 @@ export const translateVideoWithGemini = async (
                 status: "processing",
                 batchStatuses: statuses,
               });
-            }
+            },
+            options?.abortSignal
           );
+
+        // Check if aborted
+        if (aborted) {
+          throw new Error("Đã dừng dịch");
+        }
 
         const successfulResults = results.filter(
           (r): r is { content: string; offsetSeconds: number } => r !== null
@@ -321,22 +369,29 @@ export const translateVideoWithGemini = async (
       }
 
       // Concurrent mode (original behavior)
-      const { results, hasErrors, errorMessage } = await runWithConcurrency(
-        batchTasks,
-        maxConcurrent,
-        (completed, total, statuses) => {
-          options?.onBatchProgress?.({
-            totalBatches: total,
-            completedBatches: completed,
-            currentBatch:
-              statuses.filter((s) => s === "processing").length > 0
-                ? statuses.findIndex((s) => s === "processing") + 1
-                : completed,
-            status: "processing",
-            batchStatuses: statuses,
-          });
-        }
-      );
+      const { results, hasErrors, errorMessage, aborted } =
+        await runWithConcurrency(
+          batchTasks,
+          maxConcurrent,
+          (completed, total, statuses) => {
+            options?.onBatchProgress?.({
+              totalBatches: total,
+              completedBatches: completed,
+              currentBatch:
+                statuses.filter((s) => s === "processing").length > 0
+                  ? statuses.findIndex((s) => s === "processing") + 1
+                  : completed,
+              status: "processing",
+              batchStatuses: statuses,
+            });
+          },
+          options?.abortSignal
+        );
+
+      // Check if aborted
+      if (aborted) {
+        throw new Error("Đã dừng dịch");
+      }
 
       // Filter out failed batches (null results)
       const successfulResults = results.filter(
@@ -379,6 +434,11 @@ export const translateVideoWithGemini = async (
       return mergedSrt;
     }
 
+    // Check abort before single batch
+    if (options?.abortSignal?.aborted) {
+      throw new Error("Đã dừng dịch");
+    }
+
     // Single batch translation (with custom range support)
     console.log("[Gemini] Single batch translation...");
     options?.onBatchProgress?.({
@@ -399,6 +459,11 @@ export const translateVideoWithGemini = async (
       startOffset,
       endOffset
     );
+
+    // Check abort after single batch
+    if (options?.abortSignal?.aborted) {
+      throw new Error("Đã dừng dịch");
+    }
 
     options?.onBatchProgress?.({
       totalBatches: 1,
