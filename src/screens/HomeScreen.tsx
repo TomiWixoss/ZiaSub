@@ -18,6 +18,7 @@ import { useThemedStyles, createThemedStyles } from "@hooks/useThemedStyles";
 import { hasTranslation } from "@utils/storage";
 import { ttsService } from "@services/ttsService";
 import { queueManager } from "@services/queueManager";
+import { useUpdate } from "../../App";
 
 import { useAppSettings } from "@hooks/useAppSettings";
 import { useVideoPlayer } from "@hooks/useVideoPlayer";
@@ -35,6 +36,7 @@ const HomeScreen = () => {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { colors, isDark } = useTheme();
+  const { hasUpdate } = useUpdate();
 
   // Modal states
   const [modalVisible, setModalVisible] = useState(false);
@@ -490,6 +492,7 @@ const HomeScreen = () => {
         queueCount={queueCount}
         isInQueue={!!currentVideoInQueue}
         isChatLoading={isChatLoading}
+        hasUpdate={hasUpdate}
       />
 
       <SubtitleInputModal

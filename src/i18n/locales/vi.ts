@@ -368,4 +368,22 @@ export default {
     en: "English",
     auto: "Tự động",
   },
+
+  // Update
+  update: {
+    title: "Cập nhật ứng dụng",
+    checking: "Đang kiểm tra...",
+    checkNow: "Kiểm tra cập nhật",
+    checkError: "Không thể kiểm tra cập nhật",
+    downloadError: "Không thể tải xuống",
+    upToDate: "Bạn đang dùng phiên bản mới nhất!",
+    available: "Có phiên bản mới!",
+    currentVersion: "Phiên bản hiện tại",
+    newVersion: "Phiên bản mới",
+    changelog: "Có gì mới",
+    download: "Tải xuống",
+    viewRelease: "Xem trên GitHub",
+    later: "Để sau",
+    autoCheck: "Tự động kiểm tra cập nhật",
+  },
 };

@@ -16,6 +16,7 @@ interface FloatingButtonProps {
   queueCount?: number;
   isInQueue?: boolean;
   isChatLoading?: boolean;
+  hasUpdate?: boolean;
 }
 
 const SHADOW_HEIGHT = 4;
@@ -281,12 +282,20 @@ const FloatingButton: React.FC<FloatingButtonProps> = (props) => {
     queueCount = 0,
     isInQueue = false,
     isChatLoading = false,
+    hasUpdate = false,
   } = props;
   const bottomPosition = isVideoPage ? 20 : 80;
   return (
     <>
       <View style={[styles.fabColumnLeft, { bottom: bottomPosition }]}>
-        <Fab3D onPress={onSettingsPress} icon="cog" size={40} iconSize={20} />
+        <View style={styles.settingsBtnWrapper}>
+          <Fab3D onPress={onSettingsPress} icon="cog" size={40} iconSize={20} />
+          {hasUpdate && (
+            <View
+              style={[styles.updateBadge, { backgroundColor: colors.error }]}
+            />
+          )}
+        </View>
         <View style={styles.queueRow}>
           <View style={styles.queueBtnWrapper}>
             <Fab3D
@@ -351,6 +360,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
     zIndex: 20,
+  },
+  settingsBtnWrapper: { position: "relative" },
+  updateBadge: {
+    position: "absolute",
+    top: -2,
+    right: -2,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: "#fff",
   },
   queueRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   queueBtnWrapper: { position: "relative" },

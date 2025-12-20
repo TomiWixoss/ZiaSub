@@ -21,7 +21,9 @@ import {
   TTSSection,
   LanguageSection,
   ThemeSection,
+  UpdateSection,
 } from "./sections";
+import { useUpdate } from "../../../App";
 
 // Enable LayoutAnimation on Android
 if (
@@ -48,6 +50,7 @@ type SettingGroup =
   | "subtitle"
   | "batch"
   | "tts"
+  | "update"
   | null;
 
 interface GroupConfig {
@@ -71,6 +74,7 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
   const { colors } = useTheme();
   const themedStyles = useThemedStyles(generalThemedStyles);
   const [expandedGroup, setExpandedGroup] = useState<SettingGroup>(null);
+  const { hasUpdate, updateResult } = useUpdate();
 
   const groups: GroupConfig[] = [
     {
@@ -106,6 +110,17 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
           ? t("settings.groups.enabled")
           : t("settings.groups.disabled"),
       }),
+    },
+    {
+      key: "update",
+      icon: "update",
+      labelKey: "update.title",
+      description:
+        hasUpdate && updateResult?.latestRelease
+          ? `v${updateResult.latestRelease.version} ${t(
+              "update.available"
+            ).toLowerCase()}`
+          : t("update.checkNow"),
     },
   ];
 
@@ -156,6 +171,12 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
             <TTSSection ttsSettings={ttsSettings} onTTSChange={onTTSChange} />
           </View>
         );
+      case "update":
+        return (
+          <View style={styles.groupContent}>
+            <UpdateSection />
+          </View>
+        );
       default:
         return null;
     }
@@ -165,6 +186,8 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {groups.map((group) => {
         const isExpanded = expandedGroup === group.key;
+        const showUpdateBadge =
+          group.key === "update" && hasUpdate && !isExpanded;
         return (
           <View key={group.key} style={themedStyles.groupContainer}>
             <TouchableOpacity
@@ -176,30 +199,53 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
               activeOpacity={0.7}
             >
               <View style={styles.groupHeaderLeft}>
-                <View
-                  style={[
-                    themedStyles.iconContainer,
-                    isExpanded && themedStyles.iconContainerExpanded,
-                  ]}
-                >
-                  <MaterialCommunityIcons
-                    name={group.icon as any}
-                    size={20}
-                    color={isExpanded ? colors.primary : colors.textMuted}
-                  />
+                <View style={styles.iconWrapper}>
+                  <View
+                    style={[
+                      themedStyles.iconContainer,
+                      isExpanded && themedStyles.iconContainerExpanded,
+                      showUpdateBadge && {
+                        backgroundColor: `${colors.error}20`,
+                      },
+                    ]}
+                  >
+                    <MaterialCommunityIcons
+                      name={group.icon as any}
+                      size={20}
+                      color={
+                        showUpdateBadge
+                          ? colors.error
+                          : isExpanded
+                          ? colors.primary
+                          : colors.textMuted
+                      }
+                    />
+                  </View>
+                  {showUpdateBadge && (
+                    <View
+                      style={[
+                        styles.updateBadge,
+                        { backgroundColor: colors.error },
+                      ]}
+                    />
+                  )}
                 </View>
                 <View style={styles.groupInfo}>
                   <Text
                     style={[
                       themedStyles.groupTitle,
                       isExpanded && themedStyles.groupTitleExpanded,
+                      showUpdateBadge && { color: colors.error },
                     ]}
                   >
                     {t(group.labelKey)}
                   </Text>
                   {!isExpanded && (
                     <Text
-                      style={themedStyles.groupDescription}
+                      style={[
+                        themedStyles.groupDescription,
+                        showUpdateBadge && { color: colors.error },
+                      ]}
                       numberOfLines={1}
                     >
                       {group.description}
@@ -228,6 +274,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flex: 1,
     gap: 12,
+  },
+  iconWrapper: {
+    position: "relative",
+  },
+  updateBadge: {
+    position: "absolute",
+    top: -2,
+    right: -2,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    borderWidth: 2,
+    borderColor: "#fff",
   },
   groupInfo: { flex: 1 },
   groupContent: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 16 },

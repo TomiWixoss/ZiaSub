@@ -369,4 +369,22 @@ export default {
     en: "English",
     auto: "Auto",
   },
+
+  // Update
+  update: {
+    title: "App Update",
+    checking: "Checking...",
+    checkNow: "Check for updates",
+    checkError: "Cannot check for updates",
+    downloadError: "Download failed",
+    upToDate: "You're on the latest version!",
+    available: "New version available!",
+    currentVersion: "Current version",
+    newVersion: "New version",
+    changelog: "What's new",
+    download: "Download",
+    viewRelease: "View on GitHub",
+    later: "Later",
+    autoCheck: "Auto-check for updates",
+  },
 };
