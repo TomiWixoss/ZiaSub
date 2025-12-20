@@ -24,6 +24,7 @@ import {
 import { translationManager } from "@services/translationManager";
 import { parseTime } from "@utils/videoUtils";
 import { parseSRT } from "@utils/srtParser";
+import { PRESET_PROMPTS, type PresetPromptType } from "@constants/defaults";
 import Button3D from "../common/Button3D";
 import {
   SavedTranslationsList,
@@ -86,6 +87,20 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
   const [useCustomRange, setUseCustomRange] = useState(false);
   const [rangeStartStr, setRangeStartStr] = useState("");
   const [rangeEndStr, setRangeEndStr] = useState("");
+  const [currentPresetId, setCurrentPresetId] = useState<
+    PresetPromptType | undefined
+  >();
+
+  // Detect current preset from selected config's systemPrompt
+  useEffect(() => {
+    const selectedConfig = geminiConfigs.find((c) => c.id === selectedConfigId);
+    if (selectedConfig) {
+      const matchingPreset = PRESET_PROMPTS.find(
+        (p) => p.prompt === selectedConfig.systemPrompt
+      );
+      setCurrentPresetId(matchingPreset?.id);
+    }
+  }, [selectedConfigId, geminiConfigs]);
 
   const loadConfigs = async () => {
     const configs = await getGeminiConfigs();
@@ -598,6 +613,25 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
           rangeEndStr={rangeEndStr}
           onRangeEndChange={setRangeEndStr}
           videoDuration={videoDuration}
+          currentPresetId={currentPresetId}
+          onSelectPreset={async (prompt, presetId) => {
+            // Update current config's systemPrompt with selected preset
+            const configIndex = geminiConfigs.findIndex(
+              (c) => c.id === selectedConfigId
+            );
+            if (configIndex >= 0) {
+              const updatedConfigs = [...geminiConfigs];
+              updatedConfigs[configIndex] = {
+                ...updatedConfigs[configIndex],
+                systemPrompt: prompt,
+              };
+              setGeminiConfigs(updatedConfigs);
+              setCurrentPresetId(presetId);
+              // Save to storage
+              const { saveGeminiConfigs } = await import("@utils/storage");
+              await saveGeminiConfigs(updatedConfigs);
+            }
+          }}
         />
         <TranslationProgress
           isTranslating={isTranslating}

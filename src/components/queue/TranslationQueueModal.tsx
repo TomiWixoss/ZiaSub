@@ -309,6 +309,7 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
               onSelectConfig={handleSelectConfig}
               onStartAll={handleStartAll}
               onClearPending={handleClearPending}
+              onConfigsUpdated={setGeminiConfigs}
             />
           )}
           {activeTab === "completed" && counts.completed > 0 && (

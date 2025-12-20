@@ -232,9 +232,9 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
                       </Text>
                       <View style={styles.batchesGrid}>
                         {batches.map((batch) => {
-                          const isCompleted = item.isPartial
-                            ? batch.index < (item.completedBatches || 0)
-                            : batch.hasContent;
+                          // Always use hasContent to check if batch has subtitles
+                          // This correctly handles cases where middle batches are missing
+                          const isCompleted = batch.hasContent;
 
                           return (
                             <View

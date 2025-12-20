@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { View, TouchableOpacity } from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -9,6 +9,9 @@ import { useThemedStyles } from "@hooks/useThemedStyles";
 import type { GeminiConfig } from "@src/types";
 import { createQueueStyles } from "./queueStyles";
 import ConfigPicker from "./ConfigPicker";
+import { PresetPromptPicker } from "../subtitle/translate";
+import { PRESET_PROMPTS, type PresetPromptType } from "@constants/defaults";
+import { saveGeminiConfigs } from "@utils/storage";
 
 interface QueueActionsProps {
   hasApiKey: boolean;
@@ -19,6 +22,7 @@ interface QueueActionsProps {
   onSelectConfig: (configId: string) => void;
   onStartAll: () => void;
   onClearPending: () => void;
+  onConfigsUpdated?: (configs: GeminiConfig[]) => void;
 }
 
 const QueueActions: React.FC<QueueActionsProps> = ({
@@ -30,10 +34,42 @@ const QueueActions: React.FC<QueueActionsProps> = ({
   onSelectConfig,
   onStartAll,
   onClearPending,
+  onConfigsUpdated,
 }) => {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = useThemedStyles(() => createQueueStyles(colors));
+  const [currentPresetId, setCurrentPresetId] = useState<
+    PresetPromptType | undefined
+  >();
+
+  // Detect current preset from selected config's systemPrompt
+  useEffect(() => {
+    const selectedConfig = configs.find((c) => c.id === selectedConfigId);
+    if (selectedConfig) {
+      const matchingPreset = PRESET_PROMPTS.find(
+        (p) => p.prompt === selectedConfig.systemPrompt
+      );
+      setCurrentPresetId(matchingPreset?.id);
+    }
+  }, [selectedConfigId, configs]);
+
+  const handleSelectPreset = async (
+    prompt: string,
+    presetId: PresetPromptType
+  ) => {
+    const configIndex = configs.findIndex((c) => c.id === selectedConfigId);
+    if (configIndex >= 0) {
+      const updatedConfigs = [...configs];
+      updatedConfigs[configIndex] = {
+        ...updatedConfigs[configIndex],
+        systemPrompt: prompt,
+      };
+      setCurrentPresetId(presetId);
+      await saveGeminiConfigs(updatedConfigs);
+      onConfigsUpdated?.(updatedConfigs);
+    }
+  };
 
   return (
     <View style={styles.actionSection}>
@@ -53,6 +89,10 @@ const QueueActions: React.FC<QueueActionsProps> = ({
         showDropdown={showConfigPicker}
         onToggleDropdown={onToggleConfigPicker}
         onSelectConfig={onSelectConfig}
+      />
+      <PresetPromptPicker
+        onSelectPreset={handleSelectPreset}
+        currentPresetId={currentPresetId}
       />
       <View style={styles.actionButtons}>
         <View style={styles.actionButtonPrimary}>
