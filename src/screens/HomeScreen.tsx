@@ -501,6 +501,10 @@ const HomeScreen = () => {
         onClearSubtitles={() => {
           clearSubtitles(currentUrl);
           syncTranslatedVideosToWebView();
+          // Remove from completed queue if exists
+          if (currentUrl) {
+            queueManager.removeCompletedVideo(currentUrl);
+          }
         }}
         videoUrl={currentUrl}
         videoDuration={videoDuration}

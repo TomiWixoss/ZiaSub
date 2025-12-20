@@ -509,6 +509,19 @@ class QueueManager {
       translationManager.isTranslatingUrl(item.videoUrl)
     );
   }
+
+  // Remove completed video from queue (called when all translations are deleted)
+  async removeCompletedVideo(videoUrl: string): Promise<void> {
+    const videoId = this.extractVideoId(videoUrl);
+    const item = this.items.find((i) => i.videoId === videoId);
+
+    // Only remove if video is in completed status
+    if (item && item.status === "completed") {
+      this.items = this.items.filter((i) => i.id !== item.id);
+      await this.save();
+      this.notify();
+    }
+  }
 }
 
 export const queueManager = QueueManager.getInstance();
