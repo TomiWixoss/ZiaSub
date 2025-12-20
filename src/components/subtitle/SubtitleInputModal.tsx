@@ -88,6 +88,11 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
     onTranslationStateChangeRef.current = onTranslationStateChange;
   }, [onTranslationStateChange]);
 
+  const onApplySubtitlesRef = useRef(onApplySubtitles);
+  useEffect(() => {
+    onApplySubtitlesRef.current = onApplySubtitles;
+  }, [onApplySubtitles]);
+
   useEffect(() => {
     const unsubscribe = translationManager.subscribe((job: TranslationJob) => {
       // Compare by video ID to handle different URL formats
@@ -127,7 +132,7 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
           setKeyStatus(null);
           setSrtContent(job.result);
           // Apply subtitles directly with the result content
-          onApplySubtitles?.(job.result);
+          onApplySubtitlesRef.current?.(job.result);
           queueManager.markVideoCompleted(job.videoUrl, job.configName);
           translationManager.clearCompletedJob(job.videoUrl);
           if (visible)
@@ -146,7 +151,7 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
       }
     });
     return () => unsubscribe();
-  }, [videoUrl, visible, setSrtContent, onLoadSubtitles]);
+  }, [videoUrl, visible, setSrtContent]);
 
   useEffect(() => {
     if (videoUrl) {
