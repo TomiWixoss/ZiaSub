@@ -205,8 +205,9 @@ const HomeScreen = () => {
   const handleAddToQueueFromThumbnail = async (payload: {
     videoUrl: string;
     title: string;
+    duration?: number;
   }) => {
-    const { videoUrl, title } = payload;
+    const { videoUrl, title, duration } = payload;
 
     const alreadyTranslated = await hasTranslation(videoUrl);
     if (alreadyTranslated) {
@@ -214,7 +215,7 @@ const HomeScreen = () => {
       return;
     }
 
-    const result = await queueManager.addToQueue(videoUrl, title);
+    const result = await queueManager.addToQueue(videoUrl, title, duration);
 
     if (result.isExisting) {
       const statusText =

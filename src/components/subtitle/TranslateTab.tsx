@@ -230,19 +230,31 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
       t("subtitleModal.translate.deleteConfirm"),
       async () => {
         if (!videoUrl) return;
+
+        // Calculate new state BEFORE deleting (to avoid race condition with cache)
+        const remainingTranslations = savedTranslations.filter(
+          (t) => t.id !== translation.id
+        );
+
+        // Determine new active translation
+        let newActiveId: string | null = activeTranslationId;
+        if (translation.id === activeTranslationId) {
+          newActiveId = remainingTranslations[0]?.id || null;
+        }
+
+        // Update UI immediately
+        setSavedTranslations(remainingTranslations);
+        setActiveTranslationId(newActiveId);
+
+        // Then persist to storage
         await deleteTranslation(videoUrl, translation.id);
-        // Reload translations to get updated list
-        const data = await getVideoTranslations(videoUrl);
-        if (data && data.translations.length > 0) {
-          setSavedTranslations(data.translations);
-          setActiveTranslationId(data.activeTranslationId);
+
+        // Handle side effects
+        if (remainingTranslations.length > 0) {
           // If deleted translation was active, apply new active one
-          if (
-            translation.id === activeTranslationId &&
-            data.activeTranslationId
-          ) {
-            const newActive = data.translations.find(
-              (t) => t.id === data.activeTranslationId
+          if (translation.id === activeTranslationId && newActiveId) {
+            const newActive = remainingTranslations.find(
+              (t) => t.id === newActiveId
             );
             if (newActive) {
               onSelectTranslation(newActive.srtContent);
@@ -250,8 +262,6 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
           }
         } else {
           // No translations left - clear everything
-          setSavedTranslations([]);
-          setActiveTranslationId(null);
           onSelectTranslation(""); // Clear SRT content
           onTranslationDeleted?.(); // Notify parent to update state
         }

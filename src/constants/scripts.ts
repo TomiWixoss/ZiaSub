@@ -176,7 +176,7 @@ export const INJECTED_JAVASCRIPT = `
       return 'Video YouTube';
     }
 
-    function addQueueButton(container, videoId, videoUrl, title) {
+    function addQueueButton(container, videoId, videoUrl, title, duration) {
       const isQueued = queuedVideoIds.has(videoId);
       const isTranslated = translatedVideoIds.has(videoId);
       
@@ -203,7 +203,7 @@ export const INJECTED_JAVASCRIPT = `
           e.stopImmediatePropagation();
           window.ReactNativeWebView.postMessage(JSON.stringify({
             type: 'addToQueue',
-            payload: { videoId, videoUrl, title }
+            payload: { videoId, videoUrl, title, duration }
           }));
           btn.textContent = '✓';
           btn.style.background = 'rgba(76,175,80,0.9) !important';
@@ -233,12 +233,37 @@ export const INJECTED_JAVASCRIPT = `
         
         const videoUrl = 'https://m.youtube.com/watch?v=' + videoId;
         
-        // Get title from parent
+        // Get title and duration from parent
         let title = 'Video YouTube';
+        let duration = null;
         const parent = link.closest('ytm-rich-item-renderer, ytm-video-with-context-renderer, ytm-compact-video-renderer, ytm-video-card-renderer, ytm-playlist-video-renderer, ytm-media-item');
         if (parent) {
           const titleEl = parent.querySelector('h3, h4, .media-item-headline, .YtmCompactMediaItemHeadline');
           if (titleEl) title = titleEl.textContent.trim() || title;
+          
+          // Try to get duration from thumbnail overlay
+          const durationSelectors = [
+            '.ytm-thumbnail-overlay-time-status-renderer span',
+            '.badge-shape-wiz__text',
+            '[class*="time-status"] span',
+            '.ytm-thumbnail-overlay-badge-shape span',
+            'ytm-thumbnail-overlay-time-status-renderer'
+          ];
+          for (const sel of durationSelectors) {
+            const durationEl = parent.querySelector(sel);
+            if (durationEl && durationEl.textContent) {
+              const durationText = durationEl.textContent.trim();
+              // Parse duration text like "12:34" or "1:23:45"
+              const parts = durationText.split(':').map(p => parseInt(p, 10));
+              if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+                duration = parts[0] * 60 + parts[1];
+                break;
+              } else if (parts.length === 3 && !isNaN(parts[0]) && !isNaN(parts[1]) && !isNaN(parts[2])) {
+                duration = parts[0] * 3600 + parts[1] * 60 + parts[2];
+                break;
+              }
+            }
+          }
         }
         
         // Make link relative for absolute positioning
@@ -262,7 +287,7 @@ export const INJECTED_JAVASCRIPT = `
         }
         
         // Add queue button (function handles its own existence check)
-        addQueueButton(link, videoId, videoUrl, title);
+        addQueueButton(link, videoId, videoUrl, title, duration);
       });
     }
 
