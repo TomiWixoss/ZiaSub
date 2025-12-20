@@ -54,7 +54,8 @@ const Fab3D: React.FC<Fab3DProps> = ({
     : isDark
     ? colors.border
     : colors.borderLight;
-  const iconColor = active ? colors.background : colors.text;
+  // Always use white for active state icon
+  const iconColor = active ? "#FFFFFF" : colors.text;
 
   return (
     <View
@@ -167,11 +168,7 @@ const ChatFab: React.FC<{ onPress: () => void; isLoading: boolean }> = ({
             },
           ]}
         >
-          <MaterialCommunityIcons
-            name="robot"
-            size={20}
-            color={colors.background}
-          />
+          <MaterialCommunityIcons name="robot" size={20} color="#FFFFFF" />
         </View>
       </View>
     </Pressable>
@@ -259,9 +256,7 @@ const TranslatingFab: React.FC<{
           <View
             style={[styles.progressBadge, { backgroundColor: colors.success }]}
           >
-            <Animated.Text
-              style={[styles.progressText, { color: colors.background }]}
-            >
+            <Animated.Text style={[styles.progressText, { color: "#FFFFFF" }]}>
               {progressText}
             </Animated.Text>
           </View>
@@ -305,7 +300,7 @@ const FloatingButton: React.FC<FloatingButtonProps> = (props) => {
                 style={[styles.queueBadge, { backgroundColor: colors.primary }]}
               >
                 <Animated.Text
-                  style={[styles.queueBadgeText, { color: colors.background }]}
+                  style={[styles.queueBadgeText, { color: "#FFFFFF" }]}
                 >
                   {queueCount}
                 </Animated.Text>
