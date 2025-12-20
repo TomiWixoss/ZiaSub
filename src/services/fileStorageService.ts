@@ -474,7 +474,8 @@ class FileStorageService {
     filename: string,
     content: string
   ): Promise<void> {
-    const lockKey = `${directoryUri}/${filename}`;
+    // Use just filename as lock key to prevent race conditions across different calls
+    const lockKey = filename;
 
     // Wait for any existing write to complete
     await this.acquireWriteLock(lockKey);
@@ -487,6 +488,7 @@ class FileStorageService {
     this.writeLocks.set(lockKey, lockPromise);
 
     try {
+      // Re-read directory after acquiring lock to get fresh state
       const files = await FileSystem.StorageAccessFramework.readDirectoryAsync(
         directoryUri
       );
