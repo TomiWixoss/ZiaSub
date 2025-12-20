@@ -11,6 +11,7 @@ import {
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
+import { confirmDestructive } from "@components/common/CustomAlert";
 import { useTheme, useUpdate } from "@src/contexts";
 import { useThemedStyles, createThemedStyles } from "@hooks/useThemedStyles";
 import type {
@@ -19,6 +20,12 @@ import type {
   TTSSettings,
   FloatingUISettings,
 } from "@src/types";
+import {
+  DEFAULT_SUBTITLE_SETTINGS,
+  DEFAULT_BATCH_SETTINGS,
+  DEFAULT_TTS_SETTINGS,
+  DEFAULT_FLOATING_UI_SETTINGS,
+} from "@constants/defaults";
 import {
   ApiKeysSection,
   SubtitleSection,
@@ -30,6 +37,7 @@ import {
   DataSection,
   FloatingUISection,
 } from "./sections";
+import Button3D from "@components/common/Button3D";
 
 // Enable LayoutAnimation on Android
 if (
@@ -151,6 +159,20 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
   const toggleGroup = (group: SettingGroup) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setExpandedGroup(expandedGroup === group ? null : group);
+  };
+
+  const handleResetAllSettings = () => {
+    confirmDestructive(
+      t("settings.resetAll.title"),
+      t("settings.resetAll.message"),
+      () => {
+        onSubtitleChange({ ...DEFAULT_SUBTITLE_SETTINGS });
+        onBatchChange({ ...DEFAULT_BATCH_SETTINGS });
+        onTTSChange({ ...DEFAULT_TTS_SETTINGS });
+        onFloatingUIChange({ ...DEFAULT_FLOATING_UI_SETTINGS });
+      },
+      t("settings.resetAll.confirm")
+    );
   };
 
   const renderGroupContent = (group: SettingGroup) => {
@@ -302,6 +324,19 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
           </View>
         );
       })}
+
+      {/* Reset All Settings Button */}
+      <View style={styles.resetAllContainer}>
+        <Button3D
+          title={t("settings.resetAll.button")}
+          icon="restore"
+          onPress={handleResetAllSettings}
+          variant="outline"
+        />
+        <Text style={themedStyles.resetAllHint}>
+          {t("settings.resetAll.hint")}
+        </Text>
+      </View>
     </ScrollView>
   );
 };
@@ -329,6 +364,11 @@ const styles = StyleSheet.create({
   },
   groupInfo: { flex: 1 },
   groupContent: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 16 },
+  resetAllContainer: {
+    marginTop: 8,
+    marginBottom: 24,
+    gap: 8,
+  },
 });
 
 const generalThemedStyles = createThemedStyles((colors) => ({
@@ -373,6 +413,11 @@ const generalThemedStyles = createThemedStyles((colors) => ({
     fontSize: 12,
     color: colors.textMuted,
     marginTop: 2,
+  },
+  resetAllHint: {
+    fontSize: 12,
+    color: colors.textMuted,
+    textAlign: "center",
   },
 }));
 

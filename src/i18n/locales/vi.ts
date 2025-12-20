@@ -157,6 +157,16 @@ export default {
       floatingUIDesc: "Vị trí, bố cục nút nổi",
     },
 
+    // Reset All Settings
+    resetAll: {
+      button: "Khôi phục cài đặt gốc",
+      title: "Khôi phục cài đặt",
+      message:
+        "Đặt lại tất cả cài đặt (phụ đề, dịch video, thuyết minh, nút nổi) về mặc định? API keys và dữ liệu sẽ được giữ nguyên.",
+      confirm: "Khôi phục",
+      hint: "Không ảnh hưởng đến API keys, bản dịch và lịch sử chat",
+    },
+
     // Theme
     theme: {
       title: "Giao diện",

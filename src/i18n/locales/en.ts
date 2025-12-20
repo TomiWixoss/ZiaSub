@@ -157,6 +157,16 @@ export default {
       floatingUIDesc: "Position, layout of floating buttons",
     },
 
+    // Reset All Settings
+    resetAll: {
+      button: "Reset to defaults",
+      title: "Reset settings",
+      message:
+        "Reset all settings (subtitle, translation, TTS, floating buttons) to defaults? API keys and data will be kept.",
+      confirm: "Reset",
+      hint: "Does not affect API keys, translations and chat history",
+    },
+
     // Theme
     theme: {
       title: "Theme",
