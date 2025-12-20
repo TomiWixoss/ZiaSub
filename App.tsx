@@ -19,6 +19,7 @@ import { fileStorage } from "@services/fileStorageService";
 const AppContent = () => {
   const { colors, isDark } = useTheme();
   const [isI18nReady, setIsI18nReady] = useState(false);
+  const [isStorageReady, setIsStorageReady] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState<boolean | null>(null);
   const {
     updateModalVisible,
@@ -32,6 +33,7 @@ const AppContent = () => {
     const init = async () => {
       // Initialize file storage first
       const storageReady = await fileStorage.initialize();
+      setIsStorageReady(storageReady);
 
       const [, onboardingCompleted] = await Promise.all([
         initI18n(),
@@ -70,7 +72,11 @@ const AppContent = () => {
     },
   };
 
-  if (!isI18nReady || showOnboarding === null) {
+  if (
+    !isI18nReady ||
+    showOnboarding === null ||
+    (!showOnboarding && !isStorageReady)
+  ) {
     return (
       <View
         style={[

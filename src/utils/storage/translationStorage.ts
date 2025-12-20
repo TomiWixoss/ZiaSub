@@ -23,21 +23,31 @@ const createSafeFilename = (videoUrl: string): string => {
 const findTranslationFile = async (
   videoUrl: string
 ): Promise<string | null> => {
-  const exactFilename = createSafeFilename(videoUrl);
-  const files = await fileStorage.listSubFiles(TRANSLATIONS_DIR);
+  try {
+    // Ensure storage is initialized
+    if (!fileStorage.isConfigured()) {
+      await fileStorage.initialize();
+    }
 
-  // Check exact match first
-  if (files.includes(exactFilename)) return exactFilename;
+    const exactFilename = createSafeFilename(videoUrl);
+    const files = await fileStorage.listSubFiles(TRANSLATIONS_DIR);
 
-  // Check by video ID
-  const videoId = extractVideoId(videoUrl);
-  if (!videoId) return null;
+    // Check exact match first
+    if (files.includes(exactFilename)) return exactFilename;
 
-  for (const file of files) {
-    if (file.startsWith(videoId)) return file;
+    // Check by video ID
+    const videoId = extractVideoId(videoUrl);
+    if (!videoId) return null;
+
+    for (const file of files) {
+      if (file.startsWith(videoId)) return file;
+    }
+
+    return null;
+  } catch (error) {
+    console.error("Error finding translation file:", error);
+    return null;
   }
-
-  return null;
 };
 
 export const saveTranslation = async (
@@ -80,6 +90,11 @@ export const getVideoTranslations = async (
   videoUrl: string
 ): Promise<VideoTranslations | null> => {
   try {
+    // Ensure storage is initialized
+    if (!fileStorage.isConfigured()) {
+      await fileStorage.initialize();
+    }
+
     const filename = await findTranslationFile(videoUrl);
     if (!filename) return null;
     return await fileStorage.loadSubData<VideoTranslations | null>(
@@ -182,6 +197,11 @@ export const getActiveTranslation = async (
   videoUrl: string
 ): Promise<SavedTranslation | null> => {
   try {
+    // Ensure storage is initialized
+    if (!fileStorage.isConfigured()) {
+      await fileStorage.initialize();
+    }
+
     const data = await getVideoTranslations(videoUrl);
     if (!data || !data.activeTranslationId) return null;
     return (

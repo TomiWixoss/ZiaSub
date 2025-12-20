@@ -40,6 +40,15 @@ export const saveGeminiConfigs = async (
 
 export const getGeminiConfigs = async (): Promise<GeminiConfig[]> => {
   try {
+    // Ensure storage is initialized
+    if (!fileStorage.isConfigured()) {
+      const initialized = await fileStorage.initialize();
+      if (!initialized) {
+        console.warn("Storage not configured, returning defaults");
+        return [createDefaultChatConfig(), createDefaultGeminiConfig()];
+      }
+    }
+
     let configs = await fileStorage.loadData<GeminiConfig[]>(GEMINI_FILE, []);
 
     // Ensure default chat config exists

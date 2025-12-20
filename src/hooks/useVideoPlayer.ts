@@ -95,8 +95,13 @@ export const useVideoPlayer = () => {
 
   const navigateToVideo = useCallback((videoUrl: string) => {
     if (webViewRef.current) {
+      // Normalize URL to mobile YouTube format
+      const videoId = extractVideoId(videoUrl);
+      const normalizedUrl = videoId
+        ? `https://m.youtube.com/watch?v=${videoId}`
+        : videoUrl;
       webViewRef.current.injectJavaScript(
-        `window.location.href = "${videoUrl}"; true;`
+        `window.location.href = "${normalizedUrl}"; true;`
       );
     }
   }, []);

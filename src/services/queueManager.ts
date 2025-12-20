@@ -316,7 +316,8 @@ class QueueManager {
         return (b.completedAt || 0) - (a.completedAt || 0);
       if (status === "translating")
         return (a.startedAt || 0) - (b.startedAt || 0); // FIFO order for translating
-      return b.addedAt - a.addedAt;
+      // Pending: oldest first (FIFO - video thêm trước hiện trước)
+      return a.addedAt - b.addedAt;
     });
 
     const total = filtered.length;
@@ -350,10 +351,10 @@ class QueueManager {
 
   // Start auto processing - mark ALL pending/error as translating and process sequentially
   async startAutoProcess(): Promise<void> {
-    // Get all pending and error items sorted by addedAt descending (same order as displayed in pending tab)
+    // Get all pending and error items sorted by addedAt ascending (FIFO - oldest first)
     const pendingItems = this.items
       .filter((i) => i.status === "pending" || i.status === "error")
-      .sort((a, b) => b.addedAt - a.addedAt);
+      .sort((a, b) => a.addedAt - b.addedAt);
 
     if (pendingItems.length === 0) return;
 

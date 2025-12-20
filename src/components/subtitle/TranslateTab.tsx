@@ -116,11 +116,17 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
   };
   const loadTranslations = async () => {
     if (!videoUrl) return;
-    const data = await getVideoTranslations(videoUrl);
-    if (data) {
-      setSavedTranslations(data.translations);
-      setActiveTranslationId(data.activeTranslationId);
-    } else {
+    try {
+      const data = await getVideoTranslations(videoUrl);
+      if (data) {
+        setSavedTranslations(data.translations);
+        setActiveTranslationId(data.activeTranslationId);
+      } else {
+        setSavedTranslations([]);
+        setActiveTranslationId(null);
+      }
+    } catch (error) {
+      console.error("Error loading translations:", error);
       setSavedTranslations([]);
       setActiveTranslationId(null);
     }

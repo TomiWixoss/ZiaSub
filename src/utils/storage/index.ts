@@ -19,6 +19,7 @@ export {
   getTTSSettings,
   setOnboardingCompleted,
   getOnboardingCompleted,
+  clearSettingsCache,
 } from "./settingsStorage";
 
 // SRT

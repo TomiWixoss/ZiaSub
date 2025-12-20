@@ -7,11 +7,12 @@ import { useTheme } from "@src/contexts";
 import { useThemedStyles } from "@hooks/useThemedStyles";
 import type { QueueItem } from "@src/types";
 import { createQueueStyles } from "./queueStyles";
+import { DEFAULT_BATCH_SETTINGS } from "@constants/defaults";
 
 interface QueueItemCardProps {
   item: QueueItem;
   hasApiKey: boolean;
-  isCurrentlyProcessing?: boolean;
+  maxVideoDuration?: number;
   onSelect: (item: QueueItem) => void;
   onStart: (item: QueueItem) => void;
   onRequeue: (item: QueueItem) => void;
@@ -35,10 +36,22 @@ const formatDate = (timestamp?: number) => {
     .padStart(2, "0")}`;
 };
 
+// Calculate expected number of batches based on duration and max duration
+const calculateExpectedBatches = (
+  duration?: number,
+  maxDuration: number = DEFAULT_BATCH_SETTINGS.maxVideoDuration,
+  batchOffset: number = DEFAULT_BATCH_SETTINGS.batchOffset
+): number => {
+  if (!duration) return 1;
+  const effectiveMaxDuration = maxDuration + batchOffset;
+  if (duration <= effectiveMaxDuration) return 1;
+  return Math.ceil(duration / maxDuration);
+};
+
 const QueueItemCard: React.FC<QueueItemCardProps> = ({
   item,
   hasApiKey,
-  isCurrentlyProcessing,
+  maxVideoDuration = DEFAULT_BATCH_SETTINGS.maxVideoDuration,
   onSelect,
   onStart,
   onRequeue,
@@ -50,13 +63,22 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
   const { colors } = useTheme();
   const styles = useThemedStyles(() => createQueueStyles(colors));
 
+  // Calculate expected batches for display
+  const expectedBatches = calculateExpectedBatches(
+    item.duration,
+    maxVideoDuration
+  );
+  const showProgress = item.status === "translating";
+  const progressCompleted = item.progress?.completed ?? 0;
+  const progressTotal = item.progress?.total ?? expectedBatches;
+
   return (
     <TouchableOpacity style={styles.queueItem} onPress={() => onSelect(item)}>
       <Image source={{ uri: item.thumbnail }} style={styles.thumbnail} />
-      {item.status === "translating" && item.progress && (
+      {showProgress && (
         <View style={styles.progressOverlay}>
           <Text style={styles.progressText}>
-            {item.progress.completed}/{item.progress.total}
+            {progressCompleted}/{progressTotal}
           </Text>
         </View>
       )}

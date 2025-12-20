@@ -18,12 +18,35 @@ import {
 
 const SETTINGS_FILE = STORAGE_FILES.settings;
 
+// In-memory cache for settings to avoid repeated file reads
+let settingsCache: AppSettings | null = null;
+let cacheTimestamp: number = 0;
+const CACHE_TTL = 5000; // 5 seconds cache
+
+// Clear cache (useful when settings might have changed externally)
+export const clearSettingsCache = (): void => {
+  settingsCache = null;
+  cacheTimestamp = 0;
+};
+
 // ============================================
 // APP SETTINGS
 // ============================================
 export const saveAppSettings = async (settings: AppSettings): Promise<void> => {
   try {
+    // Ensure storage is initialized
+    if (!fileStorage.isConfigured()) {
+      const initialized = await fileStorage.initialize();
+      if (!initialized) {
+        console.error("Cannot save settings: storage not configured");
+        return;
+      }
+    }
+
     await fileStorage.saveData(SETTINGS_FILE, settings);
+    // Update cache
+    settingsCache = settings;
+    cacheTimestamp = Date.now();
   } catch (error) {
     console.error("Error saving app settings:", error);
   }
@@ -31,17 +54,35 @@ export const saveAppSettings = async (settings: AppSettings): Promise<void> => {
 
 export const getAppSettings = async (): Promise<AppSettings> => {
   try {
+    // Return cached settings if still valid
+    if (settingsCache && Date.now() - cacheTimestamp < CACHE_TTL) {
+      return settingsCache;
+    }
+
+    // Ensure storage is initialized
+    if (!fileStorage.isConfigured()) {
+      const initialized = await fileStorage.initialize();
+      if (!initialized) {
+        console.warn("Storage not configured, returning defaults");
+        return DEFAULT_APP_SETTINGS;
+      }
+    }
+
     const parsed = await fileStorage.loadData<Partial<AppSettings>>(
       SETTINGS_FILE,
       {}
     );
     if (parsed && Object.keys(parsed).length > 0) {
-      return {
+      const settings = {
         subtitle: { ...DEFAULT_SUBTITLE_SETTINGS, ...parsed.subtitle },
         batch: { ...DEFAULT_BATCH_SETTINGS, ...parsed.batch },
         apiKeys: { ...DEFAULT_API_KEYS_SETTINGS, ...parsed.apiKeys },
         tts: { ...DEFAULT_TTS_SETTINGS, ...parsed.tts },
       };
+      // Update cache
+      settingsCache = settings;
+      cacheTimestamp = Date.now();
+      return settings;
     }
     return DEFAULT_APP_SETTINGS;
   } catch (error) {
@@ -92,8 +133,22 @@ export const saveApiKeys = async (keys: string[]): Promise<void> => {
 };
 
 export const getApiKeys = async (): Promise<string[]> => {
-  const appSettings = await getAppSettings();
-  return appSettings.apiKeys?.keys || [];
+  try {
+    // Ensure storage is initialized
+    if (!fileStorage.isConfigured()) {
+      const initialized = await fileStorage.initialize();
+      if (!initialized) {
+        console.warn("Storage not configured, returning empty keys");
+        return [];
+      }
+    }
+
+    const appSettings = await getAppSettings();
+    return appSettings.apiKeys?.keys || [];
+  } catch (error) {
+    console.error("Error getting API keys:", error);
+    return [];
+  }
 };
 
 // ============================================
