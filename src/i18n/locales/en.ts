@@ -423,6 +423,9 @@ export default {
       invalidStartTime: "Invalid start time. Use mm:ss or leave empty",
       invalidEndTime: "Invalid end time. Use mm:ss or leave empty",
       invalidRange: "Start time must be less than end time",
+      longVideoWarning:
+        "Video is longer than 1 hour. Enable batch translation to pause/resume and view subtitles sooner.",
+      enableStreaming: "Enable batch mode",
 
       progress: {
         translatingPart: "Translating part {{current}}/{{total}}...",

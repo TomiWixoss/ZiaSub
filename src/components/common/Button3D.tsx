@@ -16,7 +16,10 @@ type ButtonVariant =
   | "secondary"
   | "outline"
   | "ghost"
-  | "destructive";
+  | "destructive"
+  | "warning";
+
+type ButtonSize = "normal" | "small";
 
 interface Button3DProps {
   onPress: () => void;
@@ -24,6 +27,7 @@ interface Button3DProps {
   icon?: keyof typeof MaterialCommunityIcons.glyphMap;
   iconSize?: number;
   variant?: ButtonVariant;
+  size?: ButtonSize;
   disabled?: boolean;
   active?: boolean;
   style?: ViewStyle;
@@ -39,6 +43,7 @@ const Button3D: React.FC<Button3DProps> = ({
   icon,
   iconSize = 20,
   variant = "primary",
+  size = "normal",
   disabled = false,
   active = false,
   style,
@@ -109,6 +114,13 @@ const Button3D: React.FC<Button3DProps> = ({
           text: "#FFFFFF",
           border: "transparent",
         };
+      case "warning":
+        return {
+          bg: colors.warning,
+          shadow: "#CC8800",
+          text: "#FFFFFF",
+          border: "transparent",
+        };
       default:
         return {
           bg: colors.surfaceElevated,
@@ -119,14 +131,37 @@ const Button3D: React.FC<Button3DProps> = ({
     }
   }, [colors, disabled, active, variant]);
 
+  const sizeStyles = useMemo(() => {
+    if (size === "small") {
+      return {
+        containerHeight: 40 + SHADOW_HEIGHT,
+        buttonHeight: 40,
+        borderRadius: 10,
+        fontSize: 13,
+        iconSize: 16,
+      };
+    }
+    return {
+      containerHeight: 52 + SHADOW_HEIGHT,
+      buttonHeight: 52,
+      borderRadius: 14,
+      fontSize: 15,
+      iconSize: iconSize,
+    };
+  }, [size, iconSize]);
+
   return (
-    <View style={[styles.container, style]}>
+    <View
+      style={[styles.container, { height: sizeStyles.containerHeight }, style]}
+    >
       <View
         style={[
           styles.shadow,
           {
             backgroundColor: getColors.shadow,
             borderColor: getColors.shadow,
+            height: sizeStyles.buttonHeight,
+            borderRadius: sizeStyles.borderRadius,
           },
         ]}
       />
@@ -148,6 +183,8 @@ const Button3D: React.FC<Button3DProps> = ({
             {
               backgroundColor: getColors.bg,
               borderColor: getColors.border,
+              height: sizeStyles.buttonHeight,
+              borderRadius: sizeStyles.borderRadius,
             },
           ]}
         >
@@ -158,7 +195,7 @@ const Button3D: React.FC<Button3DProps> = ({
               {icon && (
                 <MaterialCommunityIcons
                   name={icon}
-                  size={iconSize}
+                  size={sizeStyles.iconSize}
                   color={getColors.text}
                 />
               )}
@@ -166,7 +203,7 @@ const Button3D: React.FC<Button3DProps> = ({
                 <Text
                   style={[
                     styles.text,
-                    { color: getColors.text },
+                    { color: getColors.text, fontSize: sizeStyles.fontSize },
                     icon && title && styles.textWithIcon,
                     textStyle,
                   ]}
@@ -184,15 +221,13 @@ const Button3D: React.FC<Button3DProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    height: 52 + SHADOW_HEIGHT,
+    // height is set dynamically based on size
   },
   shadow: {
     position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
-    height: 52,
-    borderRadius: 14,
     borderWidth: 1,
   },
   buttonWrapper: {
@@ -202,8 +237,6 @@ const styles = StyleSheet.create({
     right: 0,
   },
   button: {
-    height: 52,
-    borderRadius: 14,
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 2,

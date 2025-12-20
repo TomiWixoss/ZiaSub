@@ -358,6 +358,26 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
             </Text>
           </View>
         )}
+        {videoDuration && videoDuration > 3600 && !streamingMode && (
+          <View style={themedStyles.longVideoWarningContainer}>
+            <View style={themedStyles.longVideoWarningContent}>
+              <MaterialCommunityIcons
+                name="clock-alert-outline"
+                size={20}
+                color={colors.warning}
+              />
+              <Text style={themedStyles.warningText}>
+                {t("subtitleModal.translate.longVideoWarning")}
+              </Text>
+            </View>
+            <Button3D
+              onPress={() => handleStreamingModeChange(true)}
+              title={t("subtitleModal.translate.enableStreaming")}
+              variant="warning"
+              size="small"
+            />
+          </View>
+        )}
         <TranslateConfigPicker
           configs={geminiConfigs}
           selectedConfigId={selectedConfigId}
@@ -433,4 +453,18 @@ const translateTabThemedStyles = createThemedStyles((colors) => ({
     borderColor: colors.warning,
   },
   warningText: { color: colors.warning, fontSize: 13, flex: 1 },
+  longVideoWarningContainer: {
+    backgroundColor: "rgba(255,183,77,0.15)",
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: colors.warning,
+  },
+  longVideoWarningContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
 }));

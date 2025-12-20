@@ -37,78 +37,101 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
 
   if (translations.length === 0) return null;
 
+  const getProgressPercent = (item: SavedTranslation) => {
+    if (!item.isPartial || !item.totalBatches) return 0;
+    return Math.round(((item.completedBatches || 0) / item.totalBatches) * 100);
+  };
+
   return (
     <View style={styles.translationsSection}>
       <Text style={styles.sectionTitle}>
         {t("subtitleModal.translate.savedTranslations")}
       </Text>
       <View style={styles.translationsList}>
-        {translations.map((item) => (
-          <View
-            key={item.id}
-            style={[
-              styles.translationItem,
-              item.id === activeTranslationId && styles.translationItemActive,
-              item.isPartial && styles.translationItemPartial,
-            ]}
-          >
-            <TouchableOpacity
-              style={styles.translationInfo}
-              onPress={() => onSelect(item)}
+        {translations.map((item) => {
+          const progressPercent = getProgressPercent(item);
+
+          return (
+            <View
+              key={item.id}
+              style={[
+                styles.translationItem,
+                item.id === activeTranslationId && styles.translationItemActive,
+                item.isPartial && styles.translationItemPartial,
+              ]}
             >
-              <View style={styles.translationHeader}>
-                <MaterialCommunityIcons
-                  name={
-                    item.isPartial
-                      ? "progress-clock"
-                      : item.id === activeTranslationId
-                      ? "check-circle"
-                      : "file-document-outline"
-                  }
-                  size={16}
-                  color={
-                    item.isPartial
-                      ? colors.warning
-                      : item.id === activeTranslationId
-                      ? colors.success
-                      : colors.textMuted
-                  }
-                />
-                <Text style={styles.translationConfig}>
-                  {item.configName}
-                  {item.isPartial &&
-                    ` (${item.completedBatches}/${item.totalBatches || "?"})`}
-                </Text>
-              </View>
-              <Text style={styles.translationDate}>
-                {formatDate(item.createdAt)}
-                {item.isPartial && ` • ${t("subtitleModal.translate.partial")}`}
-              </Text>
-            </TouchableOpacity>
-            {item.isPartial && onResume && (
               <TouchableOpacity
-                style={styles.resumeBtn}
-                onPress={() => onResume(item)}
+                style={styles.translationInfo}
+                onPress={() => onSelect(item)}
+              >
+                <View style={styles.translationHeader}>
+                  <MaterialCommunityIcons
+                    name={
+                      item.isPartial
+                        ? "progress-clock"
+                        : item.id === activeTranslationId
+                        ? "check-circle"
+                        : "file-document-outline"
+                    }
+                    size={16}
+                    color={
+                      item.isPartial
+                        ? colors.warning
+                        : item.id === activeTranslationId
+                        ? colors.success
+                        : colors.textMuted
+                    }
+                  />
+                  <Text style={styles.translationConfig}>
+                    {item.configName}
+                  </Text>
+                </View>
+                <Text style={styles.translationDate}>
+                  {formatDate(item.createdAt)}
+                </Text>
+                {item.isPartial && (
+                  <View style={styles.partialProgressContainer}>
+                    <View style={styles.partialProgressBar}>
+                      <View
+                        style={[
+                          styles.partialProgressFill,
+                          { width: `${progressPercent}%` },
+                        ]}
+                      />
+                    </View>
+                    <Text style={styles.partialProgressText}>
+                      {t("subtitleModal.translate.partial")} •{" "}
+                      {item.completedBatches}/{item.totalBatches || "?"} (
+                      {progressPercent}%)
+                    </Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+              {item.isPartial && onResume && (
+                <TouchableOpacity
+                  style={styles.resumeBtn}
+                  onPress={() => onResume(item)}
+                >
+                  <MaterialCommunityIcons
+                    name="play-circle-outline"
+                    size={18}
+                    color={colors.success}
+                  />
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity
+                style={styles.deleteBtn}
+                onPress={() => onDelete(item)}
               >
                 <MaterialCommunityIcons
-                  name="play-circle-outline"
+                  name="delete-outline"
                   size={18}
-                  color={colors.success}
+                  color={colors.error}
                 />
               </TouchableOpacity>
-            )}
-            <TouchableOpacity
-              style={styles.deleteBtn}
-              onPress={() => onDelete(item)}
-            >
-              <MaterialCommunityIcons
-                name="delete-outline"
-                size={18}
-                color={colors.error}
-              />
-            </TouchableOpacity>
-          </View>
-        ))}
+            </View>
+          );
+        })}
       </View>
     </View>
   );

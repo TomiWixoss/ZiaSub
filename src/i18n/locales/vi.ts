@@ -422,6 +422,9 @@ export default {
       invalidEndTime:
         "Thời gian kết thúc không hợp lệ. Dùng mm:ss hoặc để trống",
       invalidRange: "Thời gian bắt đầu phải nhỏ hơn thời gian kết thúc",
+      longVideoWarning:
+        "Video dài hơn 1 tiếng. Nên bật chế độ dịch từng đợt để có thể dừng/tiếp tục và xem phụ đề sớm hơn.",
+      enableStreaming: "Bật dịch từng đợt",
 
       progress: {
         translatingPart: "Đang dịch phần {{current}}/{{total}}...",

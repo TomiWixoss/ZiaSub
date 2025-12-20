@@ -30,6 +30,26 @@ export const createTranslateStyles = (colors: ThemeColors) =>
     translationHeader: { flexDirection: "row", alignItems: "center", gap: 6 },
     translationConfig: { color: colors.text, fontSize: 13, fontWeight: "500" },
     translationDate: { color: colors.textMuted, fontSize: 11, marginTop: 2 },
+    partialProgressContainer: {
+      marginTop: 8,
+    },
+    partialProgressBar: {
+      height: 4,
+      backgroundColor: colors.surfaceElevated,
+      borderRadius: 2,
+      overflow: "hidden",
+    },
+    partialProgressFill: {
+      height: "100%",
+      backgroundColor: colors.warning,
+      borderRadius: 2,
+    },
+    partialProgressText: {
+      color: colors.warning,
+      fontSize: 10,
+      fontWeight: "600",
+      marginTop: 4,
+    },
     resumeBtn: { padding: 12 },
     deleteBtn: { padding: 12 },
 
