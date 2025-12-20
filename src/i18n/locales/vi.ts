@@ -439,11 +439,17 @@ export default {
 
       // Batch viewer
       batchList: "Các phần đã dịch",
-      retranslateHint: "Bấm vào phần để dịch lại từ đó",
+      retranslateHint: "Dịch lại: phần này | từ đây",
       retranslateTitle: "Dịch lại",
       retranslateConfirm:
         "Dịch lại từ phần {{from}}/{{total}}? Các phần trước sẽ được giữ nguyên.",
       retranslate: "Dịch lại",
+      retranslateSingleTitle: "Dịch lại phần này",
+      retranslateSingleConfirm:
+        "Dịch lại CHỈ phần {{batch}}/{{total}}? Các phần khác sẽ được giữ nguyên.",
+      retranslateFromTitle: "Dịch lại từ đây",
+      retranslateFromConfirm:
+        "Dịch lại TỪ phần {{from}}/{{total}} về sau? Các phần trước sẽ được giữ nguyên.",
       useThis: "Dùng bản này",
       batchViewer: {
         title: "Các phần đã dịch",

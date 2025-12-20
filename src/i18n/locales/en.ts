@@ -440,11 +440,17 @@ export default {
 
       // Batch viewer
       batchList: "Translation batches",
-      retranslateHint: "Tap a batch to retranslate from there",
+      retranslateHint: "Retranslate: this batch | from here",
       retranslateTitle: "Retranslate",
       retranslateConfirm:
         "Retranslate from batch {{from}}/{{total}}? Previous batches will be kept.",
       retranslate: "Retranslate",
+      retranslateSingleTitle: "Retranslate this batch",
+      retranslateSingleConfirm:
+        "Retranslate ONLY batch {{batch}}/{{total}}? Other batches will be kept.",
+      retranslateFromTitle: "Retranslate from here",
+      retranslateFromConfirm:
+        "Retranslate FROM batch {{from}}/{{total}} onwards? Previous batches will be kept.",
       useThis: "Use this",
       batchViewer: {
         title: "Translation batches",

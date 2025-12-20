@@ -15,9 +15,10 @@ interface SavedTranslationsListProps {
   onSelect: (translation: SavedTranslation) => void;
   onDelete: (translation: SavedTranslation) => void;
   onResume?: (translation: SavedTranslation) => void;
-  onRetranslateFromBatch?: (
+  onRetranslateBatch?: (
     translation: SavedTranslation,
-    fromBatchIndex: number
+    batchIndex: number,
+    mode: "single" | "fromHere"
   ) => void;
   videoDuration?: number;
 }
@@ -55,7 +56,7 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
   onSelect,
   onDelete,
   onResume,
-  onRetranslateFromBatch,
+  onRetranslateBatch,
   videoDuration,
 }) => {
   const { t } = useTranslation();
@@ -111,12 +112,13 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
     setExpandedId(expandedId === id ? null : id);
   };
 
-  const handleRetranslateFrom = (
+  const handleRetranslateBatch = (
     item: SavedTranslation,
-    batchIndex: number
+    batchIndex: number,
+    mode: "single" | "fromHere"
   ) => {
-    if (onRetranslateFromBatch) {
-      onRetranslateFromBatch(item, batchIndex);
+    if (onRetranslateBatch) {
+      onRetranslateBatch(item, batchIndex, mode);
     }
   };
 
@@ -235,35 +237,74 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
                             : batch.hasContent;
 
                           return (
-                            <TouchableOpacity
+                            <View
                               key={batch.index}
-                              style={[
-                                styles.batchChip,
-                                isCompleted && styles.batchChipCompleted,
-                                !isCompleted && styles.batchChipPending,
-                              ]}
-                              onPress={() =>
-                                handleRetranslateFrom(item, batch.index)
-                              }
-                              disabled={!onRetranslateFromBatch}
+                              style={styles.batchChipContainer}
                             >
-                              <Text
+                              <View
                                 style={[
-                                  styles.batchChipText,
-                                  isCompleted && styles.batchChipTextCompleted,
+                                  styles.batchChip,
+                                  isCompleted && styles.batchChipCompleted,
+                                  !isCompleted && styles.batchChipPending,
                                 ]}
                               >
-                                {batch.index + 1}
-                              </Text>
-                              <Text
-                                style={[
-                                  styles.batchChipTime,
-                                  isCompleted && styles.batchChipTimeCompleted,
-                                ]}
-                              >
-                                {formatTime(batch.startTime)}
-                              </Text>
-                            </TouchableOpacity>
+                                <Text
+                                  style={[
+                                    styles.batchChipText,
+                                    isCompleted &&
+                                      styles.batchChipTextCompleted,
+                                  ]}
+                                >
+                                  {batch.index + 1}
+                                </Text>
+                                <Text
+                                  style={[
+                                    styles.batchChipTime,
+                                    isCompleted &&
+                                      styles.batchChipTimeCompleted,
+                                  ]}
+                                >
+                                  {formatTime(batch.startTime)}
+                                </Text>
+                              </View>
+                              {/* Retranslate buttons */}
+                              {onRetranslateBatch && (
+                                <View style={styles.batchActions}>
+                                  <TouchableOpacity
+                                    style={styles.batchActionBtn}
+                                    onPress={() =>
+                                      handleRetranslateBatch(
+                                        item,
+                                        batch.index,
+                                        "single"
+                                      )
+                                    }
+                                  >
+                                    <MaterialCommunityIcons
+                                      name="refresh"
+                                      size={14}
+                                      color={colors.primary}
+                                    />
+                                  </TouchableOpacity>
+                                  <TouchableOpacity
+                                    style={styles.batchActionBtn}
+                                    onPress={() =>
+                                      handleRetranslateBatch(
+                                        item,
+                                        batch.index,
+                                        "fromHere"
+                                      )
+                                    }
+                                  >
+                                    <MaterialCommunityIcons
+                                      name="arrow-right-bold"
+                                      size={14}
+                                      color={colors.warning}
+                                    />
+                                  </TouchableOpacity>
+                                </View>
+                              )}
+                            </View>
                           );
                         })}
                       </View>

@@ -316,12 +316,38 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
     );
   };
 
-  const handleRetranslateFromBatch = (
-    translation: SavedTranslation,
-    fromBatchIndex: number
+  // Helper to format SRT time
+  const formatSrtTime = (seconds: number) => {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = Math.floor(seconds % 60);
+    const ms = Math.round((seconds % 1) * 1000);
+    return `${h.toString().padStart(2, "0")}:${m
+      .toString()
+      .padStart(2, "0")}:${s.toString().padStart(2, "0")},${ms
+      .toString()
+      .padStart(3, "0")}`;
+  };
+
+  // Helper to rebuild SRT from subtitles
+  const rebuildSrt = (
+    subtitles: Array<{ startTime: number; endTime: number; text: string }>
   ) => {
-    // IMPORTANT: Use original batch settings from the translation, not current settings
-    // This ensures batch boundaries stay consistent
+    let srt = "";
+    subtitles.forEach((sub, idx) => {
+      srt += `${idx + 1}\n${formatSrtTime(sub.startTime)} --> ${formatSrtTime(
+        sub.endTime
+      )}\n${sub.text}\n\n`;
+    });
+    return srt;
+  };
+
+  const handleRetranslateBatch = (
+    translation: SavedTranslation,
+    batchIndex: number,
+    mode: "single" | "fromHere"
+  ) => {
+    // IMPORTANT: Use original batch settings from the translation
     const originalBatchDuration =
       translation.batchSettings?.maxVideoDuration || 600;
     const totalBatches =
@@ -331,77 +357,136 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
           originalBatchDuration
       );
 
-    confirm(
-      t("subtitleModal.translate.retranslateTitle"),
-      t("subtitleModal.translate.retranslateConfirm", {
-        from: fromBatchIndex + 1,
-        total: totalBatches,
-      }),
-      () => {
-        // Keep batches before fromBatchIndex, retranslate from there
-        const keepBatches = fromBatchIndex;
-        const parsed = parseSRT(translation.srtContent);
-        const keepUntilTime = fromBatchIndex * originalBatchDuration;
-
-        // Filter subtitles to keep only those before the retranslate point
-        const keptSubtitles = parsed.filter(
-          (sub) => sub.endTime <= keepUntilTime
-        );
-
-        // Rebuild SRT from kept subtitles
-        let partialSrt = "";
-        keptSubtitles.forEach((sub, idx) => {
-          const formatSrtTime = (seconds: number) => {
-            const h = Math.floor(seconds / 3600);
-            const m = Math.floor((seconds % 3600) / 60);
-            const s = Math.floor(seconds % 60);
-            const ms = Math.round((seconds % 1) * 1000);
-            return `${h.toString().padStart(2, "0")}:${m
-              .toString()
-              .padStart(2, "0")}:${s.toString().padStart(2, "0")},${ms
-              .toString()
-              .padStart(3, "0")}`;
-          };
-          partialSrt += `${idx + 1}\n${formatSrtTime(
-            sub.startTime
-          )} --> ${formatSrtTime(sub.endTime)}\n${sub.text}\n\n`;
-        });
-
-        // Build completed ranges for batches we're keeping
-        const completedRanges: Array<{ start: number; end: number }> = [];
-        for (let i = 0; i < keepBatches; i++) {
-          completedRanges.push({
-            start: i * originalBatchDuration,
-            end: Math.min(
-              (i + 1) * originalBatchDuration,
-              translation.videoDuration || videoDuration || Infinity
-            ),
-          });
-        }
-
-        // Create modified translation for resume
-        // IMPORTANT: Preserve original batchSettings to maintain batch boundaries
-        const modifiedTranslation: SavedTranslation = {
-          ...translation,
-          srtContent: partialSrt,
-          isPartial: true,
-          completedBatches: keepBatches,
-          totalBatches: totalBatches,
-          // Ensure original batch settings are preserved
-          batchSettings: translation.batchSettings || {
-            maxVideoDuration: originalBatchDuration,
-            maxConcurrentBatches: batchSettings?.maxConcurrentBatches || 1,
-            batchOffset: batchSettings?.batchOffset || 60,
-            streamingMode: true,
-            presubMode: false,
-            presubDuration: 120,
-          },
-        };
-
-        handleTranslate(modifiedTranslation);
-      },
-      t("subtitleModal.translate.retranslate")
+    const batchStart = batchIndex * originalBatchDuration;
+    const batchEnd = Math.min(
+      (batchIndex + 1) * originalBatchDuration,
+      translation.videoDuration || videoDuration || Infinity
     );
+
+    if (mode === "single") {
+      // Mode 1: Retranslate ONLY this batch, keep before and after
+      confirm(
+        t("subtitleModal.translate.retranslateSingleTitle"),
+        t("subtitleModal.translate.retranslateSingleConfirm", {
+          batch: batchIndex + 1,
+          total: totalBatches,
+        }),
+        async () => {
+          const config = geminiConfigs.find((c) => c.id === selectedConfigId);
+          if (!config) {
+            alert(
+              t("subtitleModal.translate.notSelected"),
+              t("subtitleModal.translate.notSelectedMessage")
+            );
+            return;
+          }
+          if (!videoUrl) return;
+          if (translationManager.isTranslating()) {
+            alert(
+              t("common.notice"),
+              t("subtitleModal.translate.anotherTranslating")
+            );
+            return;
+          }
+
+          try {
+            // Import needed functions
+            const { translateVideoWithGemini } = await import(
+              "@services/geminiService"
+            );
+            const { replaceBatchInSrt } = await import("@utils/srtParser");
+            const { saveTranslation } = await import("@utils/storage");
+
+            // Translate only this batch
+            const newBatchSrt = await translateVideoWithGemini(
+              videoUrl,
+              config,
+              undefined,
+              {
+                videoDuration: translation.videoDuration || videoDuration,
+                rangeStart: batchStart,
+                rangeEnd: batchEnd,
+              }
+            );
+
+            // Replace this batch in existing SRT
+            const updatedSrt = replaceBatchInSrt(
+              translation.srtContent,
+              newBatchSrt,
+              batchStart,
+              batchEnd
+            );
+
+            // Save as new translation
+            await saveTranslation(videoUrl, updatedSrt, config.name);
+            await loadTranslations();
+            onSelectTranslation(updatedSrt);
+
+            alert(
+              t("common.success"),
+              t("subtitleModal.translate.batchRetranslated", {
+                batch: batchIndex + 1,
+              })
+            );
+          } catch (error: any) {
+            alert(
+              t("subtitleModal.translate.error"),
+              error.message || t("errors.generic")
+            );
+          }
+        },
+        t("subtitleModal.translate.retranslate")
+      );
+    } else {
+      // Mode 2: Retranslate FROM this batch onwards
+      confirm(
+        t("subtitleModal.translate.retranslateFromTitle"),
+        t("subtitleModal.translate.retranslateFromConfirm", {
+          from: batchIndex + 1,
+          total: totalBatches,
+        }),
+        () => {
+          // Keep batches before batchIndex
+          const parsed = parseSRT(translation.srtContent);
+          const keptSubtitles = parsed.filter(
+            (sub) => sub.endTime <= batchStart
+          );
+          const partialSrt = rebuildSrt(keptSubtitles);
+
+          // Build completed ranges
+          const completedRanges: Array<{ start: number; end: number }> = [];
+          for (let i = 0; i < batchIndex; i++) {
+            completedRanges.push({
+              start: i * originalBatchDuration,
+              end: Math.min(
+                (i + 1) * originalBatchDuration,
+                translation.videoDuration || videoDuration || Infinity
+              ),
+            });
+          }
+
+          // Create modified translation for resume
+          const modifiedTranslation: SavedTranslation = {
+            ...translation,
+            srtContent: partialSrt,
+            isPartial: true,
+            completedBatches: batchIndex,
+            totalBatches: totalBatches,
+            batchSettings: translation.batchSettings || {
+              maxVideoDuration: originalBatchDuration,
+              maxConcurrentBatches: batchSettings?.maxConcurrentBatches || 1,
+              batchOffset: batchSettings?.batchOffset || 60,
+              streamingMode: true,
+              presubMode: false,
+              presubDuration: 120,
+            },
+          };
+
+          handleTranslate(modifiedTranslation);
+        },
+        t("subtitleModal.translate.retranslate")
+      );
+    }
   };
 
   const handleSelectTranslation = async (translation: SavedTranslation) => {
@@ -474,7 +559,7 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
           onSelect={handleSelectTranslation}
           onDelete={handleDeleteTranslation}
           onResume={handleResumeTranslation}
-          onRetranslateFromBatch={handleRetranslateFromBatch}
+          onRetranslateBatch={handleRetranslateBatch}
           videoDuration={videoDuration}
         />
         {!hasApiKey && (

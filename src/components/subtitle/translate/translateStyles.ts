@@ -96,7 +96,10 @@ export const createTranslateStyles = (colors: ThemeColors) =>
     batchesGrid: {
       flexDirection: "row",
       flexWrap: "wrap",
-      gap: 6,
+      gap: 8,
+    },
+    batchChipContainer: {
+      alignItems: "center",
     },
     batchChip: {
       paddingHorizontal: 10,
@@ -132,6 +135,21 @@ export const createTranslateStyles = (colors: ThemeColors) =>
     },
     batchChipTimeCompleted: {
       color: colors.success,
+    },
+    batchActions: {
+      flexDirection: "row",
+      gap: 2,
+      marginTop: 4,
+    },
+    batchActionBtn: {
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+      backgroundColor: colors.surfaceElevated,
+      justifyContent: "center",
+      alignItems: "center",
+      borderWidth: 1,
+      borderColor: colors.border,
     },
     batchesHint: {
       color: colors.textMuted,
