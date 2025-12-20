@@ -43,15 +43,19 @@ const QueueActions: React.FC<QueueActionsProps> = ({
     PresetPromptType | undefined
   >();
 
-  // Detect current preset from selected config's systemPrompt
+  // Detect current preset from selected config
   useEffect(() => {
     const selectedConfig = configs.find((c) => c.id === selectedConfigId);
     if (selectedConfig) {
-      const matchingPreset = PRESET_PROMPTS.find(
-        (p) => p.prompt === selectedConfig.systemPrompt
-      );
-      // If no matching preset, it's custom
-      setCurrentPresetId(matchingPreset?.id || ("custom" as PresetPromptType));
+      // Use presetId if set, otherwise check if systemPrompt matches any preset
+      if (selectedConfig.presetId) {
+        setCurrentPresetId(selectedConfig.presetId as PresetPromptType);
+      } else {
+        const matchingPreset = PRESET_PROMPTS.find(
+          (p) => p.prompt === selectedConfig.systemPrompt
+        );
+        setCurrentPresetId(matchingPreset?.id || "custom");
+      }
     }
   }, [selectedConfigId, configs]);
 
@@ -59,17 +63,13 @@ const QueueActions: React.FC<QueueActionsProps> = ({
     prompt: string,
     presetId: PresetPromptType
   ) => {
-    // If custom selected, just update the presetId without changing prompt
-    if (presetId === "custom" || !prompt) {
-      setCurrentPresetId(presetId);
-      return;
-    }
+    // Save presetId to config instead of overwriting systemPrompt
     const configIndex = configs.findIndex((c) => c.id === selectedConfigId);
     if (configIndex >= 0) {
       const updatedConfigs = [...configs];
       updatedConfigs[configIndex] = {
         ...updatedConfigs[configIndex],
-        systemPrompt: prompt,
+        presetId: presetId === "custom" ? undefined : presetId,
       };
       setCurrentPresetId(presetId);
       await saveGeminiConfigs(updatedConfigs);

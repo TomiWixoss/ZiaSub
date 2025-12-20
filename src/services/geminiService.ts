@@ -5,10 +5,19 @@ import type {
   BatchProgress,
   VideoTranslateOptions,
 } from "@src/types";
-import { DEFAULT_BATCH_SETTINGS } from "@constants/defaults";
+import { DEFAULT_BATCH_SETTINGS, PRESET_PROMPTS } from "@constants/defaults";
 import { mergeSrtContents, adjustSrtTimestamps } from "@utils/srtParser";
 import { normalizeYouTubeUrl, isShortsUrl } from "@utils/videoUtils";
 import { keyManager } from "./keyManager";
+
+// Get effective system prompt - use preset if set, otherwise use custom systemPrompt
+const getEffectiveSystemPrompt = (config: GeminiConfig): string => {
+  if (config.presetId) {
+    const preset = PRESET_PROMPTS.find((p) => p.id === config.presetId);
+    if (preset) return preset.prompt;
+  }
+  return config.systemPrompt;
+};
 
 // Run promises with concurrency limit - continues on error, collects partial results
 const runWithConcurrency = async <T>(
@@ -158,7 +167,7 @@ const translateVideoBatch = async (
       contents,
       config: {
         temperature: config.temperature,
-        systemInstruction: config.systemPrompt,
+        systemInstruction: getEffectiveSystemPrompt(config),
         thinkingConfig: {
           thinkingLevel: getThinkingLevel(config.thinkingLevel),
         },

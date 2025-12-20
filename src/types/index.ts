@@ -116,6 +116,7 @@ export interface GeminiConfig {
   systemPrompt: string;
   mediaResolution?: MediaResolutionType;
   thinkingLevel?: ThinkingLevelType;
+  presetId?: string; // ID of preset prompt to use instead of systemPrompt
 }
 
 // ============================================

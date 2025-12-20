@@ -91,15 +91,19 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
     PresetPromptType | undefined
   >();
 
-  // Detect current preset from selected config's systemPrompt
+  // Detect current preset from selected config
   useEffect(() => {
     const selectedConfig = geminiConfigs.find((c) => c.id === selectedConfigId);
     if (selectedConfig) {
-      const matchingPreset = PRESET_PROMPTS.find(
-        (p) => p.prompt === selectedConfig.systemPrompt
-      );
-      // If no matching preset, it's custom
-      setCurrentPresetId(matchingPreset?.id || ("custom" as PresetPromptType));
+      // Use presetId if set, otherwise check if systemPrompt matches any preset
+      if (selectedConfig.presetId) {
+        setCurrentPresetId(selectedConfig.presetId as PresetPromptType);
+      } else {
+        const matchingPreset = PRESET_PROMPTS.find(
+          (p) => p.prompt === selectedConfig.systemPrompt
+        );
+        setCurrentPresetId(matchingPreset?.id || "custom");
+      }
     }
   }, [selectedConfigId, geminiConfigs]);
 
@@ -616,12 +620,7 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
           videoDuration={videoDuration}
           currentPresetId={currentPresetId}
           onSelectPreset={async (prompt, presetId) => {
-            // If custom selected, just update the presetId without changing prompt
-            if (presetId === "custom" || !prompt) {
-              setCurrentPresetId(presetId);
-              return;
-            }
-            // Update current config's systemPrompt with selected preset
+            // Save presetId to config instead of overwriting systemPrompt
             const configIndex = geminiConfigs.findIndex(
               (c) => c.id === selectedConfigId
             );
@@ -629,7 +628,7 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
               const updatedConfigs = [...geminiConfigs];
               updatedConfigs[configIndex] = {
                 ...updatedConfigs[configIndex],
-                systemPrompt: prompt,
+                presetId: presetId === "custom" ? undefined : presetId,
               };
               setGeminiConfigs(updatedConfigs);
               setCurrentPresetId(presetId);
