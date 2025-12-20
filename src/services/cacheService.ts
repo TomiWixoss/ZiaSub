@@ -43,6 +43,9 @@ interface PendingWrite {
 class CacheService {
   private static instance: CacheService;
 
+  // Reference to fileStorage for background writes
+  private fileStorageRef: any = null;
+
   // In-memory cache
   private cache: CacheData = {
     settings: null,
@@ -61,7 +64,7 @@ class CacheService {
   // Pending writes for background persistence
   private pendingWrites: PendingWrite[] = [];
   private isWriting: boolean = false;
-  private writeDebounceTimer: NodeJS.Timeout | null = null;
+  private writeDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
   // Listeners for cache updates
   private listeners: Map<string, Set<(data: any) => void>> = new Map();
@@ -102,6 +105,8 @@ class CacheService {
       return;
     }
 
+    // Store reference for background writes
+    this.fileStorageRef = fileStorage;
     this.initPromise = this._doInitialize(fileStorage);
     await this.initPromise;
   }
@@ -394,8 +399,10 @@ class CacheService {
     this.pendingWrites = [];
 
     try {
-      // Import fileStorage dynamically to avoid circular dependency
-      const { fileStorage } = await import("./fileStorageService");
+      // Use stored reference or import dynamically
+      const fileStorage =
+        this.fileStorageRef ||
+        (await import("./fileStorageService")).fileStorage;
 
       if (!fileStorage.isConfigured()) {
         console.warn("[CacheService] Storage not configured, skipping flush");

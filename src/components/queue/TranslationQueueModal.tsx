@@ -16,21 +16,14 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@src/contexts";
 import { useThemedStyles, createThemedStyles } from "@hooks/useThemedStyles";
-import type {
-  GeminiConfig,
-  QueueItem,
-  QueueStatus,
-  BatchSettings,
-} from "@src/types";
+import type { GeminiConfig, QueueItem, QueueStatus } from "@src/types";
 import { queueManager } from "@services/queueManager";
 import {
   getGeminiConfigs,
   getActiveTranslationConfig,
   saveActiveTranslationConfigId,
   getApiKeys,
-  getBatchSettings,
 } from "@utils/storage";
-import { DEFAULT_BATCH_SETTINGS } from "@constants/defaults";
 import QueueItemCard from "./QueueItemCard";
 import QueueTabs, { TabType } from "./QueueTabs";
 import QueueActions from "./QueueActions";
@@ -74,9 +67,6 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
   const [selectedConfigId, setSelectedConfigId] = useState<string>("");
   const [showConfigPicker, setShowConfigPicker] = useState(false);
   const [hasApiKey, setHasApiKey] = useState(true);
-  const [maxVideoDuration, setMaxVideoDuration] = useState(
-    DEFAULT_BATCH_SETTINGS.maxVideoDuration
-  );
 
   const activeTabRef = useRef<TabType>(activeTab);
   const pageRef = useRef<number>(page);
@@ -105,11 +95,10 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
   }, [visible]);
 
   const loadConfigs = async () => {
-    const [configs, activeConfig, apiKeys, batchSettings] = await Promise.all([
+    const [configs, activeConfig, apiKeys] = await Promise.all([
       getGeminiConfigs(),
       getActiveTranslationConfig(),
       getApiKeys(),
-      getBatchSettings(),
     ]);
     // Filter out chat config for translation picker
     const translationConfigs = configs.filter(
@@ -117,7 +106,6 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
     );
     setGeminiConfigs(translationConfigs);
     setHasApiKey(apiKeys.length > 0);
-    setMaxVideoDuration(batchSettings.maxVideoDuration);
     if (activeConfig) {
       setSelectedConfigId(activeConfig.id);
     } else if (translationConfigs.length > 0) {
@@ -337,7 +325,6 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
               <QueueItemCard
                 item={item}
                 hasApiKey={hasApiKey}
-                maxVideoDuration={maxVideoDuration}
                 onSelect={handleSelectVideo}
                 onStart={handleStartTranslation}
                 onRequeue={handleRequeue}

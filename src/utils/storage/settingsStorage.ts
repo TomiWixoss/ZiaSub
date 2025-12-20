@@ -3,6 +3,7 @@
  * Uses write-through cache: immediate cache update, background file persistence
  */
 import { cacheService } from "@services/cacheService";
+import { fileStorage } from "@services/fileStorageService";
 import type {
   AppSettings,
   SubtitleSettings,
@@ -14,7 +15,6 @@ import {
   DEFAULT_SUBTITLE_SETTINGS,
   DEFAULT_BATCH_SETTINGS,
   DEFAULT_TTS_SETTINGS,
-  DEFAULT_API_KEYS_SETTINGS,
 } from "@constants/defaults";
 
 // ============================================
@@ -67,12 +67,43 @@ export const getBatchSettings = async (): Promise<BatchSettings> => {
 // API KEYS
 // ============================================
 export const saveApiKeys = async (keys: string[]): Promise<void> => {
-  cacheService.setApiKeys(keys);
+  // If cache is initialized, use cache (normal flow)
+  if (cacheService.isInitialized()) {
+    cacheService.setApiKeys(keys);
+    return;
+  }
+
+  // During onboarding, cache is not initialized yet
+  // Save directly to file so it will be loaded when cache initializes
+  try {
+    // Load existing settings or use defaults
+    const existingSettings = await fileStorage.loadData<AppSettings>(
+      "settings.json",
+      { ...DEFAULT_APP_SETTINGS }
+    );
+    existingSettings.apiKeys = { keys };
+    await fileStorage.saveData("settings.json", existingSettings);
+  } catch (error) {
+    console.error("Error saving API keys during onboarding:", error);
+  }
 };
 
 export const getApiKeys = async (): Promise<string[]> => {
-  await cacheService.waitForInit();
-  return cacheService.getApiKeys();
+  // If cache is initialized, use cache
+  if (cacheService.isInitialized()) {
+    return cacheService.getApiKeys();
+  }
+
+  // During onboarding, read directly from file
+  try {
+    const settings = await fileStorage.loadData<AppSettings | null>(
+      "settings.json",
+      null
+    );
+    return settings?.apiKeys?.keys || [];
+  } catch {
+    return [];
+  }
 };
 
 // ============================================
