@@ -335,7 +335,6 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
               <QueueItemCard
                 item={item}
                 hasApiKey={hasApiKey}
-                canResume={queueManager.canResume(item.id)}
                 onSelect={handleSelectVideo}
                 onStart={handleStartTranslation}
                 onResume={handleResumeTranslation}

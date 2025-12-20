@@ -11,7 +11,6 @@ import { createQueueStyles } from "./queueStyles";
 interface QueueItemCardProps {
   item: QueueItem;
   hasApiKey: boolean;
-  canResume?: boolean;
   onSelect: (item: QueueItem) => void;
   onStart: (item: QueueItem) => void;
   onResume?: (item: QueueItem) => void;
@@ -39,7 +38,6 @@ const formatDate = (timestamp?: number) => {
 const QueueItemCard: React.FC<QueueItemCardProps> = ({
   item,
   hasApiKey,
-  canResume,
   onSelect,
   onStart,
   onResume,

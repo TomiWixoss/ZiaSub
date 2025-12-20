@@ -20,7 +20,6 @@ import {
   setActiveTranslation,
   deleteTranslation,
   getApiKeys,
-  getPartialTranslation,
 } from "@utils/storage";
 import { translationManager } from "@services/translationManager";
 import { parseTime } from "@utils/videoUtils";
