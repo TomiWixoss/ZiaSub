@@ -281,8 +281,19 @@ class TranslationManager {
       this.abortController = null;
     }
 
-    // Don't notify here - let the catch block in startTranslation handle it
-    // after saving partial translation
+    // Notify immediately so UI updates right away
+    // The catch block will update again after saving partial translation
+    const hasPartial = partialResult && completedRanges.length > 0;
+    this.currentJob = {
+      ...this.currentJob,
+      status: "error",
+      error: hasPartial
+        ? `Đang lưu (${completedRanges.length} phần)...`
+        : "Đang dừng...",
+      completedAt: Date.now(),
+    };
+    this.notify();
+
     return { aborted: true, partialResult, completedRanges };
   }
 

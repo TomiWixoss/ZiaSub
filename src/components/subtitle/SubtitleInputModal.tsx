@@ -103,7 +103,17 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
       const currentVideoId = videoUrl ? extractVideoId(videoUrl) : null;
 
       if (jobVideoId && currentVideoId && jobVideoId === currentVideoId) {
-        setIsTranslating(job.status === "processing");
+        // Check if this is intermediate "stopping" state
+        const isStoppingInProgress =
+          job.status === "error" &&
+          (job.error?.startsWith("Đang lưu") ||
+            job.error?.startsWith("Đang dừng"));
+
+        // Don't set isTranslating to false if still stopping
+        if (!isStoppingInProgress) {
+          setIsTranslating(job.status === "processing");
+        }
+
         setBatchProgress(job.progress);
         setKeyStatus(job.keyStatus);
         if (job.progress) {
@@ -146,6 +156,19 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
             alert("Thành công", "Dịch xong rồi! Phụ đề đã sẵn sàng.");
         }
         if (job.status === "error") {
+          // Check if this is intermediate "stopping" state or final "stopped" state
+          const isStoppingInProgress =
+            job.error?.startsWith("Đang lưu") ||
+            job.error?.startsWith("Đang dừng");
+
+          if (isStoppingInProgress) {
+            // Still stopping - show status, isTranslating already kept true from above
+            setTranslateStatus(job.error || "Đang dừng...");
+            return;
+          }
+
+          // Final stopped state
+          setIsTranslating(false);
           setTranslateStatus("");
           setKeyStatus(null);
 
