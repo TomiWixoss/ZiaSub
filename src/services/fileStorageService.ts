@@ -370,14 +370,39 @@ class FileStorageService {
    */
   private async ensureDirectoriesSaf(directoryUri: string): Promise<void> {
     const dirs = [FILES.translations, FILES.srt];
-    for (const dir of dirs) {
-      try {
-        await FileSystem.StorageAccessFramework.makeDirectoryAsync(
-          directoryUri,
-          dir
+
+    // Get existing items in directory
+    let existingItems: string[] = [];
+    try {
+      existingItems =
+        await FileSystem.StorageAccessFramework.readDirectoryAsync(
+          directoryUri
         );
-      } catch {
-        // Directory might already exist
+    } catch {
+      existingItems = [];
+    }
+
+    for (const dir of dirs) {
+      // Check if directory already exists
+      const dirExists = existingItems.some((item) => {
+        // SAF URIs contain the directory name
+        const decodedItem = decodeURIComponent(item);
+        return (
+          decodedItem.endsWith(`/${dir}`) ||
+          decodedItem.includes(`/${dir}%`) ||
+          decodedItem.endsWith(`%2F${dir}`)
+        );
+      });
+
+      if (!dirExists) {
+        try {
+          await FileSystem.StorageAccessFramework.makeDirectoryAsync(
+            directoryUri,
+            dir
+          );
+        } catch {
+          // Directory might already exist or creation failed
+        }
       }
     }
   }
