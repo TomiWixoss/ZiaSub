@@ -334,6 +334,73 @@ export const adjustSrtTimestamps = (
 };
 
 /**
+ * Replace a time range in existing SRT with new content.
+ * Used for re-translating a specific batch.
+ */
+export const replaceBatchInSrt = (
+  existingSrt: string,
+  newBatchSrt: string,
+  rangeStart: number,
+  rangeEnd: number
+): string => {
+  // Parse existing subtitles
+  const existingSubtitles = parseSrtRaw(existingSrt);
+
+  // Parse new batch subtitles
+  const newSubtitles = parseSrtRaw(newBatchSrt);
+
+  // Detect if new subtitles are relative (starting from 0) or absolute
+  const mode = detectTimestampMode(newSubtitles, rangeStart);
+
+  // Adjust new subtitles if they're relative
+  const adjustedNewSubtitles = newSubtitles.map((sub) => {
+    if (mode === "relative") {
+      return {
+        start: sub.start + rangeStart,
+        end: sub.end + rangeStart,
+        text: sub.text,
+      };
+    }
+    return sub;
+  });
+
+  // Filter out existing subtitles that fall within the range
+  const filteredExisting = existingSubtitles.filter(
+    (sub) => sub.start < rangeStart || sub.start >= rangeEnd
+  );
+
+  // Merge and sort
+  const allSubtitles = [...filteredExisting, ...adjustedNewSubtitles];
+  allSubtitles.sort((a, b) => a.start - b.start);
+
+  // Remove duplicates
+  const uniqueSubtitles: typeof allSubtitles = [];
+  for (const sub of allSubtitles) {
+    const isDuplicate = uniqueSubtitles.some(
+      (existing) =>
+        Math.abs(existing.start - sub.start) < 0.5 &&
+        existing.text.trim() === sub.text.trim()
+    );
+    if (!isDuplicate) {
+      uniqueSubtitles.push(sub);
+    }
+  }
+
+  // Build final SRT
+  const lines: string[] = [];
+  uniqueSubtitles.forEach((sub, index) => {
+    lines.push((index + 1).toString());
+    lines.push(
+      `${secondsToSrtTime(sub.start)} --> ${secondsToSrtTime(sub.end)}`
+    );
+    lines.push(sub.text);
+    lines.push("");
+  });
+
+  return lines.join("\n");
+};
+
+/**
  * Merge multiple SRT contents with smart time offset adjustment.
  * If offsetSeconds is -1, the content already has absolute timestamps and should not be adjusted.
  */

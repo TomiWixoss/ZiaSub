@@ -436,6 +436,22 @@ export default {
       error: "Không dịch được",
       errorMessage: "Không thể dịch video này.",
       stopTranslation: "Dừng dịch",
+
+      // Batch viewer
+      batchList: "Các phần đã dịch",
+      retranslateHint: "Bấm vào phần để dịch lại từ đó",
+      retranslateTitle: "Dịch lại",
+      retranslateConfirm:
+        "Dịch lại từ phần {{from}}/{{total}}? Các phần trước sẽ được giữ nguyên.",
+      retranslate: "Dịch lại",
+      useThis: "Dùng bản này",
+      batchViewer: {
+        title: "Các phần đã dịch",
+        description: "Chọn phần muốn dịch lại nếu bị lỗi",
+        batch: "Phần",
+        subtitles: "dòng phụ đề",
+      },
+      batchRetranslated: "Đã dịch lại phần {{batch}}!",
     },
   },
 

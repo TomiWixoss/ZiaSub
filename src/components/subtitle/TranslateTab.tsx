@@ -316,6 +316,83 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
     );
   };
 
+  const handleRetranslateFromBatch = (
+    translation: SavedTranslation,
+    fromBatchIndex: number
+  ) => {
+    const batchDuration =
+      translation.batchSettings?.maxVideoDuration ||
+      batchSettings?.maxVideoDuration ||
+      600;
+    const totalBatches =
+      translation.totalBatches ||
+      Math.ceil(
+        (translation.videoDuration || videoDuration || 0) / batchDuration
+      );
+
+    confirm(
+      t("subtitleModal.translate.retranslateTitle"),
+      t("subtitleModal.translate.retranslateConfirm", {
+        from: fromBatchIndex + 1,
+        total: totalBatches,
+      }),
+      () => {
+        // Keep batches before fromBatchIndex, retranslate from there
+        const keepBatches = fromBatchIndex;
+        const parsed = parseSRT(translation.srtContent);
+        const keepUntilTime = fromBatchIndex * batchDuration;
+
+        // Filter subtitles to keep only those before the retranslate point
+        const keptSubtitles = parsed.filter(
+          (sub) => sub.endTime <= keepUntilTime
+        );
+
+        // Rebuild SRT from kept subtitles
+        let partialSrt = "";
+        keptSubtitles.forEach((sub, idx) => {
+          const formatSrtTime = (seconds: number) => {
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            const s = Math.floor(seconds % 60);
+            const ms = Math.round((seconds % 1) * 1000);
+            return `${h.toString().padStart(2, "0")}:${m
+              .toString()
+              .padStart(2, "0")}:${s.toString().padStart(2, "0")},${ms
+              .toString()
+              .padStart(3, "0")}`;
+          };
+          partialSrt += `${idx + 1}\n${formatSrtTime(
+            sub.startTime
+          )} --> ${formatSrtTime(sub.endTime)}\n${sub.text}\n\n`;
+        });
+
+        // Build completed ranges for batches we're keeping
+        const completedRanges: Array<{ start: number; end: number }> = [];
+        for (let i = 0; i < keepBatches; i++) {
+          completedRanges.push({
+            start: i * batchDuration,
+            end: Math.min(
+              (i + 1) * batchDuration,
+              translation.videoDuration || videoDuration || Infinity
+            ),
+          });
+        }
+
+        // Create modified translation for resume
+        const modifiedTranslation: SavedTranslation = {
+          ...translation,
+          srtContent: partialSrt,
+          isPartial: true,
+          completedBatches: keepBatches,
+          totalBatches: totalBatches,
+        };
+
+        handleTranslate(modifiedTranslation);
+      },
+      t("subtitleModal.translate.retranslate")
+    );
+  };
+
   const handleSelectTranslation = async (translation: SavedTranslation) => {
     if (!videoUrl) return;
     await setActiveTranslation(videoUrl, translation.id);
@@ -386,6 +463,9 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
           onSelect={handleSelectTranslation}
           onDelete={handleDeleteTranslation}
           onResume={handleResumeTranslation}
+          onRetranslateFromBatch={handleRetranslateFromBatch}
+          videoDuration={videoDuration}
+          batchSettings={batchSettings}
         />
         {!hasApiKey && (
           <View style={themedStyles.warningContainer}>

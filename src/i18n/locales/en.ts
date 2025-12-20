@@ -437,6 +437,22 @@ export default {
       error: "Translation failed",
       errorMessage: "Cannot translate this video.",
       stopTranslation: "Stop translation",
+
+      // Batch viewer
+      batchList: "Translation batches",
+      retranslateHint: "Tap a batch to retranslate from there",
+      retranslateTitle: "Retranslate",
+      retranslateConfirm:
+        "Retranslate from batch {{from}}/{{total}}? Previous batches will be kept.",
+      retranslate: "Retranslate",
+      useThis: "Use this",
+      batchViewer: {
+        title: "Translation batches",
+        description: "Select a batch to retranslate if it has errors",
+        batch: "Batch",
+        subtitles: "subtitle lines",
+      },
+      batchRetranslated: "Batch {{batch}} retranslated!",
     },
   },
 
