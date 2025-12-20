@@ -365,17 +365,17 @@ export const INJECTED_JAVASCRIPT = `
         const isPartialOnly = partialVideoIds.has(videoId);
         
         if (isFullyTranslated) {
-          // Show checkmark icon for fully translated videos
+          // Show subtitle/CC icon for fully translated videos
           if (existingBadge) {
             if (!existingBadge.classList.contains('ziasub-badge-full')) {
-              existingBadge.textContent = '✓';
+              existingBadge.textContent = '㋐';
               existingBadge.className = 'ziasub-badge ziasub-badge-full';
               existingBadge.style.cssText = 'position:absolute;top:4px;left:4px;background:rgba(155,126,217,0.9);color:#fff;font-size:12px;font-weight:bold;width:18px;height:18px;line-height:18px;text-align:center;border-radius:4px;z-index:10;pointer-events:none;';
             }
           } else {
             const badge = document.createElement('div');
             badge.className = 'ziasub-badge ziasub-badge-full';
-            badge.textContent = '✓';
+            badge.textContent = '㋐';
             badge.style.cssText = 'position:absolute;top:4px;left:4px;background:rgba(155,126,217,0.9);color:#fff;font-size:12px;font-weight:bold;width:18px;height:18px;line-height:18px;text-align:center;border-radius:4px;z-index:10;pointer-events:none;';
             link.appendChild(badge);
           }
