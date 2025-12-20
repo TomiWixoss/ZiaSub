@@ -240,6 +240,14 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
         rangeStart = resumeTranslation.rangeStart;
         rangeEnd = resumeTranslation.rangeEnd;
       }
+
+      // Auto-enable streaming mode when resuming (required for resume to work properly)
+      if (!streamingMode) {
+        setStreamingMode(true);
+        if (batchSettings && onBatchSettingsChange) {
+          onBatchSettingsChange({ ...batchSettings, streamingMode: true });
+        }
+      }
     } else if (useCustomRange) {
       const start = rangeStartStr.trim() ? parseTime(rangeStartStr) : 0;
       const end = rangeEndStr.trim() ? parseTime(rangeEndStr) : videoDuration;
@@ -266,11 +274,22 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
 
     try {
       await saveActiveTranslationConfigId(selectedConfigId);
+
+      // When resuming, ensure streaming mode is enabled in batch settings
+      let effectiveBatchSettings =
+        (resumeTranslation?.batchSettings as BatchSettings) || batchSettings;
+      if (resumeData && effectiveBatchSettings) {
+        effectiveBatchSettings = {
+          ...effectiveBatchSettings,
+          streamingMode: true,
+        };
+      }
+
       translationManager.startTranslation(
         videoUrl,
         config,
         videoDuration,
-        (resumeTranslation?.batchSettings as BatchSettings) || batchSettings,
+        effectiveBatchSettings,
         rangeStart,
         rangeEnd,
         resumeData
