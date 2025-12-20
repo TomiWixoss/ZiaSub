@@ -297,6 +297,43 @@ export const detectTimestampMode = (
 };
 
 /**
+ * Adjust SRT timestamps if they start from 0 instead of expected offset.
+ * Used when AI returns relative timestamps for a custom range translation.
+ */
+export const adjustSrtTimestamps = (
+  content: string,
+  expectedOffset: number
+): string => {
+  if (!content || expectedOffset <= 0) return content;
+
+  const subtitles = parseSrtRaw(content);
+  if (subtitles.length === 0) return content;
+
+  const mode = detectTimestampMode(subtitles, expectedOffset);
+  console.log(
+    `[SRT] Adjust timestamps: expectedOffset=${expectedOffset}s, mode=${mode}, subtitles=${subtitles.length}`
+  );
+
+  // If already absolute (timestamps match expected offset), return as-is
+  if (mode === "absolute") return content;
+
+  // Timestamps are relative (starting from 0), need to add offset
+  const lines: string[] = [];
+  subtitles.forEach((sub, index) => {
+    lines.push((index + 1).toString());
+    lines.push(
+      `${secondsToSrtTime(sub.start + expectedOffset)} --> ${secondsToSrtTime(
+        sub.end + expectedOffset
+      )}`
+    );
+    lines.push(sub.text);
+    lines.push("");
+  });
+
+  return lines.join("\n");
+};
+
+/**
  * Merge multiple SRT contents with smart time offset adjustment.
  */
 export const mergeSrtContents = (

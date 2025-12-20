@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback } from "react";
 import { View, TouchableOpacity, TextInput, Switch } from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -7,6 +7,79 @@ import { useTheme } from "@src/contexts";
 import { useThemedStyles } from "@hooks/useThemedStyles";
 import { formatDuration } from "@utils/videoUtils";
 import { createTranslateStyles } from "./translateStyles";
+
+// Helper: parse time string "m:ss" to seconds
+const parseTimeToSeconds = (timeStr: string): number => {
+  const parts = timeStr.split(":").map((p) => parseInt(p, 10) || 0);
+  if (parts.length === 1) return parts[0];
+  if (parts.length === 2) return parts[0] * 60 + parts[1];
+  return parts[0] * 3600 + parts[1] * 60 + parts[2];
+};
+
+// Helper: format seconds to "m:ss"
+const formatSecondsToTime = (seconds: number): string => {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}:${secs.toString().padStart(2, "0")}`;
+};
+
+interface TimeInputProps {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  maxSeconds?: number;
+  colors: any;
+  styles: any;
+}
+
+const TimeInput: React.FC<TimeInputProps> = ({
+  value,
+  onChange,
+  placeholder,
+  maxSeconds,
+  colors,
+  styles,
+}) => {
+  const adjustTime = useCallback(
+    (delta: number) => {
+      const currentSeconds = parseTimeToSeconds(value || "0:00");
+      let newSeconds = currentSeconds + delta;
+      if (newSeconds < 0) newSeconds = 0;
+      if (maxSeconds !== undefined && newSeconds > maxSeconds) {
+        newSeconds = maxSeconds;
+      }
+      onChange(formatSecondsToTime(newSeconds));
+    },
+    [value, onChange, maxSeconds]
+  );
+
+  return (
+    <View style={styles.timeInputWrapper}>
+      <TouchableOpacity
+        style={styles.timeAdjustBtn}
+        onPress={() => adjustTime(-10)}
+        activeOpacity={0.7}
+      >
+        <MaterialCommunityIcons name="minus" size={18} color={colors.text} />
+      </TouchableOpacity>
+      <TextInput
+        style={styles.timeInputField}
+        value={value}
+        onChangeText={onChange}
+        placeholder={placeholder}
+        placeholderTextColor={colors.textMuted}
+        keyboardType="numeric"
+      />
+      <TouchableOpacity
+        style={styles.timeAdjustBtn}
+        onPress={() => adjustTime(10)}
+        activeOpacity={0.7}
+      >
+        <MaterialCommunityIcons name="plus" size={18} color={colors.text} />
+      </TouchableOpacity>
+    </View>
+  );
+};
 
 interface AdvancedOptionsProps {
   showAdvanced: boolean;
@@ -145,13 +218,13 @@ const AdvancedOptions: React.FC<AdvancedOptionsProps> = ({
                 <Text style={styles.rangeLabel}>
                   {t("subtitleModal.translate.rangeFrom")}
                 </Text>
-                <TextInput
-                  style={styles.rangeInput}
+                <TimeInput
                   value={rangeStartStr}
-                  onChangeText={onRangeStartChange}
+                  onChange={onRangeStartChange}
                   placeholder="0:00"
-                  placeholderTextColor={colors.textMuted}
-                  keyboardType="numbers-and-punctuation"
+                  maxSeconds={videoDuration}
+                  colors={colors}
+                  styles={styles}
                 />
               </View>
               <MaterialCommunityIcons
@@ -163,17 +236,17 @@ const AdvancedOptions: React.FC<AdvancedOptionsProps> = ({
                 <Text style={styles.rangeLabel}>
                   {t("subtitleModal.translate.rangeTo")}
                 </Text>
-                <TextInput
-                  style={styles.rangeInput}
+                <TimeInput
                   value={rangeEndStr}
-                  onChangeText={onRangeEndChange}
+                  onChange={onRangeEndChange}
                   placeholder={
                     videoDuration
                       ? formatDuration(videoDuration)
                       : t("subtitleModal.translate.rangeEnd")
                   }
-                  placeholderTextColor={colors.textMuted}
-                  keyboardType="numbers-and-punctuation"
+                  maxSeconds={videoDuration}
+                  colors={colors}
+                  styles={styles}
                 />
               </View>
             </View>

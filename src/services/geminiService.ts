@@ -6,7 +6,7 @@ import type {
   VideoTranslateOptions,
 } from "@src/types";
 import { DEFAULT_BATCH_SETTINGS } from "@constants/defaults";
-import { mergeSrtContents } from "@utils/srtParser";
+import { mergeSrtContents, adjustSrtTimestamps } from "@utils/srtParser";
 import { normalizeYouTubeUrl, isShortsUrl } from "@utils/videoUtils";
 import { keyManager } from "./keyManager";
 
@@ -470,6 +470,11 @@ export const translateVideoWithGemini = async (
       throw new Error("Đã dừng dịch");
     }
 
+    // Adjust timestamps if translating a custom range starting after 0
+    // AI might return timestamps starting from 0 instead of rangeStart
+    const adjustedResult =
+      rangeStart > 0 ? adjustSrtTimestamps(result, rangeStart) : result;
+
     options?.onBatchProgress?.({
       totalBatches: 1,
       completedBatches: 1,
@@ -480,11 +485,11 @@ export const translateVideoWithGemini = async (
 
     // For single batch in streaming mode, also call onBatchComplete
     if (streamingMode) {
-      options?.onBatchComplete?.(result, 0, 1);
+      options?.onBatchComplete?.(adjustedResult, 0, 1);
     }
 
-    onChunk?.(result);
-    return result;
+    onChunk?.(adjustedResult);
+    return adjustedResult;
   } catch (error: any) {
     // Don't log error if user stopped translation
     const isUserStopped =
