@@ -37,6 +37,8 @@ export {
   setActiveTranslation,
   deleteTranslation,
   getAllTranslatedVideoUrls,
+  getFullyTranslatedVideoUrls,
+  getPartialOnlyVideoUrls,
   hasTranslation,
   getActiveTranslation,
 } from "./translationStorage";

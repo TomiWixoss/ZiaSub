@@ -5,7 +5,10 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { queueManager, QueueItem } from "@services/queueManager";
 import { translationManager } from "@services/translationManager";
 import { extractVideoId } from "@utils/videoUtils";
-import { getAllTranslatedVideoUrls } from "@utils/storage";
+import {
+  getFullyTranslatedVideoUrls,
+  getPartialOnlyVideoUrls,
+} from "@utils/storage";
 import { WebView } from "react-native-webview";
 
 interface UseTranslationQueueOptions {
@@ -31,14 +34,27 @@ export const useTranslationQueue = ({
 
   // Sync translated video IDs to WebView
   const syncTranslatedVideosToWebView = useCallback(async () => {
-    const urls = await getAllTranslatedVideoUrls();
-    const videoIds = urls
+    // Get fully translated videos (have at least one complete translation)
+    const fullyTranslatedUrls = await getFullyTranslatedVideoUrls();
+    const fullyTranslatedIds = fullyTranslatedUrls
+      .map((url) => extractVideoId(url))
+      .filter((id): id is string => id !== null);
+
+    // Get partial only videos (only have partial translations)
+    const partialOnlyUrls = await getPartialOnlyVideoUrls();
+    const partialOnlyIds = partialOnlyUrls
       .map((url) => extractVideoId(url))
       .filter((id): id is string => id !== null);
 
     if (webViewRef.current) {
       webViewRef.current.postMessage(
-        JSON.stringify({ type: "setTranslatedVideos", payload: videoIds })
+        JSON.stringify({
+          type: "setTranslatedVideos",
+          payload: {
+            full: fullyTranslatedIds,
+            partial: partialOnlyIds,
+          },
+        })
       );
     }
   }, [webViewRef]);

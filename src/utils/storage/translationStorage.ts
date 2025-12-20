@@ -236,6 +236,72 @@ export const getAllTranslatedVideoUrls = async (): Promise<string[]> => {
   }
 };
 
+// Get video URLs that have at least one full (non-partial) translation
+export const getFullyTranslatedVideoUrls = async (): Promise<string[]> => {
+  await cacheService.waitForInit();
+
+  try {
+    const files = await fileStorage.listSubFiles(TRANSLATIONS_DIR);
+    const urls: string[] = [];
+
+    for (const file of files) {
+      if (file.endsWith(".json")) {
+        const videoId = file.replace(".json", "");
+
+        let data = cacheService.getTranslation(videoId);
+        if (!data) {
+          data = await cacheService.loadTranslation(videoId, fileStorage);
+        }
+
+        // Only include if has at least one full translation
+        if (data?.videoUrl && data.translations.some((t) => !t.isPartial)) {
+          urls.push(data.videoUrl);
+        }
+      }
+    }
+
+    return urls;
+  } catch (error) {
+    console.error("Error getting fully translated videos:", error);
+    return [];
+  }
+};
+
+// Get video URLs that only have partial translations (no full translation)
+export const getPartialOnlyVideoUrls = async (): Promise<string[]> => {
+  await cacheService.waitForInit();
+
+  try {
+    const files = await fileStorage.listSubFiles(TRANSLATIONS_DIR);
+    const urls: string[] = [];
+
+    for (const file of files) {
+      if (file.endsWith(".json")) {
+        const videoId = file.replace(".json", "");
+
+        let data = cacheService.getTranslation(videoId);
+        if (!data) {
+          data = await cacheService.loadTranslation(videoId, fileStorage);
+        }
+
+        // Only include if has translations but ALL are partial
+        if (
+          data?.videoUrl &&
+          data.translations.length > 0 &&
+          data.translations.every((t) => t.isPartial)
+        ) {
+          urls.push(data.videoUrl);
+        }
+      }
+    }
+
+    return urls;
+  } catch (error) {
+    console.error("Error getting partial only videos:", error);
+    return [];
+  }
+};
+
 export const hasTranslation = async (videoUrl: string): Promise<boolean> => {
   const data = await getVideoTranslations(videoUrl);
   return data !== null && data.translations.length > 0;

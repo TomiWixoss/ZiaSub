@@ -173,6 +173,7 @@ export const INJECTED_JAVASCRIPT = `
 
     // Translated video IDs set and queued video IDs
     let translatedVideoIds = new Set();
+    let partialVideoIds = new Set();
     let queuedVideoIds = new Set();
 
     function extractVideoId(href) {
@@ -204,10 +205,11 @@ export const INJECTED_JAVASCRIPT = `
     function addQueueButton(container, videoId, videoUrl, title, duration) {
       const isQueued = queuedVideoIds.has(videoId);
       const isTranslated = translatedVideoIds.has(videoId);
+      const isPartial = partialVideoIds.has(videoId);
       
       const existingBtn = container.querySelector('.ziasub-queue-btn');
       
-      // If translated, remove queue button if exists and return
+      // If fully translated, remove queue button if exists and return
       if (isTranslated) {
         if (existingBtn) existingBtn.remove();
         return;
@@ -359,17 +361,41 @@ export const INJECTED_JAVASCRIPT = `
         
         // Check and update translated badge
         const existingBadge = link.querySelector('.ziasub-badge');
-        const shouldHaveBadge = translatedVideoIds.has(videoId);
+        const isFullyTranslated = translatedVideoIds.has(videoId);
+        const isPartialOnly = partialVideoIds.has(videoId);
         
-        if (shouldHaveBadge && !existingBadge) {
-          // Add badge if video is translated but badge is missing
-          const badge = document.createElement('div');
-          badge.className = 'ziasub-badge';
-          badge.textContent = 'Đã dịch';
-          badge.style.cssText = 'position:absolute;top:4px;left:4px;background:rgba(155,126,217,0.9);color:#fff;font-size:9px;font-weight:600;padding:2px 5px;border-radius:3px;z-index:10;pointer-events:none;';
-          link.appendChild(badge);
-        } else if (!shouldHaveBadge && existingBadge) {
-          // Remove badge if video is no longer translated
+        if (isFullyTranslated) {
+          // Show checkmark icon for fully translated videos
+          if (existingBadge) {
+            if (!existingBadge.classList.contains('ziasub-badge-full')) {
+              existingBadge.textContent = '✓';
+              existingBadge.className = 'ziasub-badge ziasub-badge-full';
+              existingBadge.style.cssText = 'position:absolute;top:4px;left:4px;background:rgba(155,126,217,0.9);color:#fff;font-size:12px;font-weight:bold;width:18px;height:18px;line-height:18px;text-align:center;border-radius:4px;z-index:10;pointer-events:none;';
+            }
+          } else {
+            const badge = document.createElement('div');
+            badge.className = 'ziasub-badge ziasub-badge-full';
+            badge.textContent = '✓';
+            badge.style.cssText = 'position:absolute;top:4px;left:4px;background:rgba(155,126,217,0.9);color:#fff;font-size:12px;font-weight:bold;width:18px;height:18px;line-height:18px;text-align:center;border-radius:4px;z-index:10;pointer-events:none;';
+            link.appendChild(badge);
+          }
+        } else if (isPartialOnly) {
+          // Show half-filled icon for partial only videos
+          if (existingBadge) {
+            if (!existingBadge.classList.contains('ziasub-badge-partial')) {
+              existingBadge.textContent = '◐';
+              existingBadge.className = 'ziasub-badge ziasub-badge-partial';
+              existingBadge.style.cssText = 'position:absolute;top:4px;left:4px;background:rgba(255,152,0,0.9);color:#fff;font-size:12px;font-weight:bold;width:18px;height:18px;line-height:18px;text-align:center;border-radius:4px;z-index:10;pointer-events:none;';
+            }
+          } else {
+            const badge = document.createElement('div');
+            badge.className = 'ziasub-badge ziasub-badge-partial';
+            badge.textContent = '◐';
+            badge.style.cssText = 'position:absolute;top:4px;left:4px;background:rgba(255,152,0,0.9);color:#fff;font-size:12px;font-weight:bold;width:18px;height:18px;line-height:18px;text-align:center;border-radius:4px;z-index:10;pointer-events:none;';
+            link.appendChild(badge);
+          }
+        } else if (existingBadge) {
+          // Remove badge if video has no translation
           existingBadge.remove();
         }
         
@@ -398,8 +424,17 @@ export const INJECTED_JAVASCRIPT = `
           landscapeBottom = d.payload.landscapeBottom || 8;
           updateSubtitleStyle();
         } else if (d.type === 'setTranslatedVideos') {
-          // Update translated video IDs and refresh all badges
-          translatedVideoIds = new Set(d.payload || []);
+          // Update translated video IDs (full and partial) and refresh all badges
+          // Payload can be array (legacy) or object with full/partial arrays
+          if (Array.isArray(d.payload)) {
+            // Legacy format - treat all as fully translated
+            translatedVideoIds = new Set(d.payload || []);
+            partialVideoIds = new Set();
+          } else {
+            // New format with full and partial arrays
+            translatedVideoIds = new Set(d.payload?.full || []);
+            partialVideoIds = new Set(d.payload?.partial || []);
+          }
           // Force refresh all badges by calling markVideos
           markVideos();
         } else if (d.type === 'setQueuedVideos') {
