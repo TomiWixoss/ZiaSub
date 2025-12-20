@@ -377,6 +377,8 @@ export default {
     checkNow: "Check for updates",
     checkError: "Cannot check for updates",
     downloadError: "Download failed",
+    installError:
+      "Cannot open installer. Please go to Settings > Apps > ZiaSub > Allow installing unknown apps",
     downloading: "Downloading...",
     upToDate: "You're on the latest version!",
     available: "New version available!",
@@ -384,6 +386,7 @@ export default {
     newVersion: "New version",
     changelog: "What's new",
     download: "Download",
+    install: "Install",
     viewRelease: "View on GitHub",
     later: "Later",
     autoCheck: "Auto-check for updates",

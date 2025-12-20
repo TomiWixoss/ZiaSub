@@ -376,6 +376,8 @@ export default {
     checkNow: "Kiểm tra cập nhật",
     checkError: "Không thể kiểm tra cập nhật",
     downloadError: "Không thể tải xuống",
+    installError:
+      "Không thể mở trình cài đặt. Vui lòng vào Cài đặt > Ứng dụng > ZiaSub > Cho phép cài đặt ứng dụng không xác định",
     downloading: "Đang tải...",
     upToDate: "Bạn đang dùng phiên bản mới nhất!",
     available: "Có phiên bản mới!",
@@ -383,6 +385,7 @@ export default {
     newVersion: "Phiên bản mới",
     changelog: "Có gì mới",
     download: "Tải xuống",
+    install: "Cài đặt",
     viewRelease: "Xem trên GitHub",
     later: "Để sau",
     autoCheck: "Tự động kiểm tra cập nhật",

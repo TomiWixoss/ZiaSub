@@ -201,9 +201,9 @@ export const downloadApk = async (
 /**
  * Install APK (Android only) - Opens the file for installation
  */
-export const installApk = async (fileUri: string): Promise<void> => {
+export const installApk = async (fileUri: string): Promise<boolean> => {
   if (Platform.OS !== "android") {
-    return;
+    return false;
   }
 
   console.log("Installing APK from:", fileUri);
@@ -213,14 +213,16 @@ export const installApk = async (fileUri: string): Promise<void> => {
     const contentUri = await FileSystem.getContentUriAsync(fileUri);
     console.log("Content URI:", contentUri);
 
-    // Open APK installer
-    await IntentLauncher.startActivityAsync("android.intent.action.VIEW", {
-      data: contentUri,
-      flags: 1, // FLAG_GRANT_READ_URI_PERMISSION
-      type: "application/vnd.android.package-archive",
-    });
-
-    console.log("APK installer opened");
+    // Use IntentLauncher with INSTALL_PACKAGE action (requires REQUEST_INSTALL_PACKAGES permission)
+    await IntentLauncher.startActivityAsync(
+      "android.intent.action.INSTALL_PACKAGE",
+      {
+        data: contentUri,
+        flags: 1, // FLAG_GRANT_READ_URI_PERMISSION
+      }
+    );
+    console.log("INSTALL_PACKAGE intent launched");
+    return true;
   } catch (error) {
     console.error("Error installing APK:", error);
     throw error;

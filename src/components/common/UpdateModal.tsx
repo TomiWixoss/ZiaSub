@@ -36,6 +36,7 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
 
   const [downloading, setDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
+  const [downloadedUri, setDownloadedUri] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const downloadingRef = useRef(false);
 
@@ -53,6 +54,7 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
     downloadingRef.current = true;
     setDownloading(true);
     setDownloadProgress(0);
+    setDownloadedUri(null);
     setError(null);
 
     try {
@@ -67,12 +69,20 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
 
       if (fileUri && downloadingRef.current) {
         setDownloadProgress(1);
-        setDownloading(false);
         downloadingRef.current = false;
-        // Small delay before installing
-        setTimeout(async () => {
+
+        // Auto install immediately after download
+        try {
           await updateService.installApk(fileUri);
-        }, 500);
+          // Installer opened, close modal
+          setDownloading(false);
+          handleDismiss();
+        } catch (installError) {
+          console.error("Install error:", installError);
+          setError(t("update.installError"));
+          setDownloadedUri(fileUri); // Save for retry
+          setDownloading(false);
+        }
       } else if (downloadingRef.current) {
         setError(t("update.downloadError"));
         setDownloading(false);
@@ -88,6 +98,19 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
     }
   };
 
+  const handleInstall = async () => {
+    if (!downloadedUri) return;
+
+    try {
+      await updateService.installApk(downloadedUri);
+      // Installer opened, close modal
+      handleDismiss();
+    } catch (installError) {
+      console.error("Install error:", installError);
+      setError(t("update.installError"));
+    }
+  };
+
   const handleOpenRelease = async () => {
     if (release?.htmlUrl) {
       await updateService.openReleasePage(release.htmlUrl);
@@ -99,6 +122,7 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
     downloadingRef.current = false;
     setDownloading(false);
     setDownloadProgress(0);
+    setDownloadedUri(null);
     setError(null);
     onDismissUpdate?.();
     onClose();
@@ -301,7 +325,14 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
                 />
               </View>
               <View style={styles.buttonWrapper}>
-                {Platform.OS === "android" && release.apkUrl ? (
+                {downloadedUri ? (
+                  <Button3D
+                    title={t("update.install")}
+                    icon="download"
+                    variant="primary"
+                    onPress={handleInstall}
+                  />
+                ) : Platform.OS === "android" && release.apkUrl ? (
                   <Button3D
                     title={t("update.download")}
                     icon="download"

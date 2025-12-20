@@ -22,7 +22,8 @@
       },
       "edgeToEdgeEnabled": true,
       "package": "com.tomis.youtubesrtplayer",
-      "softwareKeyboardLayoutMode": "pan"
+      "softwareKeyboardLayoutMode": "pan",
+      "permissions": ["android.permission.REQUEST_INSTALL_PACKAGES"]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -33,6 +34,6 @@
       }
     },
     "owner": "tomisakae",
-    "plugins": ["expo-font"]
+    "plugins": ["expo-font", "./plugins/withInstallApkPermission"]
   }
 }
