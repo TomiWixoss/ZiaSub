@@ -303,6 +303,74 @@ export default {
       selectType: "Select translation style",
       mediaResolution: "Video resolution",
       thinkingLevel: "AI thinking level",
+      presetPrompts: "Preset prompts",
+      selectPreset: "Select preset",
+      applyPreset: "Apply preset",
+      presetApplied: "Preset prompt applied!",
+    },
+
+    // Preset Prompts
+    presetPrompts: {
+      default: {
+        name: "General",
+        description: "Suitable for all video types",
+      },
+      music: {
+        name: "Music Video",
+        description: "MV, Lyrics Video - Focus on poetry and emotion",
+      },
+      visual_novel: {
+        name: "Visual Novel",
+        description: "Story games - Distinguish dialogue and narration",
+      },
+      anime: {
+        name: "Anime",
+        description: "Fansub style - Handle honorifics and anime terms",
+      },
+      gaming: {
+        name: "Gaming",
+        description: "Let's Play, Streamer - Gaming slang and terminology",
+      },
+      vlog: {
+        name: "Vlog / Tutorial",
+        description: "Lifestyle videos - Natural conversational tone",
+      },
+      movie: {
+        name: "Movie / TV",
+        description: "Films and TV series - Preserve dramatic tone",
+      },
+      news: {
+        name: "News / Documentary",
+        description: "Journalism content - Accurate and formal",
+      },
+      educational: {
+        name: "Educational",
+        description: "Academic content - Technical terminology",
+      },
+      comedy: {
+        name: "Comedy",
+        description: "Comedy videos - Preserve humor and timing",
+      },
+      podcast: {
+        name: "Podcast / Interview",
+        description: "Long-form conversation - Natural and clear",
+      },
+      sports: {
+        name: "Sports",
+        description: "Sports commentary - Fast and energetic",
+      },
+      asmr: {
+        name: "ASMR",
+        description: "ASMR content - Detailed sound descriptions",
+      },
+      cooking: {
+        name: "Cooking",
+        description: "Culinary videos - Cooking terminology",
+      },
+      review: {
+        name: "Review",
+        description: "Tech/product reviews - Technical accuracy",
+      },
     },
   },
 

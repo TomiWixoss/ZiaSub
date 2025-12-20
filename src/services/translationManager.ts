@@ -360,6 +360,119 @@ class TranslationManager {
     }
     return null;
   }
+
+  // Translate a single batch and replace in existing SRT
+  async translateSingleBatch(
+    videoUrl: string,
+    config: GeminiConfig,
+    existingSrt: string,
+    batchStart: number,
+    batchEnd: number,
+    videoDuration?: number
+  ): Promise<string> {
+    if (this.isTranslating()) {
+      throw new Error("Đang dịch video khác, vui lòng đợi hoặc dừng trước");
+    }
+
+    this.abortController = new AbortController();
+    this.isAborted = false;
+
+    const jobId = `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+    this.currentJob = {
+      id: jobId,
+      videoUrl,
+      configName: config.name,
+      configId: config.id,
+      status: "processing",
+      progress: {
+        currentBatch: 1,
+        totalBatches: 1,
+        completedBatches: 0,
+        status: "processing",
+        batchStatuses: ["processing"],
+      },
+      keyStatus: null,
+      result: null,
+      error: null,
+      startedAt: Date.now(),
+      completedAt: null,
+      partialResult: null,
+      rangeStart: batchStart,
+      rangeEnd: batchEnd,
+      videoDuration,
+      batchSettings: undefined,
+      completedBatchRanges: [],
+    };
+    this.notify();
+
+    const onKeyStatus: KeyStatusCallback = (status) => {
+      if (this.currentJob && this.currentJob.id === jobId && !this.isAborted) {
+        this.currentJob = {
+          ...this.currentJob,
+          keyStatus: status.message,
+        };
+        this.notify();
+      }
+    };
+
+    try {
+      // Translate only this batch
+      const newBatchSrt = await translateVideoWithGemini(
+        videoUrl,
+        config,
+        undefined,
+        {
+          videoDuration,
+          rangeStart: batchStart,
+          rangeEnd: batchEnd,
+          abortSignal: this.abortController.signal,
+          onKeyStatus,
+        }
+      );
+
+      if (this.isAborted) {
+        throw new Error("Đã dừng dịch");
+      }
+
+      // Replace this batch in existing SRT
+      const { replaceBatchInSrt } = await import("@utils/srtParser");
+      const updatedSrt = replaceBatchInSrt(
+        existingSrt,
+        newBatchSrt,
+        batchStart,
+        batchEnd
+      );
+
+      // Save as new translation
+      await saveTranslation(videoUrl, updatedSrt, config.name);
+
+      if (this.currentJob && this.currentJob.id === jobId && !this.isAborted) {
+        this.currentJob = {
+          ...this.currentJob,
+          status: "completed",
+          result: updatedSrt,
+          keyStatus: null,
+          completedAt: Date.now(),
+        };
+        this.notify();
+      }
+
+      return updatedSrt;
+    } catch (error: any) {
+      if (!this.isAborted && this.currentJob && this.currentJob.id === jobId) {
+        this.currentJob = {
+          ...this.currentJob,
+          status: "error",
+          error: error.message || "Có lỗi xảy ra",
+          completedAt: Date.now(),
+        };
+        this.notify();
+      }
+      throw error;
+    } finally {
+      this.abortController = null;
+    }
+  }
 }
 
 export const translationManager = TranslationManager.getInstance();

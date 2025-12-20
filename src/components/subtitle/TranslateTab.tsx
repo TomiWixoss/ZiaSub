@@ -390,35 +390,16 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
           }
 
           try {
-            // Import needed functions
-            const { translateVideoWithGemini } = await import(
-              "@services/geminiService"
-            );
-            const { replaceBatchInSrt } = await import("@utils/srtParser");
-            const { saveTranslation } = await import("@utils/storage");
-
-            // Translate only this batch
-            const newBatchSrt = await translateVideoWithGemini(
+            // Use translationManager to handle single batch translation
+            const updatedSrt = await translationManager.translateSingleBatch(
               videoUrl,
               config,
-              undefined,
-              {
-                videoDuration: translation.videoDuration || videoDuration,
-                rangeStart: batchStart,
-                rangeEnd: batchEnd,
-              }
-            );
-
-            // Replace this batch in existing SRT
-            const updatedSrt = replaceBatchInSrt(
               translation.srtContent,
-              newBatchSrt,
               batchStart,
-              batchEnd
+              batchEnd,
+              translation.videoDuration || videoDuration
             );
 
-            // Save as new translation
-            await saveTranslation(videoUrl, updatedSrt, config.name);
             await loadTranslations();
             onSelectTranslation(updatedSrt);
 
@@ -429,10 +410,12 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
               })
             );
           } catch (error: any) {
-            alert(
-              t("subtitleModal.translate.error"),
-              error.message || t("errors.generic")
-            );
+            if (error.message !== "Đã dừng dịch") {
+              alert(
+                t("subtitleModal.translate.error"),
+                error.message || t("errors.generic")
+              );
+            }
           }
         },
         t("subtitleModal.translate.retranslate")

@@ -301,6 +301,74 @@ export default {
       selectType: "Chọn kiểu dịch",
       mediaResolution: "Độ phân giải video",
       thinkingLevel: "Mức độ suy nghĩ AI",
+      presetPrompts: "Mẫu prompt có sẵn",
+      selectPreset: "Chọn mẫu prompt",
+      applyPreset: "Áp dụng mẫu",
+      presetApplied: "Đã áp dụng mẫu prompt!",
+    },
+
+    // Preset Prompts
+    presetPrompts: {
+      default: {
+        name: "Tổng quát",
+        description: "Phù hợp với mọi loại video",
+      },
+      music: {
+        name: "Video Âm nhạc",
+        description: "MV, Lyrics Video - Tập trung vào tính thơ và cảm xúc",
+      },
+      visual_novel: {
+        name: "Visual Novel",
+        description: "Game cốt truyện - Phân biệt lời thoại và lời dẫn",
+      },
+      anime: {
+        name: "Anime / Hoạt hình",
+        description: "Phong cách Fansub - Xử lý ngữ khí và thuật ngữ Anime",
+      },
+      gaming: {
+        name: "Chơi Game",
+        description: "Let's Play, Streamer - Tiếng lóng game thủ",
+      },
+      vlog: {
+        name: "Vlog / Hướng dẫn",
+        description: "Video đời sống - Giọng văn tự nhiên như văn nói",
+      },
+      movie: {
+        name: "Phim / TV Series",
+        description: "Phim điện ảnh và truyền hình - Giữ tông kịch tính",
+      },
+      news: {
+        name: "Tin tức / Phóng sự",
+        description: "Nội dung báo chí - Chính xác và trang trọng",
+      },
+      educational: {
+        name: "Giáo dục / Bài giảng",
+        description: "Nội dung học thuật - Thuật ngữ chuyên ngành",
+      },
+      comedy: {
+        name: "Hài / Comedy",
+        description: "Video hài - Giữ nguyên tiếng cười và timing",
+      },
+      podcast: {
+        name: "Podcast / Phỏng vấn",
+        description: "Nội dung hội thoại dài - Tự nhiên và rõ ràng",
+      },
+      sports: {
+        name: "Thể thao",
+        description: "Bình luận thể thao - Nhanh và sôi động",
+      },
+      asmr: {
+        name: "ASMR / Thư giãn",
+        description: "Nội dung ASMR - Mô tả âm thanh chi tiết",
+      },
+      cooking: {
+        name: "Nấu ăn",
+        description: "Video ẩm thực - Thuật ngữ nấu nướng",
+      },
+      review: {
+        name: "Đánh giá sản phẩm",
+        description: "Review công nghệ/sản phẩm - Chính xác kỹ thuật",
+      },
     },
   },
 
