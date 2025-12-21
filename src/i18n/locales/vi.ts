@@ -430,6 +430,7 @@ export default {
     status: {
       added: "Thêm {{date}}",
       translating: "Đang dịch...",
+      waiting: "Đang chờ...",
       paused: "Tạm dừng ({{completed}}/{{total}})",
       completed: "Xong {{date}}",
       error: "Lỗi: {{error}}",
@@ -444,6 +445,8 @@ export default {
     alreadyInQueue:
       "Video này đã có trong danh sách chờ. Còn {{count}} video đang chờ.",
     currentlyTranslating: "Video này đang được dịch.",
+    addedToWaitingQueue:
+      "Đã thêm vào hàng đợi. Video sẽ được dịch khi video hiện tại hoàn thành.",
   },
 
   // Subtitle Modal

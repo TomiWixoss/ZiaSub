@@ -432,6 +432,7 @@ export default {
     status: {
       added: "Added {{date}}",
       translating: "Translating...",
+      waiting: "Waiting...",
       paused: "Paused ({{completed}}/{{total}})",
       completed: "Done {{date}}",
       error: "Error: {{error}}",
@@ -446,6 +447,8 @@ export default {
     alreadyInQueue:
       "This video is already in queue. {{count}} video(s) pending.",
     currentlyTranslating: "This video is being translated.",
+    addedToWaitingQueue:
+      "Added to queue. Video will be translated when current one finishes.",
   },
 
   // Subtitle Modal

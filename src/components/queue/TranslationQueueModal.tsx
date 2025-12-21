@@ -186,11 +186,9 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
       t("queue.dialogs.translateOneConfirm", { title: item.title }),
       async () => {
         const result = await queueManager.startTranslation(item.id);
-        if (!result.success && result.reason === "busy") {
-          alert(
-            t("common.notice"),
-            t("subtitleModal.translate.anotherTranslating")
-          );
+        if (result.queued) {
+          // Video added to queue, will be translated when current one finishes
+          alert(t("common.notice"), t("queue.addedToWaitingQueue"));
         }
       },
       t("queue.dialogs.translate")
@@ -206,7 +204,9 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
       }),
       async () => {
         const result = await queueManager.resumeTranslation(item.id);
-        if (!result.success && result.reason === "busy") {
+        if (result.queued) {
+          alert(t("common.notice"), t("queue.addedToWaitingQueue"));
+        } else if (!result.success && result.reason === "busy") {
           alert(
             t("common.notice"),
             t("subtitleModal.translate.anotherTranslating")

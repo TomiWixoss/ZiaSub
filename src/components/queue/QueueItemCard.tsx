@@ -22,7 +22,7 @@ interface QueueItemCardProps {
 const formatDuration = (seconds?: number) => {
   if (!seconds) return "";
   const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
+  const s = Math.floor(seconds % 60);
   return `${m}:${s.toString().padStart(2, "0")}`;
 };
 
@@ -60,6 +60,8 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
   );
   const isPaused =
     item.status === "translating" && hasPartialData && !hasRealProgress;
+  const isWaitingInQueue =
+    item.status === "translating" && !hasRealProgress && !hasPartialData;
 
   // Calculate progress percentage
   const progressPercent = isActivelyTranslating
@@ -68,36 +70,44 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
     ? (item.completedBatches! / item.totalBatches) * 100
     : 0;
 
-  // Determine card state
-  const cardBorderColor = isActivelyTranslating
-    ? colors.primary
-    : isPaused
-    ? colors.warning
-    : "transparent";
+  // Get status color and icon
+  const getStatusStyle = () => {
+    if (isActivelyTranslating)
+      return { color: colors.primary, icon: "translate" as const };
+    if (isPaused) return { color: colors.warning, icon: "pause" as const };
+    if (isWaitingInQueue)
+      return {
+        color: colors.primary,
+        icon: "clock-outline" as const,
+      };
+    if (item.status === "completed")
+      return { color: colors.success, icon: "check-circle" as const };
+    if (item.status === "error")
+      return { color: colors.error, icon: "alert-circle" as const };
+    return { color: colors.textMuted, icon: "clock-outline" as const }; // pending
+  };
+
+  const statusStyle = getStatusStyle();
+  const showProgressBar = isActivelyTranslating || isPaused;
 
   return (
     <TouchableOpacity
       style={[
         styles.card,
-        {
-          borderColor: cardBorderColor,
-          borderWidth: isActivelyTranslating || isPaused ? 1.5 : 0,
-        },
+        showProgressBar && { borderColor: statusStyle.color, borderWidth: 1.5 },
       ]}
       onPress={() => onSelect(item)}
       activeOpacity={0.7}
     >
       {/* Progress bar at bottom */}
-      {(isActivelyTranslating || isPaused) && (
+      {showProgressBar && (
         <View style={styles.progressBarContainer}>
           <View
             style={[
               styles.progressBar,
               {
                 width: `${progressPercent}%`,
-                backgroundColor: isActivelyTranslating
-                  ? colors.primary
-                  : colors.warning,
+                backgroundColor: statusStyle.color,
               },
             ]}
           />
@@ -108,7 +118,8 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
         {/* Thumbnail */}
         <View style={styles.thumbnailContainer}>
           <Image source={{ uri: item.thumbnail }} style={styles.thumbnail} />
-          {/* Duration badge */}
+
+          {/* Duration badge - bottom right */}
           {item.duration && (
             <View style={styles.durationBadge}>
               <Text style={styles.durationText}>
@@ -116,22 +127,17 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
               </Text>
             </View>
           )}
-          {/* Progress badge for translating */}
-          {isActivelyTranslating && (
-            <View
-              style={[styles.statusBadge, { backgroundColor: colors.primary }]}
-            >
-              <MaterialCommunityIcons name="loading" size={12} color="#fff" />
-            </View>
-          )}
-          {/* Paused badge */}
-          {isPaused && (
-            <View
-              style={[styles.statusBadge, { backgroundColor: colors.warning }]}
-            >
-              <MaterialCommunityIcons name="pause" size={12} color="#fff" />
-            </View>
-          )}
+
+          {/* Status badge - top left */}
+          <View
+            style={[styles.statusBadge, { backgroundColor: statusStyle.color }]}
+          >
+            <MaterialCommunityIcons
+              name={statusStyle.icon}
+              size={12}
+              color="#fff"
+            />
+          </View>
         </View>
 
         {/* Info */}
@@ -139,13 +145,13 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
           <Text style={styles.title} numberOfLines={2}>
             {item.title}
           </Text>
-          <View style={styles.meta}>
-            {item.configName && (
-              <Text style={styles.metaText} numberOfLines={1}>
-                {item.configName}
-              </Text>
-            )}
-          </View>
+
+          {item.configName && (
+            <Text style={styles.configText} numberOfLines={1}>
+              {item.configName}
+            </Text>
+          )}
+
           <View style={styles.footer}>
             {item.status === "pending" && (
               <Text style={styles.statusText}>
@@ -154,7 +160,8 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
             )}
             {isActivelyTranslating && (
               <Text style={[styles.statusText, { color: colors.primary }]}>
-                {t("queue.status.translating")}
+                {t("queue.status.translating")} ({item.progress!.completed}/
+                {item.progress!.total})
               </Text>
             )}
             {isPaused && (
@@ -163,6 +170,11 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
                   completed: item.completedBatches,
                   total: item.totalBatches || "?",
                 })}
+              </Text>
+            )}
+            {isWaitingInQueue && (
+              <Text style={[styles.statusText, { color: colors.primary }]}>
+                {t("queue.status.waiting")}
               </Text>
             )}
             {item.status === "completed" && (
@@ -177,7 +189,7 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
                 style={[styles.statusText, { color: colors.error }]}
                 numberOfLines={1}
               >
-                {t("queue.status.error", { error: item.error })}
+                {item.error || t("common.error")}
               </Text>
             )}
           </View>
@@ -193,12 +205,13 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
             >
               <MaterialCommunityIcons
                 name="play"
-                size={20}
+                size={22}
                 color={hasApiKey ? colors.primary : colors.textMuted}
               />
             </TouchableOpacity>
           )}
-          {isActivelyTranslating && (
+
+          {(isActivelyTranslating || isWaitingInQueue) && (
             <>
               <TouchableOpacity
                 style={styles.actionBtn}
@@ -206,7 +219,7 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
               >
                 <MaterialCommunityIcons
                   name="pause"
-                  size={20}
+                  size={22}
                   color={colors.warning}
                 />
               </TouchableOpacity>
@@ -216,12 +229,13 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
               >
                 <MaterialCommunityIcons
                   name="close-circle-outline"
-                  size={20}
+                  size={22}
                   color={colors.error}
                 />
               </TouchableOpacity>
             </>
           )}
+
           {isPaused && (
             <>
               <TouchableOpacity
@@ -233,8 +247,8 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
                 disabled={!hasApiKey}
               >
                 <MaterialCommunityIcons
-                  name="play-circle-outline"
-                  size={20}
+                  name="play"
+                  size={22}
                   color={hasApiKey ? colors.success : colors.textMuted}
                 />
               </TouchableOpacity>
@@ -244,32 +258,46 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
               >
                 <MaterialCommunityIcons
                   name="delete-outline"
-                  size={20}
+                  size={22}
                   color={colors.error}
                 />
               </TouchableOpacity>
             </>
           )}
+
           {item.status === "completed" && (
-            <TouchableOpacity
-              style={styles.actionBtn}
-              onPress={() => onRequeue(item)}
-            >
-              <MaterialCommunityIcons
-                name="refresh"
-                size={20}
-                color={colors.textMuted}
-              />
-            </TouchableOpacity>
+            <>
+              <TouchableOpacity
+                style={styles.actionBtn}
+                onPress={() => onRequeue(item)}
+              >
+                <MaterialCommunityIcons
+                  name="refresh"
+                  size={22}
+                  color={colors.textMuted}
+                />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.actionBtn}
+                onPress={() => onRemove(item)}
+              >
+                <MaterialCommunityIcons
+                  name="delete-outline"
+                  size={22}
+                  color={colors.error}
+                />
+              </TouchableOpacity>
+            </>
           )}
-          {item.status !== "translating" && (
+
+          {(item.status === "pending" || item.status === "error") && (
             <TouchableOpacity
               style={styles.actionBtn}
               onPress={() => onRemove(item)}
             >
               <MaterialCommunityIcons
                 name="delete-outline"
-                size={20}
+                size={22}
                 color={colors.error}
               />
             </TouchableOpacity>
@@ -287,11 +315,13 @@ const themedStyles = createThemedStyles((colors) => ({
     marginBottom: 10,
     overflow: "hidden",
     position: "relative" as const,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   cardContent: {
     flexDirection: "row" as const,
     alignItems: "center" as const,
-    minHeight: 78,
+    minHeight: 80,
   },
   progressBarContainer: {
     position: "absolute" as const,
@@ -309,19 +339,22 @@ const themedStyles = createThemedStyles((colors) => ({
     position: "relative" as const,
     width: 120,
     height: 68,
+    margin: 6,
+    borderRadius: 8,
+    overflow: "hidden" as const,
   },
   thumbnail: {
-    width: 120,
-    height: 68,
+    width: "100%" as const,
+    height: "100%" as const,
     backgroundColor: colors.surfaceLight,
   },
   durationBadge: {
     position: "absolute" as const,
     bottom: 4,
     right: 4,
-    backgroundColor: "rgba(0,0,0,0.75)",
+    backgroundColor: "rgba(0,0,0,0.8)",
     borderRadius: 4,
-    paddingHorizontal: 4,
+    paddingHorizontal: 5,
     paddingVertical: 2,
   },
   durationText: {
@@ -338,22 +371,19 @@ const themedStyles = createThemedStyles((colors) => ({
   },
   info: {
     flex: 1,
-    padding: 10,
+    paddingVertical: 8,
+    paddingRight: 4,
   },
   title: {
     color: colors.text,
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: "500" as const,
-    lineHeight: 16,
+    lineHeight: 18,
   },
-  meta: {
-    flexDirection: "row" as const,
-    gap: 6,
-    marginTop: 4,
-  },
-  metaText: {
+  configText: {
     color: colors.textMuted,
     fontSize: 11,
+    marginTop: 2,
   },
   footer: {
     marginTop: 4,
@@ -363,9 +393,10 @@ const themedStyles = createThemedStyles((colors) => ({
     fontSize: 11,
   },
   actions: {
-    justifyContent: "center" as const,
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
     paddingRight: 8,
-    gap: 4,
+    gap: 2,
   },
   actionBtn: {
     padding: 6,

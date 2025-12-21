@@ -175,11 +175,12 @@ class QueueManager {
   }
 
   // Start translation for a single item - adds to translating queue and processes
-  // Returns: { success: boolean, reason?: 'busy' | 'completed' | 'already_translating' }
+  // If busy, will add to queue instead of returning error
+  // Returns: { success: boolean, reason?: string, queued?: boolean }
   async startTranslation(
     itemId: string,
     isResume: boolean = false
-  ): Promise<{ success: boolean; reason?: string }> {
+  ): Promise<{ success: boolean; reason?: string; queued?: boolean }> {
     const item = this.items.find((i) => i.id === itemId);
     if (!item) return { success: false, reason: "not_found" };
 
@@ -192,19 +193,20 @@ class QueueManager {
       return { success: false, reason: "already_translating" };
 
     // Check if translationManager is busy with another video
-    if (translationManager.isTranslating()) {
+    // Instead of returning error, add to queue
+    if (translationManager.isTranslating() || this.isProcessing) {
       console.log(
-        "[QueueManager] translationManager is busy, cannot start/resume now"
+        "[QueueManager] Busy, adding item to translating queue instead"
       );
-      return { success: false, reason: "busy" };
-    }
 
-    // Check if queueManager is processing another video
-    if (this.isProcessing) {
-      console.log(
-        "[QueueManager] Already processing another video, cannot start/resume now"
-      );
-      return { success: false, reason: "busy" };
+      // Mark as translating (waiting in queue)
+      await this.updateItem(itemId, {
+        status: "translating",
+        startedAt: Date.now(),
+        error: undefined,
+      });
+
+      return { success: true, queued: true };
     }
 
     // Mark as translating (add to queue)
@@ -220,10 +222,10 @@ class QueueManager {
   }
 
   // Resume translation for an item with partial data
-  // Returns: { success: boolean, reason?: string }
+  // Returns: { success: boolean, reason?: string, queued?: boolean }
   async resumeTranslation(
     itemId: string
-  ): Promise<{ success: boolean; reason?: string }> {
+  ): Promise<{ success: boolean; reason?: string; queued?: boolean }> {
     const item = this.items.find((i) => i.id === itemId);
     if (!item) return { success: false, reason: "not_found" };
 
