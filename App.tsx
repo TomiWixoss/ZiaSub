@@ -42,13 +42,15 @@ const AppContent = () => {
 
   // Handle app state changes - flush cache when going to background
   useEffect(() => {
-    const handleAppStateChange = (nextAppState: AppStateStatus) => {
+    const handleAppStateChange = async (nextAppState: AppStateStatus) => {
       if (
         appState.current.match(/active/) &&
         nextAppState.match(/inactive|background/)
       ) {
-        // App is going to background, flush pending writes
-        cacheService.forceFlush();
+        // App is going to background, flush pending writes immediately
+        console.log("[App] Going to background, flushing cache...");
+        await cacheService.forceFlush();
+        console.log("[App] Cache flushed");
       }
       appState.current = nextAppState;
     };
@@ -85,7 +87,12 @@ const AppContent = () => {
         setLoadingMessage("Đang tải dữ liệu...");
         await cacheService.initialize(fileStorage);
 
-        // Step 5: Initialize keyManager with API keys from cache
+        // Step 5: Preload translations data
+        setLoadingMessage("Đang tải bản dịch...");
+        await cacheService.preloadTranslations(fileStorage);
+
+        // Step 6: Initialize keyManager with API keys from cache
+        setLoadingMessage("Đang khởi tạo API keys...");
         const apiKeys = cacheService.getApiKeys();
         if (apiKeys.length > 0) {
           keyManager.initialize(apiKeys);
@@ -116,7 +123,12 @@ const AppContent = () => {
       setLoadingMessage("Đang tải dữ liệu...");
       await cacheService.initialize(fileStorage);
 
+      // Preload translations
+      setLoadingMessage("Đang tải bản dịch...");
+      await cacheService.preloadTranslations(fileStorage);
+
       // Initialize keyManager
+      setLoadingMessage("Đang khởi tạo API keys...");
       const apiKeys = cacheService.getApiKeys();
       if (apiKeys.length > 0) {
         keyManager.initialize(apiKeys);

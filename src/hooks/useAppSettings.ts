@@ -119,10 +119,12 @@ export const useAppSettings = () => {
     }
   }, []);
 
-  const updateApiKeys = useCallback((newKeys: string[]) => {
+  const updateApiKeys = useCallback(async (newKeys: string[]) => {
     setApiKeys(newKeys);
     keyManager.initialize(newKeys);
     cacheService.setApiKeys(newKeys);
+    // Force flush immediately to prevent data loss
+    await cacheService.forceFlush();
   }, []);
 
   const updateFloatingUISettings = useCallback(

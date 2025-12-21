@@ -69,6 +69,9 @@ class CacheService {
   // Listeners for cache updates
   private listeners: Map<string, Set<(data: any) => void>> = new Map();
 
+  // Translation index - stores video IDs only for fast lookup
+  private translationIndex: Set<string> = new Set();
+
   private constructor() {}
 
   static getInstance(): CacheService {
@@ -214,6 +217,58 @@ class CacheService {
     }
   }
 
+  /**
+   * Preload translation index (video IDs only) for fast lookup
+   * Full content is lazy loaded when needed
+   */
+  async preloadTranslations(fileStorage: any): Promise<void> {
+    try {
+      console.log("[CacheService] Building translation index...");
+      const files = await fileStorage.listSubFiles("translations");
+
+      // Only store video IDs in index, not full content
+      const videoIds = files
+        .filter((f: string) => f.endsWith(".json"))
+        .map((f: string) => f.replace(".json", ""));
+
+      this.translationIndex = new Set(videoIds);
+      console.log(
+        `[CacheService] Indexed ${this.translationIndex.size} translations`
+      );
+    } catch (error) {
+      console.error("[CacheService] Error building translation index:", error);
+      this.translationIndex = new Set();
+    }
+  }
+
+  /**
+   * Check if a video has translation (fast, uses index)
+   */
+  hasTranslationIndex(videoId: string): boolean {
+    return this.translationIndex.has(videoId);
+  }
+
+  /**
+   * Add video to translation index
+   */
+  addToTranslationIndex(videoId: string): void {
+    this.translationIndex.add(videoId);
+  }
+
+  /**
+   * Remove video from translation index
+   */
+  removeFromTranslationIndex(videoId: string): void {
+    this.translationIndex.delete(videoId);
+  }
+
+  /**
+   * Get all video IDs that have translations
+   */
+  getTranslationVideoIds(): string[] {
+    return Array.from(this.translationIndex);
+  }
+
   // ============================================
   // SETTINGS
   // ============================================
@@ -320,6 +375,7 @@ class CacheService {
 
   setTranslation(videoId: string, data: VideoTranslations): void {
     this.cache.translations.set(videoId, data);
+    this.translationIndex.add(videoId); // Update index
     this.queueWrite({
       type: "translation",
       key: videoId,
@@ -337,6 +393,7 @@ class CacheService {
       translations: [],
       activeTranslationId: null,
     });
+    this.translationIndex.delete(videoId); // Update index
     // Queue delete operation
     this.queueWrite({
       type: "translation",
@@ -568,6 +625,7 @@ class CacheService {
       translations: new Map(),
       srtFiles: new Map(),
     };
+    this.translationIndex = new Set();
     this.pendingWrites = [];
     this.initialized = false;
     this.initPromise = null;

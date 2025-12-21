@@ -348,6 +348,15 @@ export const getPartialOnlyVideoUrls = async (): Promise<string[]> => {
 };
 
 export const hasTranslation = async (videoUrl: string): Promise<boolean> => {
+  await cacheService.waitForInit();
+  const videoId = getVideoIdFromUrl(videoUrl);
+
+  // Fast check using index first
+  if (!cacheService.hasTranslationIndex(videoId)) {
+    return false;
+  }
+
+  // Index says it exists, verify with actual data
   const data = await getVideoTranslations(videoUrl);
   return data !== null && data.translations.length > 0;
 };

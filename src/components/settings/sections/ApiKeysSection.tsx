@@ -8,7 +8,6 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@src/contexts";
 import { useThemedStyles, createThemedStyles } from "@hooks/useThemedStyles";
-import { saveApiKeys } from "@utils/storage";
 import { keyManager } from "@services/keyManager";
 
 interface ApiKeysSectionProps {
@@ -59,9 +58,11 @@ const ApiKeysSection: React.FC<ApiKeysSectionProps> = ({
         return;
       }
       const newKeys = [...apiKeys, key];
+      // Only call onApiKeysChange - it handles both state update, keyManager init, and cache save
       onApiKeysChange(newKeys);
-      await saveApiKeys(newKeys);
-      keyManager.initialize(newKeys);
+      // Force flush to persist immediately
+      const { cacheService } = await import("@services/cacheService");
+      await cacheService.forceFlush();
       alert(t("common.success"), t("settings.apiKeys.added"));
     } catch (error) {
       alert(t("common.error"), t("settings.apiKeys.clipboardError"));
@@ -70,15 +71,17 @@ const ApiKeysSection: React.FC<ApiKeysSectionProps> = ({
     }
   };
 
-  const handleDeleteKey = (index: number) => {
+  const handleDeleteKey = async (index: number) => {
     confirmDestructive(
       t("settings.apiKeys.deleteTitle"),
       t("settings.apiKeys.deleteConfirm"),
       async () => {
         const newKeys = apiKeys.filter((_, i) => i !== index);
+        // Only call onApiKeysChange - it handles both state update, keyManager init, and cache save
         onApiKeysChange(newKeys);
-        await saveApiKeys(newKeys);
-        keyManager.initialize(newKeys);
+        // Force flush to persist immediately
+        const { cacheService } = await import("@services/cacheService");
+        await cacheService.forceFlush();
       }
     );
   };
