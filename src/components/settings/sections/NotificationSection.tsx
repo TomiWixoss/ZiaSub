@@ -1,6 +1,7 @@
 import React from "react";
 import { View, StyleSheet, Switch, Linking, Platform } from "react-native";
 import { Text } from "react-native-paper";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@src/contexts";
 import { useThemedStyles, createThemedStyles } from "@hooks/useThemedStyles";
@@ -50,21 +51,30 @@ const NotificationSection: React.FC<NotificationSectionProps> = ({
   return (
     <View style={styles.container}>
       {/* Toggle bật/tắt */}
-      <View style={themedStyles.row}>
-        <View style={styles.labelContainer}>
-          <Text style={themedStyles.label}>
-            {t("settings.notification.enabled")}
-          </Text>
-          <Text style={themedStyles.hint}>
-            {t("settings.notification.enabledHint")}
-          </Text>
+      <View style={themedStyles.toggleRow}>
+        <View style={styles.toggleInfo}>
+          <MaterialCommunityIcons
+            name="bell-outline"
+            size={20}
+            color={
+              notificationSettings.enabled ? colors.success : colors.textMuted
+            }
+          />
+          <View style={styles.textContainer}>
+            <Text style={themedStyles.settingLabel}>
+              {t("settings.notification.enabled")}
+            </Text>
+            <Text style={themedStyles.settingHint}>
+              {t("settings.notification.enabledHint")}
+            </Text>
+          </View>
         </View>
         <Switch
           value={notificationSettings.enabled}
           onValueChange={handleToggle}
-          trackColor={{ false: colors.border, true: `${colors.primary}80` }}
+          trackColor={{ false: colors.border, true: colors.success }}
           thumbColor={
-            notificationSettings.enabled ? colors.primary : colors.textMuted
+            notificationSettings.enabled ? "#FFFFFF" : colors.surfaceElevated
           }
         />
       </View>
@@ -96,28 +106,42 @@ const NotificationSection: React.FC<NotificationSectionProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    gap: 16,
+    gap: 0,
   },
-  labelContainer: {
+  toggleInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    flex: 1,
+    marginRight: 12,
+  },
+  textContainer: {
     flex: 1,
   },
 });
 
 const notificationThemedStyles = createThemedStyles((colors) => ({
-  row: {
+  toggleRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    backgroundColor: colors.surfaceLight,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  label: {
-    fontSize: 14,
+  settingLabel: {
     color: colors.text,
+    fontSize: 14,
     fontWeight: "500",
+    marginBottom: 4,
   },
-  hint: {
-    fontSize: 12,
+  settingHint: {
     color: colors.textMuted,
-    marginTop: 2,
+    fontSize: 12,
+    flexShrink: 1,
   },
   permissionWarning: {
     backgroundColor: `${colors.warning}20`,
