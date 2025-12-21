@@ -565,6 +565,46 @@ class QueueManager {
     }
   }
 
+  // Mark video as stopped/paused (user manually stopped)
+  async markVideoStopped(
+    videoUrl: string,
+    partialData?: {
+      partialSrt: string;
+      completedBatchRanges: Array<{ start: number; end: number }>;
+      completedBatches: number;
+      totalBatches: number;
+    }
+  ): Promise<void> {
+    const videoId = this.extractVideoId(videoUrl);
+    const item = this.items.find((i) => i.videoId === videoId);
+    if (!item) return;
+
+    if (partialData) {
+      // Has partial data - keep as translating (paused state)
+      await this.updateItem(item.id, {
+        status: "translating",
+        progress: undefined, // Clear progress to show paused
+        partialSrt: partialData.partialSrt,
+        completedBatchRanges: partialData.completedBatchRanges,
+        completedBatches: partialData.completedBatches,
+        totalBatches: partialData.totalBatches,
+        error: undefined,
+      });
+    } else {
+      // No partial - move back to pending
+      await this.updateItem(item.id, {
+        status: "pending",
+        progress: undefined,
+        error: undefined,
+        startedAt: undefined,
+        partialSrt: undefined,
+        completedBatches: undefined,
+        totalBatches: undefined,
+        completedBatchRanges: undefined,
+      });
+    }
+  }
+
   // Mark video as error
   async markVideoError(videoUrl: string, error: string): Promise<void> {
     const videoId = this.extractVideoId(videoUrl);

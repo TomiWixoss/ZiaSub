@@ -156,6 +156,28 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
               job.videoUrl,
               job.error || "Có lỗi xảy ra"
             );
+          } else {
+            // User stopped - update queue item status if in queue
+            const queueItem = queueManager.isInQueue(job.videoUrl);
+            if (queueItem && queueItem.status === "translating") {
+              // Check if has partial data
+              const hasPartial =
+                job.partialResult &&
+                job.completedBatchRanges &&
+                job.completedBatchRanges.length > 0;
+
+              queueManager.markVideoStopped(
+                job.videoUrl,
+                hasPartial
+                  ? {
+                      partialSrt: job.partialResult!,
+                      completedBatchRanges: job.completedBatchRanges!,
+                      completedBatches: job.completedBatchRanges!.length,
+                      totalBatches: job.progress?.totalBatches || 0,
+                    }
+                  : undefined
+              );
+            }
           }
 
           translationManager.clearCompletedJob(job.videoUrl);
