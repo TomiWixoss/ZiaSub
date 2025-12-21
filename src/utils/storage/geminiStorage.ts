@@ -17,6 +17,7 @@ export const createDefaultGeminiConfig = (): GeminiConfig => ({
   systemPrompt: DEFAULT_SYSTEM_PROMPT,
   mediaResolution: "MEDIA_RESOLUTION_HIGH",
   thinkingLevel: "HIGH",
+  // thinkingBudget not needed for Gemini 3 Flash (uses thinkingLevel)
 });
 
 export const createDefaultChatConfig = (): GeminiConfig => ({
@@ -26,7 +27,8 @@ export const createDefaultChatConfig = (): GeminiConfig => ({
   temperature: 1.0,
   systemPrompt: "",
   mediaResolution: "MEDIA_RESOLUTION_MEDIUM",
-  thinkingLevel: "MEDIUM",
+  // Gemini Flash uses thinkingBudget (0-24576)
+  thinkingBudget: 24576,
 });
 
 export const saveGeminiConfigs = async (

@@ -115,8 +115,14 @@ export type MediaResolutionType =
   | "MEDIA_RESOLUTION_MEDIUM"
   | "MEDIA_RESOLUTION_HIGH";
 
-// Thinking Level options for AI reasoning
+// Thinking Level options for AI reasoning (Gemini 3 Flash Preview, Gemini 3 Pro)
 export type ThinkingLevelType = "MINIMAL" | "LOW" | "MEDIUM" | "HIGH";
+
+// Model-specific thinking config types
+export type ThinkingConfigType =
+  | { type: "level"; level: ThinkingLevelType } // Gemini 3 Flash Preview (MINIMAL, LOW, MEDIUM, HIGH)
+  | { type: "level_limited"; level: "LOW" | "HIGH" } // Gemini 3 Pro (only LOW, HIGH)
+  | { type: "budget"; budget: number }; // Gemini 2.5 Pro (128-32768), Flash/Flash Lite (0-24576)
 
 export interface GeminiConfig {
   id: string;
@@ -125,7 +131,10 @@ export interface GeminiConfig {
   temperature: number;
   systemPrompt: string;
   mediaResolution?: MediaResolutionType;
+  // Legacy field - kept for backward compatibility
   thinkingLevel?: ThinkingLevelType;
+  // New model-specific thinking config
+  thinkingBudget?: number; // For models using budget (Gemini 2.5 Pro, Flash, Flash Lite)
   presetId?: string; // ID of preset prompt to use instead of systemPrompt
 }
 

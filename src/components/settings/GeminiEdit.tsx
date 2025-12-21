@@ -1,7 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   View,
-  StyleSheet,
   TouchableOpacity,
   TextInput as RNTextInput,
   ScrollView,
@@ -17,12 +16,19 @@ import { useTheme } from "@src/contexts";
 import { useThemedStyles, createThemedStyles } from "@hooks/useThemedStyles";
 import type { GeminiConfig } from "@src/types";
 
+// Model IDs
+const MODEL_GEMINI_3_FLASH = "models/gemini-3-flash-preview";
+const MODEL_GEMINI_3_PRO = "models/gemini-3-pro-preview";
+const MODEL_GEMINI_25_PRO = "models/gemini-2.5-pro";
+const MODEL_GEMINI_FLASH = "models/gemini-flash-latest";
+const MODEL_GEMINI_FLASH_LITE = "models/gemini-flash-lite-latest";
+
 const AVAILABLE_MODELS = [
-  { id: "models/gemini-3-flash-preview", name: "Gemini 3 Flash (Preview)" },
-  { id: "models/gemini-3-pro-preview", name: "Gemini 3 Pro (Preview)" },
-  { id: "models/gemini-2.5-pro", name: "Gemini 2.5 Pro" },
-  { id: "models/gemini-flash-latest", name: "Gemini Flash (Latest)" },
-  { id: "models/gemini-flash-lite-latest", name: "Gemini Flash Lite (Latest)" },
+  { id: MODEL_GEMINI_3_FLASH, name: "Gemini 3 Flash (Preview)" },
+  { id: MODEL_GEMINI_3_PRO, name: "Gemini 3 Pro (Preview)" },
+  { id: MODEL_GEMINI_25_PRO, name: "Gemini 2.5 Pro" },
+  { id: MODEL_GEMINI_FLASH, name: "Gemini Flash (Latest)" },
+  { id: MODEL_GEMINI_FLASH_LITE, name: "Gemini Flash Lite (Latest)" },
 ];
 
 const MEDIA_RESOLUTION_OPTIONS = [
@@ -32,12 +38,47 @@ const MEDIA_RESOLUTION_OPTIONS = [
   { id: "MEDIA_RESOLUTION_UNSPECIFIED", name: "Mặc định" },
 ];
 
-const THINKING_LEVEL_OPTIONS = [
+// Thinking options for Gemini 3 Flash Preview (MINIMAL, LOW, MEDIUM, HIGH)
+const THINKING_LEVEL_OPTIONS_FULL = [
   { id: "HIGH", name: "Cao (High)" },
   { id: "MEDIUM", name: "Trung bình (Medium)" },
   { id: "LOW", name: "Thấp (Low)" },
   { id: "MINIMAL", name: "Tối thiểu (Minimal)" },
 ];
+
+// Thinking options for Gemini 3 Pro Preview (only LOW, HIGH)
+const THINKING_LEVEL_OPTIONS_LIMITED = [
+  { id: "HIGH", name: "Cao (High)" },
+  { id: "LOW", name: "Thấp (Low)" },
+];
+
+// Get thinking config type for a model
+type ThinkingConfigMode =
+  | "level_full"
+  | "level_limited"
+  | "budget_25pro"
+  | "budget_flash";
+
+const getThinkingConfigMode = (model: string): ThinkingConfigMode => {
+  switch (model) {
+    case MODEL_GEMINI_3_FLASH:
+      return "level_full"; // MINIMAL, LOW, MEDIUM, HIGH
+    case MODEL_GEMINI_3_PRO:
+      return "level_limited"; // LOW, HIGH only
+    case MODEL_GEMINI_25_PRO:
+      return "budget_25pro"; // 128-32768
+    case MODEL_GEMINI_FLASH:
+    case MODEL_GEMINI_FLASH_LITE:
+      return "budget_flash"; // 0-24576
+    default:
+      return "level_full";
+  }
+};
+
+// Check if model supports mediaResolution
+const supportsMediaResolution = (model: string): boolean => {
+  return model !== MODEL_GEMINI_FLASH_LITE;
+};
 
 interface GeminiEditProps {
   config: GeminiConfig;
@@ -68,10 +109,47 @@ const GeminiEdit: React.FC<GeminiEditProps> = ({
   );
   const resolutionDisplayName = selectedResolution?.name || "Cao (High)";
 
-  const selectedThinking = THINKING_LEVEL_OPTIONS.find(
+  // Get thinking config mode based on selected model
+  const thinkingMode = useMemo(
+    () => getThinkingConfigMode(config.model),
+    [config.model]
+  );
+  const showMediaResolution = useMemo(
+    () => supportsMediaResolution(config.model),
+    [config.model]
+  );
+
+  // Get appropriate thinking level options based on model
+  const thinkingLevelOptions = useMemo(() => {
+    if (thinkingMode === "level_limited") return THINKING_LEVEL_OPTIONS_LIMITED;
+    return THINKING_LEVEL_OPTIONS_FULL;
+  }, [thinkingMode]);
+
+  const selectedThinking = thinkingLevelOptions.find(
     (t) => t.id === (config.thinkingLevel || "HIGH")
   );
   const thinkingDisplayName = selectedThinking?.name || "Cao (High)";
+
+  // Get budget config for budget-based models
+  const getBudgetConfig = () => {
+    if (thinkingMode === "budget_25pro") {
+      return {
+        min: 128,
+        max: 32768,
+        default: 32768,
+        current: config.thinkingBudget ?? 32768,
+      };
+    }
+    // budget_flash (Gemini Flash and Flash Lite)
+    return {
+      min: 0,
+      max: 24576,
+      default: 24576,
+      current: config.thinkingBudget ?? 24576,
+    };
+  };
+
+  const budgetConfig = getBudgetConfig();
 
   // Tính toán padding top cho status bar
   const statusBarHeight =
@@ -183,92 +261,136 @@ const GeminiEdit: React.FC<GeminiEditProps> = ({
             thumbTintColor={colors.primary}
           />
         </View>
-        <View style={styles.settingGroup}>
-          <Text style={styles.settingLabel}>
-            {t("settings.geminiConfig.mediaResolution")}
-          </Text>
-          <TouchableOpacity
-            style={styles.modelPicker}
-            onPress={() => setShowResolutionPicker(!showResolutionPicker)}
-          >
-            <Text style={styles.modelPickerText}>{resolutionDisplayName}</Text>
-            <MaterialCommunityIcons
-              name={showResolutionPicker ? "chevron-up" : "chevron-down"}
-              size={20}
-              color={colors.textMuted}
-            />
-          </TouchableOpacity>
-          {showResolutionPicker && (
-            <View style={styles.modelDropdown}>
-              {MEDIA_RESOLUTION_OPTIONS.map((option) => (
-                <TouchableOpacity
-                  key={option.id}
-                  style={[
-                    styles.modelOption,
-                    (config.mediaResolution || "MEDIA_RESOLUTION_HIGH") ===
-                      option.id && styles.modelOptionActive,
-                  ]}
-                  onPress={() => {
-                    onChange({ ...config, mediaResolution: option.id as any });
-                    setShowResolutionPicker(false);
-                  }}
-                >
-                  <Text
+
+        {/* Media Resolution - NOT available for Gemini Flash Lite */}
+        {showMediaResolution && (
+          <View style={styles.settingGroup}>
+            <Text style={styles.settingLabel}>
+              {t("settings.geminiConfig.mediaResolution")}
+            </Text>
+            <TouchableOpacity
+              style={styles.modelPicker}
+              onPress={() => setShowResolutionPicker(!showResolutionPicker)}
+            >
+              <Text style={styles.modelPickerText}>
+                {resolutionDisplayName}
+              </Text>
+              <MaterialCommunityIcons
+                name={showResolutionPicker ? "chevron-up" : "chevron-down"}
+                size={20}
+                color={colors.textMuted}
+              />
+            </TouchableOpacity>
+            {showResolutionPicker && (
+              <View style={styles.modelDropdown}>
+                {MEDIA_RESOLUTION_OPTIONS.map((option) => (
+                  <TouchableOpacity
+                    key={option.id}
                     style={[
-                      styles.modelOptionText,
+                      styles.modelOption,
                       (config.mediaResolution || "MEDIA_RESOLUTION_HIGH") ===
-                        option.id && styles.modelOptionTextActive,
+                        option.id && styles.modelOptionActive,
                     ]}
+                    onPress={() => {
+                      onChange({
+                        ...config,
+                        mediaResolution: option.id as any,
+                      });
+                      setShowResolutionPicker(false);
+                    }}
                   >
-                    {option.name}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
-        </View>
+                    <Text
+                      style={[
+                        styles.modelOptionText,
+                        (config.mediaResolution || "MEDIA_RESOLUTION_HIGH") ===
+                          option.id && styles.modelOptionTextActive,
+                      ]}
+                    >
+                      {option.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </View>
+        )}
+
+        {/* Thinking Config - varies by model */}
         <View style={styles.settingGroup}>
           <Text style={styles.settingLabel}>
             {t("settings.geminiConfig.thinkingLevel")}
+            {(thinkingMode === "budget_25pro" ||
+              thinkingMode === "budget_flash") &&
+              ` (Budget: ${budgetConfig.current})`}
           </Text>
-          <TouchableOpacity
-            style={styles.modelPicker}
-            onPress={() => setShowThinkingPicker(!showThinkingPicker)}
-          >
-            <Text style={styles.modelPickerText}>{thinkingDisplayName}</Text>
-            <MaterialCommunityIcons
-              name={showThinkingPicker ? "chevron-up" : "chevron-down"}
-              size={20}
-              color={colors.textMuted}
+
+          {/* Level-based thinking (Gemini 3 Flash Preview, Gemini 3 Pro) */}
+          {(thinkingMode === "level_full" ||
+            thinkingMode === "level_limited") && (
+            <>
+              <TouchableOpacity
+                style={styles.modelPicker}
+                onPress={() => setShowThinkingPicker(!showThinkingPicker)}
+              >
+                <Text style={styles.modelPickerText}>
+                  {thinkingDisplayName}
+                </Text>
+                <MaterialCommunityIcons
+                  name={showThinkingPicker ? "chevron-up" : "chevron-down"}
+                  size={20}
+                  color={colors.textMuted}
+                />
+              </TouchableOpacity>
+              {showThinkingPicker && (
+                <View style={styles.modelDropdown}>
+                  {thinkingLevelOptions.map((option) => (
+                    <TouchableOpacity
+                      key={option.id}
+                      style={[
+                        styles.modelOption,
+                        (config.thinkingLevel || "HIGH") === option.id &&
+                          styles.modelOptionActive,
+                      ]}
+                      onPress={() => {
+                        onChange({
+                          ...config,
+                          thinkingLevel: option.id as any,
+                        });
+                        setShowThinkingPicker(false);
+                      }}
+                    >
+                      <Text
+                        style={[
+                          styles.modelOptionText,
+                          (config.thinkingLevel || "HIGH") === option.id &&
+                            styles.modelOptionTextActive,
+                        ]}
+                      >
+                        {option.name}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </>
+          )}
+
+          {/* Budget-based thinking (Gemini 2.5 Pro, Flash, Flash Lite) */}
+          {(thinkingMode === "budget_25pro" ||
+            thinkingMode === "budget_flash") && (
+            <Slider
+              style={styles.slider}
+              minimumValue={budgetConfig.min}
+              maximumValue={budgetConfig.max}
+              step={thinkingMode === "budget_25pro" ? 128 : 256}
+              value={budgetConfig.current}
+              onValueChange={(value) =>
+                onChange({ ...config, thinkingBudget: Math.round(value) })
+              }
+              minimumTrackTintColor={colors.primary}
+              maximumTrackTintColor={colors.border}
+              thumbTintColor={colors.primary}
             />
-          </TouchableOpacity>
-          {showThinkingPicker && (
-            <View style={styles.modelDropdown}>
-              {THINKING_LEVEL_OPTIONS.map((option) => (
-                <TouchableOpacity
-                  key={option.id}
-                  style={[
-                    styles.modelOption,
-                    (config.thinkingLevel || "HIGH") === option.id &&
-                      styles.modelOptionActive,
-                  ]}
-                  onPress={() => {
-                    onChange({ ...config, thinkingLevel: option.id as any });
-                    setShowThinkingPicker(false);
-                  }}
-                >
-                  <Text
-                    style={[
-                      styles.modelOptionText,
-                      (config.thinkingLevel || "HIGH") === option.id &&
-                        styles.modelOptionTextActive,
-                    ]}
-                  >
-                    {option.name}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
           )}
         </View>
         <View style={styles.settingGroup}>

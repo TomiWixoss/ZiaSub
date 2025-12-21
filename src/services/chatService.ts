@@ -8,7 +8,14 @@ import type {
 import { normalizeYouTubeUrl } from "@utils/videoUtils";
 import { keyManager } from "./keyManager";
 
-// Map config string to ThinkingLevel enum
+// Model IDs for reference
+const MODEL_GEMINI_3_FLASH = "models/gemini-3-flash-preview";
+const MODEL_GEMINI_3_PRO = "models/gemini-3-pro-preview";
+const MODEL_GEMINI_25_PRO = "models/gemini-2.5-pro";
+const MODEL_GEMINI_FLASH = "models/gemini-flash-latest";
+const MODEL_GEMINI_FLASH_LITE = "models/gemini-flash-lite-latest";
+
+// Map config string to ThinkingLevel enum (for Gemini 3 Flash Preview)
 const getThinkingLevel = (level?: string): ThinkingLevel => {
   switch (level) {
     case "MINIMAL":
@@ -21,6 +28,52 @@ const getThinkingLevel = (level?: string): ThinkingLevel => {
     default:
       return ThinkingLevel.HIGH;
   }
+};
+
+// Get thinking config based on model type
+const getThinkingConfig = (
+  model: string,
+  thinkingLevel?: string,
+  thinkingBudget?: number
+): { thinkingLevel?: ThinkingLevel; thinkingBudget?: number } | undefined => {
+  // Gemini 3 Flash Preview - uses ThinkingLevel (MINIMAL, LOW, MEDIUM, HIGH)
+  if (model === MODEL_GEMINI_3_FLASH) {
+    return { thinkingLevel: getThinkingLevel(thinkingLevel) };
+  }
+
+  // Gemini 3 Pro Preview - only LOW and HIGH
+  if (model === MODEL_GEMINI_3_PRO) {
+    const level =
+      thinkingLevel === "LOW" ? ThinkingLevel.LOW : ThinkingLevel.HIGH;
+    return { thinkingLevel: level };
+  }
+
+  // Gemini 2.5 Pro - uses thinkingBudget (128-32768)
+  if (model === MODEL_GEMINI_25_PRO) {
+    const budget = Math.max(128, Math.min(32768, thinkingBudget ?? 32768));
+    return { thinkingBudget: budget };
+  }
+
+  // Gemini Flash Latest - uses thinkingBudget (0-24576)
+  if (model === MODEL_GEMINI_FLASH) {
+    const budget = Math.max(0, Math.min(24576, thinkingBudget ?? 24576));
+    return { thinkingBudget: budget };
+  }
+
+  // Gemini Flash Lite Latest - uses thinkingBudget (0-24576), NO mediaResolution
+  if (model === MODEL_GEMINI_FLASH_LITE) {
+    const budget = Math.max(0, Math.min(24576, thinkingBudget ?? 24576));
+    return { thinkingBudget: budget };
+  }
+
+  // Default fallback - use ThinkingLevel
+  return { thinkingLevel: getThinkingLevel(thinkingLevel) };
+};
+
+// Check if model supports mediaResolution
+const supportsMediaResolution = (model: string): boolean => {
+  // Gemini Flash Lite does NOT support mediaResolution
+  return model !== MODEL_GEMINI_FLASH_LITE;
 };
 
 // Map config string to MediaResolution enum
@@ -116,17 +169,26 @@ export const sendChatMessage = async (
   }
 
   try {
+    // Build config based on model capabilities
+    const chatConfig: any = {
+      temperature: config.temperature,
+      systemInstruction: config.systemPrompt,
+      thinkingConfig: getThinkingConfig(
+        config.model,
+        config.thinkingLevel,
+        (config as any).thinkingBudget
+      ),
+    };
+
+    // Only add mediaResolution if model supports it
+    if (supportsMediaResolution(config.model)) {
+      chatConfig.mediaResolution = getMediaResolution(config.mediaResolution);
+    }
+
     // Dùng chats.create với sendMessage (non-streaming) theo docs
     const chat = ai.chats.create({
       model: config.model,
-      config: {
-        temperature: config.temperature,
-        systemInstruction: config.systemPrompt,
-        thinkingConfig: {
-          thinkingLevel: getThinkingLevel(config.thinkingLevel),
-        },
-        mediaResolution: getMediaResolution(config.mediaResolution),
-      },
+      config: chatConfig,
       history: contents.slice(0, -1), // Tất cả messages trừ cái cuối
     });
 
