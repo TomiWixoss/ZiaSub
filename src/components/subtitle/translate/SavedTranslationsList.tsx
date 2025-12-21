@@ -223,27 +223,22 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
                         flexDirection: "row",
                         alignItems: "center",
                         flexWrap: "wrap",
-                        gap: 4,
                       }}
                     >
                       <Text style={styles.translationConfig}>
                         {item.configName}
                       </Text>
                       {getPresetName(item.presetId) && (
-                        <Text
-                          style={[
-                            styles.translationDate,
-                            {
-                              fontSize: 10,
-                              backgroundColor: colors.surfaceLight,
-                              paddingHorizontal: 4,
-                              paddingVertical: 1,
-                              borderRadius: 4,
-                            },
-                          ]}
-                        >
-                          {getPresetName(item.presetId)}
-                        </Text>
+                        <View style={styles.presetBadge}>
+                          <MaterialCommunityIcons
+                            name="tag-outline"
+                            size={10}
+                            color={colors.primary}
+                          />
+                          <Text style={styles.presetBadgeText}>
+                            {getPresetName(item.presetId)}
+                          </Text>
+                        </View>
                       )}
                     </View>
                     <Text style={styles.translationDate}>

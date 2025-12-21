@@ -55,6 +55,22 @@ export const createTranslateStyles = (colors: ThemeColors) =>
     },
     translationConfig: { color: colors.text, fontSize: 13, fontWeight: "500" },
     translationDate: { color: colors.textMuted, fontSize: 11, marginTop: 2 },
+    // Preset badge
+    presetBadge: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 3,
+      backgroundColor: colors.primary + "18",
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 4,
+      marginLeft: 6,
+    },
+    presetBadgeText: {
+      color: colors.primary,
+      fontSize: 10,
+      fontWeight: "500",
+    },
     // Expanded content
     translationExpanded: {
       borderTopWidth: 1,
