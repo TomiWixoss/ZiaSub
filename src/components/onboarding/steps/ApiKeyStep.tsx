@@ -7,6 +7,7 @@ import {
   TextInput,
   Linking,
   Keyboard,
+  ScrollView,
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@src/contexts";
@@ -118,130 +119,137 @@ export const ApiKeyStep: React.FC<StepProps> = ({
 
   return (
     <View style={styles.container}>
-      <View style={styles.content}>
-        <View
-          style={[
-            styles.iconContainer,
-            { backgroundColor: colors.surfaceLight },
-          ]}
-        >
-          <Ionicons name="key-outline" size={64} color={colors.primary} />
-        </View>
-
-        <Text style={[styles.title, { color: colors.text }]}>
-          {t("onboarding.apiKey.title")}
-        </Text>
-
-        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-          {t("onboarding.apiKey.subtitle")}
-        </Text>
-
-        <View style={styles.inputContainer}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={styles.content}>
           <View
             style={[
-              styles.inputWrapper,
-              {
-                backgroundColor: colors.surface,
-                borderColor: error ? colors.error : colors.border,
-              },
+              styles.iconContainer,
+              { backgroundColor: colors.surfaceLight },
             ]}
           >
-            <TextInput
-              style={[styles.input, { color: colors.text }]}
-              placeholder={t("onboarding.apiKey.placeholder")}
-              placeholderTextColor={colors.textMuted}
-              value={apiKey}
-              onChangeText={(text) => {
-                setApiKey(text);
-                setError("");
-              }}
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-            <TouchableOpacity
-              style={styles.pasteButton}
-              onPress={handlePasteFromClipboard}
+            <Ionicons name="key-outline" size={64} color={colors.primary} />
+          </View>
+
+          <Text style={[styles.title, { color: colors.text }]}>
+            {t("onboarding.apiKey.title")}
+          </Text>
+
+          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+            {t("onboarding.apiKey.subtitle")}
+          </Text>
+
+          <View style={styles.inputContainer}>
+            <View
+              style={[
+                styles.inputWrapper,
+                {
+                  backgroundColor: colors.surface,
+                  borderColor: error ? colors.error : colors.border,
+                },
+              ]}
             >
-              <Ionicons
-                name="clipboard-outline"
-                size={20}
-                color={colors.primary}
+              <TextInput
+                style={[styles.input, { color: colors.text }]}
+                placeholder={t("onboarding.apiKey.placeholder")}
+                placeholderTextColor={colors.textMuted}
+                value={apiKey}
+                onChangeText={(text) => {
+                  setApiKey(text);
+                  setError("");
+                }}
+                autoCapitalize="none"
+                autoCorrect={false}
               />
+              <TouchableOpacity
+                style={styles.pasteButton}
+                onPress={handlePasteFromClipboard}
+              >
+                <Ionicons
+                  name="clipboard-outline"
+                  size={20}
+                  color={colors.primary}
+                />
+              </TouchableOpacity>
+            </View>
+
+            {error ? (
+              <Text style={[styles.errorText, { color: colors.error }]}>
+                {error}
+              </Text>
+            ) : null}
+
+            <TouchableOpacity
+              style={[
+                styles.addButton,
+                {
+                  backgroundColor: apiKey.trim()
+                    ? colors.primary
+                    : colors.surfaceLight,
+                },
+              ]}
+              onPress={handleAddKey}
+              disabled={!apiKey.trim() || isAdding}
+            >
+              <Text
+                style={[
+                  styles.addButtonText,
+                  { color: apiKey.trim() ? "#fff" : colors.textMuted },
+                ]}
+              >
+                {isAdding
+                  ? t("settings.apiKeys.adding")
+                  : t("settings.apiKeys.add")}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.getKeyLink} onPress={handleGetKey}>
+              <Ionicons name="open-outline" size={16} color={colors.primary} />
+              <Text style={[styles.getKeyText, { color: colors.primary }]}>
+                {t("settings.apiKeys.getKey")}
+              </Text>
             </TouchableOpacity>
           </View>
 
-          {error ? (
-            <Text style={[styles.errorText, { color: colors.error }]}>
-              {error}
-            </Text>
-          ) : null}
-
-          <TouchableOpacity
-            style={[
-              styles.addButton,
-              {
-                backgroundColor: apiKey.trim()
-                  ? colors.primary
-                  : colors.surfaceLight,
-              },
-            ]}
-            onPress={handleAddKey}
-            disabled={!apiKey.trim() || isAdding}
-          >
-            <Text
-              style={[
-                styles.addButtonText,
-                { color: apiKey.trim() ? "#fff" : colors.textMuted },
-              ]}
-            >
-              {isAdding
-                ? t("settings.apiKeys.adding")
-                : t("settings.apiKeys.add")}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.getKeyLink} onPress={handleGetKey}>
-            <Ionicons name="open-outline" size={16} color={colors.primary} />
-            <Text style={[styles.getKeyText, { color: colors.primary }]}>
-              {t("settings.apiKeys.getKey")}
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {hasKey && (
-          <View style={styles.keysList}>
-            {apiKeys.map((key, index) => (
-              <View
-                key={key}
-                style={[
-                  styles.keyItem,
-                  {
-                    backgroundColor: colors.surface,
-                    borderColor: colors.border,
-                  },
-                ]}
-              >
-                <View style={styles.keyInfo}>
-                  <Ionicons name="key" size={16} color={colors.primary} />
-                  <Text style={[styles.keyText, { color: colors.text }]}>
-                    {maskApiKey(key)}
-                  </Text>
-                </View>
-                <TouchableOpacity
-                  style={styles.deleteButton}
-                  onPress={() => handleDeleteKey(key)}
+          {hasKey && (
+            <View style={styles.keysList}>
+              {apiKeys.map((key, index) => (
+                <View
+                  key={key}
+                  style={[
+                    styles.keyItem,
+                    {
+                      backgroundColor: colors.surface,
+                      borderColor: colors.border,
+                    },
+                  ]}
                 >
-                  <Ionicons
-                    name="close-circle"
-                    size={22}
-                    color={colors.error}
-                  />
-                </TouchableOpacity>
-              </View>
-            ))}
-          </View>
-        )}
-      </View>
+                  <View style={styles.keyInfo}>
+                    <Ionicons name="key" size={16} color={colors.primary} />
+                    <Text style={[styles.keyText, { color: colors.text }]}>
+                      {maskApiKey(key)}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.deleteButton}
+                    onPress={() => handleDeleteKey(key)}
+                  >
+                    <Ionicons
+                      name="close-circle"
+                      size={22}
+                      color={colors.error}
+                    />
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
+      </ScrollView>
 
       <View style={styles.footer}>
         {!hasKey && (
@@ -277,6 +285,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 60,
     paddingBottom: 24,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
   },
   content: {
     flex: 1,
