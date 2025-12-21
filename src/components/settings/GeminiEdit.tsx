@@ -6,6 +6,7 @@ import {
   ScrollView,
   StatusBar,
   Platform,
+  KeyboardAvoidingView,
 } from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -157,11 +158,13 @@ const GeminiEdit: React.FC<GeminiEditProps> = ({
   const topPadding = Math.max(insets.top, statusBarHeight);
 
   return (
-    <View
+    <KeyboardAvoidingView
       style={[
         styles.fullScreen,
         { paddingTop: topPadding, paddingBottom: insets.bottom },
       ]}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
     >
       <View style={styles.header}>
         <TouchableOpacity style={styles.headerBtn} onPress={onCancel}>
@@ -408,7 +411,7 @@ const GeminiEdit: React.FC<GeminiEditProps> = ({
           />
         </View>
       </ScrollView>
-    </View>
+    </KeyboardAvoidingView>
   );
 };
 
