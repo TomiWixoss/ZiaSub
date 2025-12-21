@@ -40,6 +40,7 @@
     "plugins": [
       "expo-font",
       "./plugins/withInstallApkPermission",
+      ["./plugins/withAsyncStorageSize", { "size": 200 }],
       [
         "expo-notifications",
         {
