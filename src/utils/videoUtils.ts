@@ -6,6 +6,7 @@
  * Extract video ID from various YouTube URL formats
  */
 export const extractVideoId = (url: string): string | null => {
+  if (!url) return null;
   const patterns = [
     /youtu\.be\/([a-zA-Z0-9_-]+)/,
     /[?&]v=([a-zA-Z0-9_-]+)/,
@@ -22,6 +23,7 @@ export const extractVideoId = (url: string): string | null => {
  * Normalize YouTube URL to standard watch format
  */
 export const normalizeYouTubeUrl = (url: string): string => {
+  if (!url) return "";
   const videoId = extractVideoId(url);
   if (videoId) {
     return `https://www.youtube.com/watch?v=${videoId}`;

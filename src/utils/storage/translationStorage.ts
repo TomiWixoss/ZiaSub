@@ -15,6 +15,9 @@ const TRANSLATIONS_DIR = STORAGE_FILES.translations;
 
 // Helper to get video ID from URL
 const getVideoIdFromUrl = (videoUrl: string): string => {
+  if (!videoUrl) {
+    throw new Error("Video URL is required");
+  }
   const videoId = extractVideoId(videoUrl);
   if (videoId) return videoId;
   // Fallback: hash the URL

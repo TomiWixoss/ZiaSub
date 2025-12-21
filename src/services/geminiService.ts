@@ -141,6 +141,10 @@ const translateVideoBatch = async (
   startOffset?: string,
   endOffset?: string
 ): Promise<string> => {
+  if (!videoUrl) {
+    throw new Error("Video URL is required");
+  }
+
   return keyManager.executeWithRetry(async (ai) => {
     const videoPart: any = {
       fileData: { fileUri: videoUrl, mimeType: "video/*" },
@@ -175,7 +179,11 @@ const translateVideoBatch = async (
       },
     });
 
-    return response.text || "";
+    if (!response || !response.text) {
+      throw new Error("API không trả về kết quả");
+    }
+
+    return response.text;
   });
 };
 
@@ -275,6 +283,10 @@ export const translateVideoWithGemini = async (
   onChunk?: (text: string) => void,
   options?: VideoTranslateOptions
 ): Promise<string> => {
+  if (!videoUrl) {
+    throw new Error("Video URL is required");
+  }
+
   if (!keyManager.hasAvailableKey()) {
     throw new Error("Thêm key trong Cài đặt trước nhé");
   }
@@ -285,6 +297,10 @@ export const translateVideoWithGemini = async (
   }
 
   const normalizedUrl = normalizeYouTubeUrl(videoUrl);
+  if (!normalizedUrl) {
+    throw new Error("Invalid video URL");
+  }
+
   const isShorts = isShortsUrl(videoUrl);
   const batchSettings = options?.batchSettings || DEFAULT_BATCH_SETTINGS;
   const maxDuration = batchSettings.maxVideoDuration;
