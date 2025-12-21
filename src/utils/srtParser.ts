@@ -280,6 +280,8 @@ export const parseSrtRaw = (
 
 /**
  * Detect if SRT timestamps are relative (starting from 0) or absolute.
+ * Uses a smarter heuristic: if first timestamp is closer to 0 than to expectedOffset,
+ * it's likely relative.
  */
 export const detectTimestampMode = (
   subtitles: Array<{ start: number; end: number; text: string }>,
@@ -288,12 +290,31 @@ export const detectTimestampMode = (
   if (subtitles.length === 0) return "relative";
 
   const firstStart = subtitles[0].start;
-  const tolerance = 30;
 
-  if (firstStart < tolerance) return "relative";
-  if (Math.abs(firstStart - expectedOffset) < tolerance) return "absolute";
+  // If expectedOffset is 0, timestamps are always "absolute" (no adjustment needed)
+  if (expectedOffset <= 0) return "absolute";
 
-  return "relative";
+  // Calculate distances to 0 and to expectedOffset
+  const distanceToZero = firstStart;
+  const distanceToOffset = Math.abs(firstStart - expectedOffset);
+
+  // Use a threshold based on expectedOffset to handle edge cases
+  // If first timestamp is within 20% of expectedOffset from the offset, consider it absolute
+  const threshold = Math.max(60, expectedOffset * 0.2); // At least 60s or 20% of offset
+
+  // If clearly close to 0 (within threshold), it's relative
+  if (distanceToZero < threshold && distanceToOffset > threshold) {
+    return "relative";
+  }
+
+  // If clearly close to expectedOffset (within threshold), it's absolute
+  if (distanceToOffset < threshold && distanceToZero > threshold) {
+    return "absolute";
+  }
+
+  // Ambiguous case: compare distances
+  // If closer to 0, assume relative; if closer to expectedOffset, assume absolute
+  return distanceToZero < distanceToOffset ? "relative" : "absolute";
 };
 
 /**

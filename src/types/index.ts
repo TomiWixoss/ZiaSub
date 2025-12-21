@@ -238,4 +238,6 @@ export interface VideoTranslateOptions {
   skipRanges?: Array<{ start: number; end: number }>;
   // Existing partial SRT to merge with new results (for resume)
   existingPartialSrt?: string;
+  // Skip automatic timestamp adjustment (caller will handle it)
+  skipTimestampAdjust?: boolean;
 }

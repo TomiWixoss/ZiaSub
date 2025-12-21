@@ -616,8 +616,11 @@ export const translateVideoWithGemini = async (
 
     // Adjust timestamps if translating a custom range starting after 0
     // AI might return timestamps starting from 0 instead of rangeStart
+    // Skip if caller will handle adjustment (e.g., replaceBatchInSrt)
     const adjustedResult =
-      rangeStart > 0 ? adjustSrtTimestamps(result, rangeStart) : result;
+      rangeStart > 0 && !options?.skipTimestampAdjust
+        ? adjustSrtTimestamps(result, rangeStart)
+        : result;
 
     options?.onBatchProgress?.({
       totalBatches: 1,

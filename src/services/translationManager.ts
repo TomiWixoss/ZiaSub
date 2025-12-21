@@ -417,6 +417,7 @@ class TranslationManager {
 
     try {
       // Translate only this batch
+      // Skip timestamp adjustment here - replaceBatchInSrt will handle it
       const newBatchSrt = await translateVideoWithGemini(
         videoUrl,
         config,
@@ -427,6 +428,7 @@ class TranslationManager {
           rangeEnd: batchEnd,
           abortSignal: this.abortController.signal,
           onKeyStatus,
+          skipTimestampAdjust: true, // replaceBatchInSrt will adjust timestamps
         }
       );
 
