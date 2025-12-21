@@ -167,18 +167,37 @@ class QueueManager {
   }
 
   // Start translation for a single item - adds to translating queue and processes
+  // Returns: { success: boolean, reason?: 'busy' | 'completed' | 'already_translating' }
   async startTranslation(
     itemId: string,
     isResume: boolean = false
-  ): Promise<void> {
+  ): Promise<{ success: boolean; reason?: string }> {
     const item = this.items.find((i) => i.id === itemId);
-    if (!item) return;
+    if (!item) return { success: false, reason: "not_found" };
 
     // If item is already completed, skip (unless it has partial data and isResume)
-    if (item.status === "completed") return;
+    if (item.status === "completed")
+      return { success: false, reason: "completed" };
 
     // If currently translating without partial data, skip
-    if (item.status === "translating" && !item.partialSrt && !isResume) return;
+    if (item.status === "translating" && !item.partialSrt && !isResume)
+      return { success: false, reason: "already_translating" };
+
+    // Check if translationManager is busy with another video
+    if (translationManager.isTranslating()) {
+      console.log(
+        "[QueueManager] translationManager is busy, cannot start/resume now"
+      );
+      return { success: false, reason: "busy" };
+    }
+
+    // Check if queueManager is processing another video
+    if (this.isProcessing) {
+      console.log(
+        "[QueueManager] Already processing another video, cannot start/resume now"
+      );
+      return { success: false, reason: "busy" };
+    }
 
     // Enable auto-process mode so it continues after this item
     this.autoProcessEnabled = true;
@@ -190,22 +209,18 @@ class QueueManager {
       error: undefined,
     });
 
-    // If already processing another video, this item will be picked up automatically
-    if (this.isProcessing) {
-      console.log(
-        "[QueueManager] Added to translation queue, will process after current"
-      );
-      return;
-    }
-
     // Start processing this item
     await this.processItem(item, isResume);
+    return { success: true };
   }
 
   // Resume translation for an item with partial data
-  async resumeTranslation(itemId: string): Promise<void> {
+  // Returns: { success: boolean, reason?: string }
+  async resumeTranslation(
+    itemId: string
+  ): Promise<{ success: boolean; reason?: string }> {
     const item = this.items.find((i) => i.id === itemId);
-    if (!item) return;
+    if (!item) return { success: false, reason: "not_found" };
 
     // Must have partial data to resume
     if (
@@ -214,11 +229,10 @@ class QueueManager {
       item.completedBatchRanges.length === 0
     ) {
       // No partial data - start fresh
-      await this.startTranslation(itemId, false);
-      return;
+      return await this.startTranslation(itemId, false);
     }
 
-    await this.startTranslation(itemId, true);
+    return await this.startTranslation(itemId, true);
   }
 
   // Internal: Process a specific item
@@ -412,7 +426,13 @@ class QueueManager {
     const nextTranslating = translatingItems[0];
 
     if (nextTranslating && !this.isProcessing) {
-      setTimeout(() => this.processItem(nextTranslating), 2000);
+      // Check if this item has partial data - if so, resume instead of starting fresh
+      const shouldResume = !!(
+        nextTranslating.partialSrt &&
+        nextTranslating.completedBatchRanges &&
+        nextTranslating.completedBatchRanges.length > 0
+      );
+      setTimeout(() => this.processItem(nextTranslating, shouldResume), 2000);
       return;
     }
 
@@ -513,13 +533,30 @@ class QueueManager {
   }
 
   // Start auto processing - mark ALL pending/error as translating and process sequentially
-  async startAutoProcess(): Promise<void> {
+  // Returns: { success: boolean, reason?: string }
+  async startAutoProcess(): Promise<{ success: boolean; reason?: string }> {
+    // Check if translationManager is busy
+    if (translationManager.isTranslating()) {
+      console.log(
+        "[QueueManager] translationManager is busy, cannot start auto-process"
+      );
+      return { success: false, reason: "busy" };
+    }
+
+    // Check if already processing
+    if (this.isProcessing) {
+      console.log(
+        "[QueueManager] Already processing, cannot start auto-process"
+      );
+      return { success: false, reason: "busy" };
+    }
+
     // Get all pending and error items sorted by addedAt ascending (FIFO - oldest first)
     const pendingItems = this.items
       .filter((i) => i.status === "pending" || i.status === "error")
       .sort((a, b) => a.addedAt - b.addedAt);
 
-    if (pendingItems.length === 0) return;
+    if (pendingItems.length === 0) return { success: true };
 
     // Enable auto-process mode
     this.autoProcessEnabled = true;
@@ -546,6 +583,8 @@ class QueueManager {
         await this.processItem(translatingItems[0]);
       }
     }
+
+    return { success: true };
   }
 
   // Mark video as completed (only if already in queue)

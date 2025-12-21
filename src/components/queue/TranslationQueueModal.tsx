@@ -11,7 +11,7 @@ import {
   StatusBar,
   Platform,
 } from "react-native";
-import { confirm, confirmDestructive } from "../common/CustomAlert";
+import { alert, confirm, confirmDestructive } from "../common/CustomAlert";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -184,7 +184,15 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
     confirm(
       t("queue.dialogs.translateOne"),
       t("queue.dialogs.translateOneConfirm", { title: item.title }),
-      () => queueManager.startTranslation(item.id),
+      async () => {
+        const result = await queueManager.startTranslation(item.id);
+        if (!result.success && result.reason === "busy") {
+          alert(
+            t("common.notice"),
+            t("subtitleModal.translate.anotherTranslating")
+          );
+        }
+      },
       t("queue.dialogs.translate")
     );
   };
@@ -196,7 +204,15 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
         completed: item.completedBatches || 0,
         total: item.totalBatches || "?",
       }),
-      () => queueManager.resumeTranslation(item.id),
+      async () => {
+        const result = await queueManager.resumeTranslation(item.id);
+        if (!result.success && result.reason === "busy") {
+          alert(
+            t("common.notice"),
+            t("subtitleModal.translate.anotherTranslating")
+          );
+        }
+      },
       t("queue.dialogs.resume")
     );
   };
@@ -204,7 +220,15 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
     confirm(
       t("queue.dialogs.translateAllTitle"),
       t("queue.dialogs.translateAllConfirm"),
-      () => queueManager.startAutoProcess(),
+      async () => {
+        const result = await queueManager.startAutoProcess();
+        if (!result.success && result.reason === "busy") {
+          alert(
+            t("common.notice"),
+            t("subtitleModal.translate.anotherTranslating")
+          );
+        }
+      },
       t("common.start")
     );
   };
