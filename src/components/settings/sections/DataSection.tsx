@@ -12,6 +12,7 @@ import { useTheme } from "@src/contexts";
 import { fileStorage } from "@services/fileStorageService";
 import { setOnboardingCompleted } from "@utils/storage";
 import { showAlert } from "@components/common/CustomAlert";
+import * as Updates from "expo-updates";
 
 interface DataInfo {
   storagePath: string | null;
@@ -118,12 +119,8 @@ export const DataSection: React.FC = () => {
     try {
       await fileStorage.resetStorage();
       await setOnboardingCompleted(false);
-      showAlert(
-        t("common.success"),
-        t("settings.data.resetSuccess"),
-        [{ text: t("common.ok") }],
-        "success"
-      );
+      // Tự động reload app thay vì hỏi user
+      await Updates.reloadAsync();
     } catch (error) {
       showAlert(
         t("common.error"),
