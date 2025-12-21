@@ -47,6 +47,8 @@ import TaskCard, { TaskItem } from "./TaskCard";
 import ChatDrawer from "./ChatDrawer";
 import ChatInput from "./ChatInput";
 import ChatEmptyState from "./ChatEmptyState";
+import VideoTimeRangePicker from "./VideoTimeRangePicker";
+import type { VideoTimeRange } from "@src/types";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const DRAWER_WIDTH = SCREEN_WIDTH * 0.82;
@@ -56,6 +58,7 @@ interface ChatModalProps {
   onClose: () => void;
   videoUrl?: string;
   videoTitle?: string;
+  videoDuration?: number;
   onLoadingChange?: (isLoading: boolean) => void;
 }
 
@@ -71,6 +74,7 @@ const ChatModal: React.FC<ChatModalProps> = ({
   onClose,
   videoUrl,
   videoTitle,
+  videoDuration,
   onLoadingChange,
 }) => {
   const { colors } = useTheme();
@@ -95,6 +99,10 @@ const ChatModal: React.FC<ChatModalProps> = ({
   const [isFromHistory, setIsFromHistory] = useState(false);
   const [hasApiKey, setHasApiKey] = useState(true);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [videoTimeRange, setVideoTimeRange] = useState<VideoTimeRange | null>(
+    null
+  );
+  const [showTimeRangePicker, setShowTimeRangePicker] = useState(false);
   const flatListRef = useRef<FlatList>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const currentSessionIdRef = useRef<string | null>(null);
@@ -260,6 +268,10 @@ const ChatModal: React.FC<ChatModalProps> = ({
       timestamp: Date.now(),
       hasVideo: shouldAttachVideo && !!videoUrl,
       videoTitle: shouldAttachVideo && !!videoUrl ? videoTitle : undefined,
+      videoTimeRange:
+        shouldAttachVideo && !!videoUrl && videoTimeRange
+          ? videoTimeRange
+          : undefined,
     };
 
     let sessionToUse = currentSession;
@@ -289,6 +301,7 @@ const ChatModal: React.FC<ChatModalProps> = ({
     setMessages(newMessages);
     setInputText("");
     setAttachVideo(false);
+    setVideoTimeRange(null);
     setIsLoading(true);
     setIsFromHistory(false);
     scrollToBottom();
@@ -330,7 +343,8 @@ const ChatModal: React.FC<ChatModalProps> = ({
           abortControllerRef.current = null;
         },
       },
-      shouldAttachVideo ? videoUrl : undefined
+      shouldAttachVideo ? videoUrl : undefined,
+      shouldAttachVideo ? userMessage.videoTimeRange : undefined
     );
   };
 
@@ -582,6 +596,8 @@ const ChatModal: React.FC<ChatModalProps> = ({
               configName={activeConfig?.name || "Chọn model"}
               onOpenConfig={() => setShowConfigSelector(true)}
               disabled={!hasApiKey}
+              videoTimeRange={videoTimeRange}
+              onOpenTimeRange={() => setShowTimeRangePicker(true)}
             />
           </KeyboardAvoidingView>
           {drawerOpen && (
@@ -608,6 +624,13 @@ const ChatModal: React.FC<ChatModalProps> = ({
             activeConfig={activeConfig}
             onSelect={handleSelectConfig}
             onClose={() => setShowConfigSelector(false)}
+          />
+          <VideoTimeRangePicker
+            visible={showTimeRangePicker}
+            onClose={() => setShowTimeRangePicker(false)}
+            onConfirm={setVideoTimeRange}
+            currentRange={videoTimeRange}
+            videoDuration={videoDuration}
           />
         </Animated.View>
       </View>

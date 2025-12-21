@@ -1,5 +1,10 @@
 import { ThinkingLevel, MediaResolution } from "@google/genai";
-import type { GeminiConfig, ChatMessage, StreamCallbacks } from "@src/types";
+import type {
+  GeminiConfig,
+  ChatMessage,
+  StreamCallbacks,
+  VideoTimeRange,
+} from "@src/types";
 import { normalizeYouTubeUrl } from "@utils/videoUtils";
 import { keyManager } from "./keyManager";
 
@@ -38,7 +43,8 @@ export const sendChatMessage = async (
   messages: ChatMessage[],
   config: GeminiConfig,
   callbacks: StreamCallbacks,
-  videoUrl?: string // Video URL để nhét vào tin nhắn đầu tiên của user
+  videoUrl?: string, // Video URL để nhét vào tin nhắn đầu tiên của user
+  videoTimeRange?: VideoTimeRange // Khoảng thời gian video (x-y)
 ): Promise<void> => {
   if (!keyManager.hasAvailableKey()) {
     callbacks.onError(new Error("Thêm API key trong Cài đặt trước nhé"));
@@ -55,22 +61,50 @@ export const sendChatMessage = async (
   const contents: Array<{
     role: "user" | "model";
     parts: Array<
-      { text: string } | { fileData: { fileUri: string; mimeType: string } }
+      | { text: string }
+      | {
+          fileData: { fileUri: string; mimeType: string };
+          videoMetadata?: { startOffset?: string; endOffset?: string };
+        }
     >;
   }> = [];
 
   for (let i = 0; i < messages.length; i++) {
     const msg = messages[i];
     const parts: Array<
-      { text: string } | { fileData: { fileUri: string; mimeType: string } }
+      | { text: string }
+      | {
+          fileData: { fileUri: string; mimeType: string };
+          videoMetadata?: { startOffset?: string; endOffset?: string };
+        }
     > = [];
 
-    // Nếu là tin nhắn user đầu tiên và có video, nhét video vào
+    // Nếu là tin nhắn user và có video, nhét video vào
     if (msg.role === "user" && msg.hasVideo && videoUrl) {
       const normalizedUrl = normalizeYouTubeUrl(videoUrl);
-      parts.push({
+
+      // Get time range from message or from parameter (for current message)
+      const msgTimeRange =
+        msg.videoTimeRange ||
+        (i === messages.length - 1 ? videoTimeRange : undefined);
+
+      // Build video part with optional time range (like geminiService)
+      const videoPart: {
+        fileData: { fileUri: string; mimeType: string };
+        videoMetadata?: { startOffset?: string; endOffset?: string };
+      } = {
         fileData: { fileUri: normalizedUrl, mimeType: "video/*" },
-      });
+      };
+
+      // Add videoMetadata if time range is specified
+      if (msgTimeRange) {
+        videoPart.videoMetadata = {
+          startOffset: `${msgTimeRange.startTime}s`,
+          endOffset: `${msgTimeRange.endTime}s`,
+        };
+      }
+
+      parts.push(videoPart);
     }
 
     parts.push({ text: msg.content });

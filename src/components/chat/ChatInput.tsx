@@ -5,6 +5,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@src/contexts";
 import { useThemedStyles, createThemedStyles } from "@hooks/useThemedStyles";
+import type { VideoTimeRange } from "@src/types";
 
 interface ChatInputProps {
   inputText: string;
@@ -19,6 +20,8 @@ interface ChatInputProps {
   onOpenConfig: () => void;
   onStop?: () => void;
   disabled?: boolean;
+  videoTimeRange?: VideoTimeRange | null;
+  onOpenTimeRange?: () => void;
 }
 
 const ChatInput: React.FC<ChatInputProps> = ({
@@ -34,10 +37,28 @@ const ChatInput: React.FC<ChatInputProps> = ({
   onOpenConfig,
   onStop,
   disabled,
+  videoTimeRange,
+  onOpenTimeRange,
 }) => {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const themedStyles = useThemedStyles(chatInputThemedStyles);
+
+  // Format time range for display
+  const formatTimeRange = (range: VideoTimeRange) => {
+    const formatTime = (seconds: number) => {
+      const h = Math.floor(seconds / 3600);
+      const m = Math.floor((seconds % 3600) / 60);
+      const s = Math.floor(seconds % 60);
+      if (h > 0) {
+        return `${h}:${m.toString().padStart(2, "0")}:${s
+          .toString()
+          .padStart(2, "0")}`;
+      }
+      return `${m}:${s.toString().padStart(2, "0")}`;
+    };
+    return `${formatTime(range.startTime)} - ${formatTime(range.endTime)}`;
+  };
 
   return (
     <View style={styles.inputArea}>
@@ -52,6 +73,33 @@ const ChatInput: React.FC<ChatInputProps> = ({
             <Text style={themedStyles.attachmentText} numberOfLines={1}>
               {videoTitle || t("chat.video")}
             </Text>
+            {videoTimeRange && (
+              <TouchableOpacity
+                style={themedStyles.timeRangeBadge}
+                onPress={onOpenTimeRange}
+              >
+                <MaterialCommunityIcons
+                  name="clock-outline"
+                  size={12}
+                  color={colors.primary}
+                />
+                <Text style={themedStyles.timeRangeText}>
+                  {formatTimeRange(videoTimeRange)}
+                </Text>
+              </TouchableOpacity>
+            )}
+            {!videoTimeRange && (
+              <TouchableOpacity
+                style={themedStyles.timeRangeBtn}
+                onPress={onOpenTimeRange}
+              >
+                <MaterialCommunityIcons
+                  name="clock-plus-outline"
+                  size={16}
+                  color={colors.textMuted}
+                />
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
               style={themedStyles.attachmentCancelBtn}
               onPress={onToggleVideo}
@@ -167,6 +215,25 @@ const chatInputThemedStyles = createThemedStyles((colors) => ({
     borderRadius: 14,
   },
   attachmentCancelText: { color: colors.textMuted, fontSize: 13 },
+  timeRangeBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    backgroundColor: colors.primaryLight || colors.surface,
+    borderRadius: 12,
+  },
+  timeRangeText: {
+    fontSize: 11,
+    color: colors.primary,
+    fontWeight: "500",
+  },
+  timeRangeBtn: {
+    padding: 6,
+    borderRadius: 12,
+    backgroundColor: colors.surface,
+  },
   input: {
     color: colors.text,
     fontSize: 16,

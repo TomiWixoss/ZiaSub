@@ -121,6 +121,18 @@ export default {
     selectConfig: "Chọn cấu hình AI",
     configHint: "Vào Cài đặt → Gemini để thêm hoặc chỉnh sửa cấu hình",
     video: "Video",
+    // Video time range
+    selectTimeRange: "Chọn khoảng thời gian",
+    timeRangeHint: "Kéo thanh trượt để chọn đoạn video",
+    startTime: "Bắt đầu",
+    endTime: "Kết thúc",
+    videoDuration: "Độ dài video",
+    selectedDuration: "Đã chọn",
+    invalidStartTime: "Thời gian bắt đầu không hợp lệ",
+    invalidEndTime: "Thời gian kết thúc không hợp lệ",
+    startMustBeLessThanEnd: "Thời gian bắt đầu phải nhỏ hơn kết thúc",
+    endExceedsDuration: "Thời gian kết thúc vượt quá độ dài video",
+    clearRange: "Xóa khoảng",
     quickActions: {
       summarize: "Tóm tắt video",
       analyze: "Phân tích nội dung",

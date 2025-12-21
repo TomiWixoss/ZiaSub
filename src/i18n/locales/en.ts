@@ -121,6 +121,18 @@ export default {
     selectConfig: "Select AI config",
     configHint: "Go to Settings → Gemini to add or edit configs",
     video: "Video",
+    // Video time range
+    selectTimeRange: "Select time range",
+    timeRangeHint: "Drag the slider to select video segment",
+    startTime: "Start",
+    endTime: "End",
+    videoDuration: "Video duration",
+    selectedDuration: "Selected",
+    invalidStartTime: "Invalid start time",
+    invalidEndTime: "Invalid end time",
+    startMustBeLessThanEnd: "Start time must be less than end time",
+    endExceedsDuration: "End time exceeds video duration",
+    clearRange: "Clear range",
     quickActions: {
       summarize: "Summarize video",
       analyze: "Analyze content",

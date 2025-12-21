@@ -548,6 +548,7 @@ const HomeScreen = () => {
         onClose={() => setChatModalVisible(false)}
         videoUrl={currentUrl}
         videoTitle={videoTitle}
+        videoDuration={videoDuration}
         onLoadingChange={setIsChatLoading}
       />
     </View>

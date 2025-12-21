@@ -132,6 +132,11 @@ export interface GeminiConfig {
 // ============================================
 // CHAT TYPES
 // ============================================
+export interface VideoTimeRange {
+  startTime: number; // seconds
+  endTime: number; // seconds
+}
+
 export interface ChatMessage {
   id: string;
   role: "user" | "model";
@@ -139,6 +144,7 @@ export interface ChatMessage {
   timestamp: number;
   hasVideo?: boolean;
   videoTitle?: string;
+  videoTimeRange?: VideoTimeRange;
 }
 
 export interface StoredChatMessage extends ChatMessage {
