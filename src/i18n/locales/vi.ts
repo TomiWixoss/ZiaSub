@@ -579,7 +579,7 @@ export default {
     changelog: "Có gì mới",
     download: "Tải xuống",
     install: "Cài đặt",
-    viewRelease: "Xem trên GitHub",
+    viewRelease: "Xem\nGitHub",
     later: "Để sau",
     autoCheck: "Tự động kiểm tra cập nhật",
   },

@@ -580,7 +580,7 @@ export default {
     changelog: "What's new",
     download: "Download",
     install: "Install",
-    viewRelease: "View on GitHub",
+    viewRelease: "View\nGitHub",
     later: "Later",
     autoCheck: "Auto-check for updates",
   },
