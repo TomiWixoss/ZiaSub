@@ -72,6 +72,7 @@ class TranslationManager {
     resumeData?: {
       partialSrt: string;
       completedBatchRanges: Array<{ start: number; end: number }>;
+      existingTranslationId?: string;
     }
   ): Promise<string> {
     if (this.isTranslatingUrl(videoUrl)) {
@@ -104,6 +105,7 @@ class TranslationManager {
       videoDuration,
       batchSettings,
       completedBatchRanges: resumeData?.completedBatchRanges || [],
+      existingTranslationId: resumeData?.existingTranslationId,
     };
     this.notify();
 
@@ -191,7 +193,12 @@ class TranslationManager {
         throw new Error("Đã dừng dịch");
       }
 
-      await saveTranslation(videoUrl, result, config.name);
+      await saveTranslation(
+        videoUrl,
+        result,
+        config.name,
+        resumeData?.existingTranslationId
+      );
 
       if (this.currentJob && this.currentJob.id === jobId && !this.isAborted) {
         this.currentJob = {
@@ -385,7 +392,8 @@ class TranslationManager {
     existingSrt: string,
     batchStart: number,
     batchEnd: number,
-    videoDuration?: number
+    videoDuration?: number,
+    existingTranslationId?: string
   ): Promise<string> {
     if (this.isTranslating()) {
       throw new Error("Đang dịch video khác, vui lòng đợi hoặc dừng trước");
@@ -419,6 +427,7 @@ class TranslationManager {
       videoDuration,
       batchSettings: undefined,
       completedBatchRanges: [],
+      existingTranslationId,
     };
     this.notify();
 
@@ -463,8 +472,13 @@ class TranslationManager {
         videoDuration // Pass video duration to clean up out-of-range subtitles
       );
 
-      // Save as new translation
-      await saveTranslation(videoUrl, updatedSrt, config.name);
+      // Save translation - update existing if ID provided, otherwise create new
+      await saveTranslation(
+        videoUrl,
+        updatedSrt,
+        config.name,
+        existingTranslationId
+      );
 
       if (this.currentJob && this.currentJob.id === jobId && !this.isAborted) {
         this.currentJob = {

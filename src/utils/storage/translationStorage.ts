@@ -31,7 +31,8 @@ const getVideoIdFromUrl = (videoUrl: string): string => {
 export const saveTranslation = async (
   videoUrl: string,
   srtContent: string,
-  configName: string
+  configName: string,
+  existingTranslationId?: string
 ): Promise<SavedTranslation> => {
   const videoId = getVideoIdFromUrl(videoUrl);
 
@@ -54,6 +55,27 @@ export const saveTranslation = async (
     (t) => !(t.isPartial && t.configName === configName)
   );
 
+  // If existingTranslationId provided, update that translation instead of creating new
+  if (existingTranslationId) {
+    const existingIndex = data.translations.findIndex(
+      (t) => t.id === existingTranslationId
+    );
+    if (existingIndex >= 0) {
+      // Update existing translation
+      data.translations[existingIndex] = {
+        ...data.translations[existingIndex],
+        srtContent,
+        configName,
+        isPartial: false,
+        updatedAt: Date.now(),
+      };
+      data.activeTranslationId = existingTranslationId;
+      cacheService.setTranslation(videoId, data);
+      return data.translations[existingIndex];
+    }
+  }
+
+  // Create new translation
   const newTranslation: SavedTranslation = {
     id: Date.now().toString(),
     srtContent,

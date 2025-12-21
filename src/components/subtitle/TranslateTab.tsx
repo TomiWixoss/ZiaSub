@@ -225,6 +225,7 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
       | {
           partialSrt: string;
           completedBatchRanges: Array<{ start: number; end: number }>;
+          existingTranslationId?: string;
         }
       | undefined;
 
@@ -255,6 +256,7 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
         resumeData = {
           partialSrt: resumeTranslation.srtContent,
           completedBatchRanges: completedRanges,
+          existingTranslationId: resumeTranslation.id, // Pass existing ID to update instead of creating new
         };
 
         // Use original range if set
@@ -418,7 +420,8 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
               translation.srtContent,
               batchStart,
               batchEnd,
-              translation.videoDuration || videoDuration
+              translation.videoDuration || videoDuration,
+              translation.id // Pass existing translation ID to update instead of creating new
             );
 
             await loadTranslations();

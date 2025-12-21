@@ -42,6 +42,7 @@ export interface SavedTranslation {
   id: string;
   srtContent: string;
   createdAt: number;
+  updatedAt?: number;
   configName: string;
   // Partial translation support
   isPartial?: boolean;
@@ -83,6 +84,8 @@ export interface TranslationJob {
   completedBatchRanges?: Array<{ start: number; end: number }>;
   // Track status of each batch
   batchStatuses?: BatchStatus[];
+  // ID of existing translation to update (instead of creating new)
+  existingTranslationId?: string;
 }
 
 // ============================================
