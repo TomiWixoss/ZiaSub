@@ -1,5 +1,121 @@
 # Changelog
 
+## [0.0.4] - 2024-12-21
+
+### ✨ Tính năng mới
+
+- **Push Notification Support**
+
+  - Thêm expo-notifications plugin với custom icon và branding color
+  - Tạo NotificationSection component để quản lý notification preferences
+  - Implement notificationService với push notification handling
+  - Thêm quyền POST_NOTIFICATIONS cho Android
+  - Tích hợp notification settings vào SettingsModal và GeneralTab
+  - UI NotificationSection với icon bell thay đổi màu theo trạng thái enabled
+  - Switch track color sử dụng success color khi enabled
+
+- **Translation Progress Redesign**
+
+  - Thay thế ActivityIndicator bằng custom icon-based progress visualization
+  - Thêm i18n support cho multi-batch và single-batch translation status
+  - Implement linear progress bar hiển thị overall translation completion percentage
+  - Redesign batch indicator grid với visual states (completed, processing, error)
+  - Header section với icon, title, key status, và progress percentage display
+  - Animated progress tracking với color-coded batch indicators
+
+- **Queue Status Tracking Enhancement**
+
+  - Thêm "waiting in queue" status để phân biệt items đang chờ xử lý
+  - Unified status styling system với color và icon mapping cho tất cả states
+  - Hiển thị item progress count (completed/total) trong translating status text
+  - Consolidate status badge logic với appropriate icon cho mỗi queue state
+  - Tăng action button icon sizes từ 20 lên 22 để dễ nhìn hơn
+
+- **Stop All Functionality**
+
+  - Thêm handleStopAll method để dừng toàn bộ queue
+  - Implement stopAll method trong QueueManager để abort current translation và pause queue
+  - Thêm isAutoProcessing method để check auto-process state
+  - Hiển thị "Stop all" button trong translating tab khi items đang được xử lý
+  - Preserve partial translation data khi stopping items với completed batches
+
+- **Preset Tracking & Batch Time Range**
+
+  - Thêm presetId field vào SavedTranslation và TranslationJob types
+  - Hiển thị preset name như badge bên cạnh config name trong SavedTranslationsList
+  - Hiển thị batch time range (start - end) thay vì chỉ start time trong batch chips
+  - Implement batch tolerance logic để treat videos trong batchDuration + batchOffset như single batch
+  - Persist presetId throughout translation lifecycle (creation, resumption, partial saves)
+
+- **Onboarding ApiKeyStep Scroll Support**
+  - Wrap main content trong ScrollView để enable scrolling trên smaller screens
+  - Configure ScrollView với keyboardShouldPersistTaps="handled" cho better keyboard interaction
+
+### 🐛 Sửa lỗi
+
+- **Queue Item Processing**
+
+  - Thêm tracking cho current processing item ID để prevent duplicate processing
+  - Thêm user paused items set để phân biệt user stops và auto-pauses
+  - Thêm translation manager unsubscribe tracking để prevent subscription leaks
+  - Improve processItem để skip nếu đang processing cùng item hoặc item bị user stop
+  - Clear user paused items khi user manually resumes translation
+  - Capture item ID trong subscription closure để ensure correct item updates
+
+- **Cache & Translation Deletion**
+
+  - Replace empty state với complete removal khi deleting translations
+  - Thêm validation để prevent loading empty hoặc deleted translation data
+  - Check translation index trước khi loading từ file để detect recent deletions
+  - Validate translation data có non-empty translations array trước khi caching
+  - Thêm force flush sau deletion để ensure immediate persistence
+
+- **Translation Preloading & Cache Persistence**
+
+  - Thêm translation index preloading cho fast video lookup
+  - Implement translation index methods (hasTranslationIndex, addToTranslationIndex, removeFromTranslationIndex, getTranslationVideoIds)
+  - Make app state handler async để properly await cache flush khi going to background
+  - Update ApiKeysSection sử dụng forceFlush thay vì direct saveApiKeys calls
+  - Thêm preloadTranslations step vào app initialization
+
+- **Keyboard Handling**
+
+  - Đổi Android keyboard layout mode từ "pan" sang "resize" trong app.json
+  - Wrap GeminiEdit component với KeyboardAvoidingView
+  - Thêm platform-specific keyboard behavior và vertical offset configuration
+  - Update SubtitleInputModal keyboard behavior sử dụng "height" mode trên Android
+
+- **Queue Auto-Process Logic**
+
+  - Fix batch progress calculation để include skipped batches trong completed count
+  - Sử dụng accumulated results thay vì only successful results cho merged SRT output
+  - Refactor auto-process logic để only continue queue sau "Translate All", không sau direct translations
+  - Thêm auto-detection của resume state dựa trên partial SRT và completed batch ranges
+  - Implement safe unsubscribe mechanism để prevent duplicate subscription callbacks
+
+- **Busy State Handling**
+  - Update startTranslation(), resumeTranslation(), startAutoProcess() để return status object
+  - Thêm busy state checks để prevent concurrent translations
+  - Display user-friendly alert khi translation đang in progress
+  - Improve processNextItem() để detect partial data và resume thay vì starting fresh
+
+### 🔧 Cải tiến
+
+- **QueueItemCard Styling Refactor**
+
+  - Import createThemedStyles trực tiếp thay vì separate queueStyles file
+  - Rename progress state variables cho clarity (showProgress → isActivelyTranslating, isWaitingToResume → isPaused)
+  - Thêm progressPercent calculation để unify progress display logic
+  - Introduce cardBorderColor state để visually distinguish active vs paused items
+  - Refactor progress overlay thành bottom progress bar với dynamic width và color
+  - Thêm status badges (loading/pause icons) vào thumbnail area
+  - Fix duration calculation sử dụng Math.floor cho consistent formatting
+
+- **UI/UX Improvements**
+  - Update release view button text với line break cho better button layout
+  - Preset badge styling với MaterialCommunityIcons tag-outline icon
+  - Improve visual hierarchy với primary color background và icon
+
 ## [0.0.3] - 2024-12-21
 
 ### ✨ Tính năng mới
