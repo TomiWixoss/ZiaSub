@@ -271,6 +271,14 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
       () => queueManager.clearByStatus("completed")
     );
   };
+  const handleStopAll = () => {
+    confirm(
+      t("queue.dialogs.stopAllTitle"),
+      t("queue.dialogs.stopAllConfirm"),
+      () => queueManager.stopAll(),
+      t("queue.actions.stopAll")
+    );
+  };
   const handleSelectVideo = (item: QueueItem) => {
     onSelectVideo(item.videoUrl);
     handleClose();
@@ -349,6 +357,28 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
                 />
                 <Text style={queueStyles.clearAllText}>
                   {t("queue.actions.clearAll")}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          {activeTab === "translating" && counts.translating > 0 && (
+            <View style={queueStyles.actionSection}>
+              <TouchableOpacity
+                style={[
+                  queueStyles.clearAllBtnFull,
+                  { borderColor: colors.warning },
+                ]}
+                onPress={handleStopAll}
+              >
+                <MaterialCommunityIcons
+                  name="stop-circle"
+                  size={20}
+                  color={colors.warning}
+                />
+                <Text
+                  style={[queueStyles.clearAllText, { color: colors.warning }]}
+                >
+                  {t("queue.actions.stopAll")}
                 </Text>
               </TouchableOpacity>
             </View>

@@ -400,6 +400,7 @@ export default {
     actions: {
       translateAll: "Dịch tất cả",
       clearAll: "Xóa tất cả",
+      stopAll: "Dừng tất cả",
     },
 
     dialogs: {
@@ -416,6 +417,8 @@ export default {
       translate: "Dịch",
       stopTitle: "Dừng dịch",
       stopConfirm: 'Dừng dịch "{{title}}" và chuyển về chưa dịch?',
+      stopAllTitle: "Dừng tất cả",
+      stopAllConfirm: "Dừng dịch video hiện tại và tạm dừng toàn bộ hàng đợi?",
       abortTitle: "Hủy và xóa",
       abortConfirm: 'Hủy dịch "{{title}}" và xóa khỏi danh sách?',
       resumeTitle: "Dịch tiếp",

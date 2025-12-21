@@ -982,6 +982,94 @@ class QueueManager {
       this.notify();
     }
   }
+
+  // Stop all - abort current translation and pause entire queue
+  async stopAll(): Promise<void> {
+    // Disable auto-process immediately
+    this.autoProcessEnabled = false;
+
+    // Find currently translating item
+    const currentItem = this.items.find(
+      (i) =>
+        i.status === "translating" &&
+        translationManager.isTranslatingUrl(i.videoUrl)
+    );
+
+    if (currentItem) {
+      // Abort current translation
+      const result = await translationManager.abortTranslation(
+        currentItem.videoUrl
+      );
+      if (result.aborted) {
+        this.isProcessing = false;
+        this.currentProcessingItemId = null;
+
+        // Add to paused items
+        this.userPausedItems.add(currentItem.id);
+
+        // Update item with partial data if available
+        if (
+          result.partialResult &&
+          result.completedRanges &&
+          result.completedRanges.length > 0
+        ) {
+          await this.updateItem(currentItem.id, {
+            status: "translating",
+            partialSrt: result.partialResult,
+            completedBatchRanges: result.completedRanges,
+            completedBatches: result.completedRanges.length,
+            progress: undefined,
+            error: undefined,
+          });
+        } else {
+          await this.updateItem(currentItem.id, {
+            status: "pending",
+            error: undefined,
+            progress: undefined,
+            startedAt: undefined,
+            partialSrt: undefined,
+            completedBatches: undefined,
+            totalBatches: undefined,
+            completedBatchRanges: undefined,
+          });
+        }
+      }
+    }
+
+    // Move all other translating items (waiting in queue) back to pending
+    const waitingItems = this.items.filter(
+      (i) => i.status === "translating" && i.id !== currentItem?.id
+    );
+
+    for (const item of waitingItems) {
+      // Add to paused items if has partial data
+      if (
+        item.partialSrt &&
+        item.completedBatchRanges &&
+        item.completedBatchRanges.length > 0
+      ) {
+        this.userPausedItems.add(item.id);
+        await this.updateItem(item.id, {
+          progress: undefined,
+          error: undefined,
+        });
+      } else {
+        await this.updateItem(item.id, {
+          status: "pending",
+          error: undefined,
+          progress: undefined,
+          startedAt: undefined,
+        });
+      }
+    }
+
+    console.log("[QueueManager] Stopped all - queue paused");
+  }
+
+  // Check if auto-process is currently enabled
+  isAutoProcessing(): boolean {
+    return this.autoProcessEnabled;
+  }
 }
 
 export const queueManager = QueueManager.getInstance();

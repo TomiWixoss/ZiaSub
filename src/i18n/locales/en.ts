@@ -402,6 +402,7 @@ export default {
     actions: {
       translateAll: "Translate all",
       clearAll: "Clear all",
+      stopAll: "Stop all",
     },
 
     dialogs: {
@@ -418,6 +419,8 @@ export default {
       translate: "Translate",
       stopTitle: "Stop translation",
       stopConfirm: 'Stop translating "{{title}}" and move to pending?',
+      stopAllTitle: "Stop all",
+      stopAllConfirm: "Stop current translation and pause entire queue?",
       abortTitle: "Abort and remove",
       abortConfirm: 'Abort translating "{{title}}" and remove from list?',
       resumeTitle: "Resume translation",
