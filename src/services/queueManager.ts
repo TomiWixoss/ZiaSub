@@ -543,6 +543,11 @@ class QueueManager {
         configName: configName || item.configName,
         progress: undefined,
         error: undefined,
+        // Clear partial data
+        partialSrt: undefined,
+        completedBatches: undefined,
+        totalBatches: undefined,
+        completedBatchRanges: undefined,
       });
     }
   }
