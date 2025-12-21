@@ -137,6 +137,10 @@ class CacheService {
           batch: { ...DEFAULT_APP_SETTINGS.batch, ...settings.batch },
           apiKeys: { ...DEFAULT_APP_SETTINGS.apiKeys, ...settings.apiKeys },
           tts: { ...DEFAULT_APP_SETTINGS.tts, ...settings.tts },
+          floatingUI: {
+            ...DEFAULT_APP_SETTINGS.floatingUI,
+            ...settings.floatingUI,
+          },
         };
       } else {
         this.cache.settings = { ...DEFAULT_APP_SETTINGS };
@@ -326,7 +330,13 @@ class CacheService {
   }
 
   deleteTranslation(videoId: string): void {
-    this.cache.translations.delete(videoId);
+    // Instead of deleting from cache, set to empty state
+    // This prevents loading stale data from file before flush completes
+    this.cache.translations.set(videoId, {
+      videoUrl: "",
+      translations: [],
+      activeTranslationId: null,
+    });
     // Queue delete operation
     this.queueWrite({
       type: "translation",

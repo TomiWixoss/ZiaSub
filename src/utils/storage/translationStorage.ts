@@ -155,7 +155,11 @@ export const getVideoTranslations = async (
 
   // Check cache first
   let data = cacheService.getTranslation(videoId);
-  if (data) return data;
+  if (data) {
+    // Return null if translations array is empty (deleted state)
+    if (data.translations.length === 0) return null;
+    return data;
+  }
 
   // Load from file
   data = await cacheService.loadTranslation(videoId, fileStorage);

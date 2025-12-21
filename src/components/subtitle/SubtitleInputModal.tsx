@@ -378,7 +378,9 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
                 onClose={handleClose}
                 onSelectTranslation={(srt) => {
                   setSrtContent(srt);
-                  onLoadSubtitles();
+                  // Use onApplySubtitles directly with the srt content
+                  // instead of onLoadSubtitles which uses stale srtContent from closure
+                  onApplySubtitles?.(srt);
                 }}
                 onBatchSettingsChange={onBatchSettingsChange}
                 onTranslationDeleted={() => {
