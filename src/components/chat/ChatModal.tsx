@@ -137,6 +137,7 @@ const ChatModal: React.FC<ChatModalProps> = ({
             : undefined,
           hasVideo: msg.hasVideo,
           videoTitle: msg.videoTitle,
+          videoUrl: (msg as StoredChatMessage).videoUrl,
           videoTimeRange: msg.videoTimeRange,
           timestamp: msg.timestamp,
           status,
@@ -262,7 +263,7 @@ const ChatModal: React.FC<ChatModalProps> = ({
     const messageText = text || inputText.trim();
     if (!messageText || isLoading || !activeConfig) return;
     const shouldAttachVideo = withVideo !== undefined ? withVideo : attachVideo;
-    const userMessage: ChatMessage = {
+    const userMessage: StoredChatMessage = {
       id: Date.now().toString(),
       role: "user",
       content: messageText,
@@ -273,6 +274,7 @@ const ChatModal: React.FC<ChatModalProps> = ({
         shouldAttachVideo && !!videoUrl && videoTimeRange
           ? videoTimeRange
           : undefined,
+      videoUrl: shouldAttachVideo && !!videoUrl ? videoUrl : undefined,
     };
 
     let sessionToUse = currentSession;
@@ -442,7 +444,7 @@ const ChatModal: React.FC<ChatModalProps> = ({
       ...messages.slice(0, taskIndex),
       ...messages.slice(taskIndex + removeCount),
     ];
-    const userMessage: ChatMessage = {
+    const userMessage: StoredChatMessage = {
       id: Date.now().toString(),
       role: "user",
       content: task.command,
@@ -450,6 +452,7 @@ const ChatModal: React.FC<ChatModalProps> = ({
       hasVideo: task.hasVideo,
       videoTitle: task.videoTitle,
       videoTimeRange: task.videoTimeRange,
+      videoUrl: task.videoUrl,
     };
     const updatedMessages = [...newMessages, userMessage];
     setMessages(updatedMessages);
@@ -459,7 +462,8 @@ const ChatModal: React.FC<ChatModalProps> = ({
     abortControllerRef.current = new AbortController();
     const currentAbort = abortControllerRef.current;
     const currentSessionId = currentSession?.id;
-    // Use current activeConfig (which may have been changed by user)
+    // Use videoUrl from task (stored in message) or fallback to prop
+    const taskVideoUrl = task.videoUrl || videoUrl;
     sendChatMessage(
       updatedMessages,
       activeConfig,
@@ -493,7 +497,7 @@ const ChatModal: React.FC<ChatModalProps> = ({
           abortControllerRef.current = null;
         },
       },
-      task.hasVideo ? videoUrl : undefined,
+      task.hasVideo ? taskVideoUrl : undefined,
       task.videoTimeRange
     );
   };

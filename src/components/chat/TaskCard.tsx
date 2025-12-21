@@ -23,6 +23,7 @@ export interface TaskItem {
   result?: string;
   hasVideo?: boolean;
   videoTitle?: string;
+  videoUrl?: string;
   videoTimeRange?: VideoTimeRange;
   timestamp: number;
   status: "pending" | "done" | "error";
