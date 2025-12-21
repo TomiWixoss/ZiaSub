@@ -192,6 +192,8 @@ export interface QueueItem {
   totalBatches?: number;
   completedBatchRanges?: Array<{ start: number; end: number }>;
   batchSettings?: BatchSettings;
+  // ID of saved translation to update when resuming (instead of creating new)
+  savedTranslationId?: string;
 }
 
 // ============================================

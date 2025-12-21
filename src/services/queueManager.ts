@@ -3,12 +3,13 @@
  * Kiểu MAL: Chưa dịch (Plan to Watch), Đang dịch (Watching), Đã dịch (Completed)
  */
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import type { QueueItem, QueueStatus, BatchSettings } from "@src/types";
+import type { QueueItem, QueueStatus } from "@src/types";
 import { translationManager } from "./translationManager";
 import {
   getActiveGeminiConfig,
   getBatchSettings,
   getGeminiConfigs,
+  getPartialTranslation,
 } from "@utils/storage";
 
 // Re-export types for backward compatibility
@@ -275,13 +276,32 @@ class QueueManager {
     });
 
     // Prepare resume data if available
-    const resumeData =
-      isResume && item.partialSrt && item.completedBatchRanges
-        ? {
-            partialSrt: item.partialSrt,
-            completedBatchRanges: item.completedBatchRanges,
-          }
-        : undefined;
+    let resumeData:
+      | {
+          partialSrt: string;
+          completedBatchRanges: Array<{ start: number; end: number }>;
+          existingTranslationId?: string;
+        }
+      | undefined;
+
+    if (isResume && item.partialSrt && item.completedBatchRanges) {
+      // Try to get existing translation ID from storage
+      let existingTranslationId = item.savedTranslationId;
+      if (!existingTranslationId) {
+        // Fallback: find partial translation in storage
+        const partialTranslation = await getPartialTranslation(
+          item.videoUrl,
+          config.name
+        );
+        existingTranslationId = partialTranslation?.id;
+      }
+
+      resumeData = {
+        partialSrt: item.partialSrt,
+        completedBatchRanges: item.completedBatchRanges,
+        existingTranslationId,
+      };
+    }
 
     // Subscribe to translation progress
     const unsubscribe = translationManager.subscribe((job) => {
