@@ -370,7 +370,16 @@ class CacheService {
   // ============================================
 
   getTranslation(videoId: string): VideoTranslations | null {
-    return this.cache.translations.get(videoId) || null;
+    // If not in cache, return null (will trigger load from file)
+    if (!this.cache.translations.has(videoId)) {
+      return null;
+    }
+    const cached = this.cache.translations.get(videoId);
+    // Return null if cached data is empty/deleted
+    if (!cached || cached.translations.length === 0) {
+      return null;
+    }
+    return cached;
   }
 
   setTranslation(videoId: string, data: VideoTranslations): void {
@@ -386,13 +395,9 @@ class CacheService {
   }
 
   deleteTranslation(videoId: string): void {
-    // Instead of deleting from cache, set to empty state
+    // Remove from cache completely (not just set to empty)
     // This prevents loading stale data from file before flush completes
-    this.cache.translations.set(videoId, {
-      videoUrl: "",
-      translations: [],
-      activeTranslationId: null,
-    });
+    this.cache.translations.delete(videoId);
     this.translationIndex.delete(videoId); // Update index
     // Queue delete operation
     this.queueWrite({
@@ -571,9 +576,20 @@ class CacheService {
     videoId: string,
     fileStorage: any
   ): Promise<VideoTranslations | null> {
-    // Check cache first
-    const cached = this.cache.translations.get(videoId);
-    if (cached) return cached;
+    // Check cache first - if key exists in cache, use it (even if null/empty)
+    if (this.cache.translations.has(videoId)) {
+      const cached = this.cache.translations.get(videoId);
+      // Return null if cached data is empty (was deleted)
+      if (!cached || cached.translations.length === 0) {
+        return null;
+      }
+      return cached;
+    }
+
+    // Not in cache - check if it was recently deleted (not in index)
+    if (!this.translationIndex.has(videoId)) {
+      return null;
+    }
 
     // Load from file
     try {
@@ -582,10 +598,11 @@ class CacheService {
         `${videoId}.json`,
         null
       )) as VideoTranslations | null;
-      if (data) {
+      if (data && data.translations && data.translations.length > 0) {
         this.cache.translations.set(videoId, data);
+        return data;
       }
-      return data;
+      return null;
     } catch {
       return null;
     }

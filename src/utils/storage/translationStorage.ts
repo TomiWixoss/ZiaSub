@@ -43,7 +43,8 @@ export const saveTranslation = async (
     data = await cacheService.loadTranslation(videoId, fileStorage);
   }
 
-  if (!data) {
+  // If still no data (new video or was deleted), create fresh
+  if (!data || !data.translations) {
     data = {
       videoUrl,
       translations: [],
@@ -243,8 +244,9 @@ export const deleteTranslation = async (
     }
 
     if (data.translations.length === 0) {
-      // Delete the entire translation file
+      // Delete the entire translation file and wait for flush
       cacheService.deleteTranslation(videoId);
+      await cacheService.forceFlush();
     } else {
       cacheService.setTranslation(videoId, data);
     }
