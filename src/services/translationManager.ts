@@ -436,13 +436,14 @@ class TranslationManager {
         throw new Error("Đã dừng dịch");
       }
 
-      // Replace this batch in existing SRT
+      // Replace this batch in existing SRT (also cleans up subtitles exceeding video duration)
       const { replaceBatchInSrt } = await import("@utils/srtParser");
       const updatedSrt = replaceBatchInSrt(
         existingSrt,
         newBatchSrt,
         batchStart,
-        batchEnd
+        batchEnd,
+        videoDuration // Pass video duration to clean up out-of-range subtitles
       );
 
       // Save as new translation

@@ -357,12 +357,14 @@ export const adjustSrtTimestamps = (
 /**
  * Replace a time range in existing SRT with new content.
  * Used for re-translating a specific batch.
+ * Also cleans up subtitles that exceed videoDuration.
  */
 export const replaceBatchInSrt = (
   existingSrt: string,
   newBatchSrt: string,
   rangeStart: number,
-  rangeEnd: number
+  rangeEnd: number,
+  videoDuration?: number
 ): string => {
   // Parse existing subtitles
   const existingSubtitles = parseSrtRaw(existingSrt);
@@ -394,16 +396,32 @@ export const replaceBatchInSrt = (
   const allSubtitles = [...filteredExisting, ...adjustedNewSubtitles];
   allSubtitles.sort((a, b) => a.start - b.start);
 
-  // Remove duplicates
+  // Remove duplicates and filter out subtitles exceeding video duration
   const uniqueSubtitles: typeof allSubtitles = [];
   for (const sub of allSubtitles) {
+    // Skip subtitles that start after video ends
+    if (videoDuration && sub.start >= videoDuration) {
+      console.log(
+        `[SRT] Removing subtitle at ${sub.start}s - exceeds video duration ${videoDuration}s`
+      );
+      continue;
+    }
+
     const isDuplicate = uniqueSubtitles.some(
       (existing) =>
         Math.abs(existing.start - sub.start) < 0.5 &&
         existing.text.trim() === sub.text.trim()
     );
     if (!isDuplicate) {
-      uniqueSubtitles.push(sub);
+      // Clamp end time to video duration if needed
+      if (videoDuration && sub.end > videoDuration) {
+        uniqueSubtitles.push({
+          ...sub,
+          end: videoDuration,
+        });
+      } else {
+        uniqueSubtitles.push(sub);
+      }
     }
   }
 
