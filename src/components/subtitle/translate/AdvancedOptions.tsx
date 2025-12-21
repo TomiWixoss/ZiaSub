@@ -7,8 +7,6 @@ import { useTheme } from "@src/contexts";
 import { useThemedStyles } from "@hooks/useThemedStyles";
 import { formatDuration } from "@utils/videoUtils";
 import { createTranslateStyles } from "./translateStyles";
-import PresetPromptPicker from "./PresetPromptPicker";
-import type { PresetPromptType } from "@constants/defaults";
 
 // Helper: parse time string to seconds
 // Supports: "5" (5 min), "5:30" (5m30s), "1:05:30" (1h5m30s)
@@ -157,9 +155,6 @@ interface AdvancedOptionsProps {
   rangeEndStr: string;
   onRangeEndChange: (value: string) => void;
   videoDuration?: number;
-  // Preset prompt support
-  currentPresetId?: PresetPromptType;
-  onSelectPreset?: (prompt: string, presetId: PresetPromptType) => void;
 }
 
 const AdvancedOptions: React.FC<AdvancedOptionsProps> = ({
@@ -176,8 +171,6 @@ const AdvancedOptions: React.FC<AdvancedOptionsProps> = ({
   rangeEndStr,
   onRangeEndChange,
   videoDuration,
-  currentPresetId,
-  onSelectPreset,
 }) => {
   const { t } = useTranslation();
   const { colors } = useTheme();
@@ -319,14 +312,6 @@ const AdvancedOptions: React.FC<AdvancedOptionsProps> = ({
                 duration: formatDuration(videoDuration),
               })}
             </Text>
-          )}
-          {onSelectPreset && (
-            <View style={{ marginTop: 12 }}>
-              <PresetPromptPicker
-                onSelectPreset={onSelectPreset}
-                currentPresetId={currentPresetId}
-              />
-            </View>
           )}
         </View>
       )}

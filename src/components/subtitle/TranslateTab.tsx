@@ -31,6 +31,7 @@ import {
   TranslationProgress,
   AdvancedOptions,
   TranslateConfigPicker,
+  PresetPromptPicker,
 } from "./translate";
 
 interface TranslateTabProps {
@@ -604,22 +605,12 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
           onTogglePicker={() => setShowConfigPicker(!showConfigPicker)}
           onSelectConfig={handleSelectConfig}
         />
-        <AdvancedOptions
-          showAdvanced={showAdvanced}
-          onToggleAdvanced={() => setShowAdvanced(!showAdvanced)}
-          streamingMode={streamingMode}
-          onStreamingModeChange={handleStreamingModeChange}
-          presubMode={presubMode}
-          onPresubModeChange={handlePresubModeChange}
-          useCustomRange={useCustomRange}
-          onUseCustomRangeChange={setUseCustomRange}
-          rangeStartStr={rangeStartStr}
-          onRangeStartChange={setRangeStartStr}
-          rangeEndStr={rangeEndStr}
-          onRangeEndChange={setRangeEndStr}
-          videoDuration={videoDuration}
+        <PresetPromptPicker
           currentPresetId={currentPresetId}
-          onSelectPreset={async (prompt, presetId) => {
+          onSelectPreset={async (
+            _prompt: string,
+            presetId: PresetPromptType
+          ) => {
             // Save presetId to config instead of overwriting systemPrompt
             const configIndex = geminiConfigs.findIndex(
               (c) => c.id === selectedConfigId
@@ -637,6 +628,22 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
               await saveGeminiConfigs(updatedConfigs);
             }
           }}
+          style={{ marginBottom: 12 }}
+        />
+        <AdvancedOptions
+          showAdvanced={showAdvanced}
+          onToggleAdvanced={() => setShowAdvanced(!showAdvanced)}
+          streamingMode={streamingMode}
+          onStreamingModeChange={handleStreamingModeChange}
+          presubMode={presubMode}
+          onPresubModeChange={handlePresubModeChange}
+          useCustomRange={useCustomRange}
+          onUseCustomRangeChange={setUseCustomRange}
+          rangeStartStr={rangeStartStr}
+          onRangeStartChange={setRangeStartStr}
+          rangeEndStr={rangeEndStr}
+          onRangeEndChange={setRangeEndStr}
+          videoDuration={videoDuration}
         />
         <TranslationProgress
           isTranslating={isTranslating}
