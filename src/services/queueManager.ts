@@ -28,6 +28,9 @@ class QueueManager {
   private initialized = false;
   private autoProcessEnabled = false; // Flag to track if auto-process is active
   private userStoppedItemId: string | null = null; // Track item being stopped by user
+  private translationManagerUnsubscribe: (() => void) | null = null; // Track subscription
+  private currentProcessingItemId: string | null = null; // Track which item is being processed
+  private userPausedItems: Set<string> = new Set(); // Track items paused by user (won't auto-resume)
 
   private constructor() {}
 
@@ -67,7 +70,11 @@ class QueueManager {
       this.notify();
 
       // Subscribe to translationManager to know when it becomes free
-      // This allows queue to continue processing after user finishes direct translation
+      // Only subscribe once - unsubscribe first if already subscribed
+      if (this.translationManagerUnsubscribe) {
+        this.translationManagerUnsubscribe();
+        this.translationManagerUnsubscribe = null;
+      }
       this.subscribeToTranslationManager();
     } catch (e) {
       console.error("[QueueManager] Init error:", e);
@@ -75,34 +82,24 @@ class QueueManager {
   }
 
   // Subscribe to translationManager to detect when it becomes free
+  // NOTE: This is only for logging/debugging - actual queue continuation is handled in processItem's subscription
   private subscribeToTranslationManager(): void {
-    translationManager.subscribe((job) => {
-      // When a job completes or errors, check if we should continue auto-processing
+    this.translationManagerUnsubscribe = translationManager.subscribe((job) => {
+      // When a job completes or errors, just log for debugging
+      // Don't call processNextInQueue here - it's handled in processItem's subscription
       if (job.status === "completed" || job.status === "error") {
-        // Only continue if auto-process is enabled AND this was a queue item being processed
-        // Don't auto-continue after direct translations - user must manually resume queue items
         const isQueueItem = this.items.some(
           (item) =>
             item.videoUrl === job.videoUrl && item.status === "translating"
         );
 
-        // Only continue auto-processing if:
-        // 1. Auto-process is enabled (user started "Translate All")
-        // 2. This was a queue item (not direct translation)
-        // 3. We were actively processing this item
-        if (this.autoProcessEnabled && isQueueItem && this.isProcessing) {
-          console.log(
-            "[QueueManager] Queue item finished, checking for next..."
-          );
-          // Note: processNextInQueue is already called in the job subscription in processItem
-          // This is just a fallback
-        } else if (!isQueueItem) {
+        if (!isQueueItem) {
           // Direct translation finished - do NOT auto-continue queue items
-          // User must manually resume paused items
           console.log(
             "[QueueManager] Direct translation finished, NOT auto-continuing queue"
           );
         }
+        // Note: Queue item completion is handled by processItem's subscription
       }
     });
   }
@@ -230,6 +227,9 @@ class QueueManager {
     const item = this.items.find((i) => i.id === itemId);
     if (!item) return { success: false, reason: "not_found" };
 
+    // Clear from user paused items since user is manually resuming
+    this.userPausedItems.delete(itemId);
+
     // Must have partial data to resume
     if (
       !item.partialSrt ||
@@ -248,7 +248,10 @@ class QueueManager {
     itemParam: QueueItem,
     isResume: boolean = false
   ): Promise<void> {
-    if (this.isProcessing) return;
+    if (this.isProcessing) {
+      console.log("[QueueManager] Already processing, skipping processItem");
+      return;
+    }
 
     // Double-check translationManager is not busy
     if (translationManager.isTranslating()) {
@@ -262,6 +265,20 @@ class QueueManager {
     const item = this.items.find((i) => i.id === itemParam.id);
     if (!item) {
       console.log("[QueueManager] Item not found, skipping processItem");
+      return;
+    }
+
+    // Check if this item was stopped by user - don't process it
+    if (this.userStoppedItemId === item.id) {
+      console.log("[QueueManager] Item was stopped by user, skipping");
+      return;
+    }
+
+    // Check if we're already processing this exact item (prevent duplicate)
+    if (this.currentProcessingItemId === item.id) {
+      console.log(
+        "[QueueManager] Already processing this item, skipping duplicate"
+      );
       return;
     }
 
@@ -305,6 +322,7 @@ class QueueManager {
     };
 
     this.isProcessing = true;
+    this.currentProcessingItemId = item.id;
 
     // Keep existing startedAt to maintain order, only set if not exists
     await this.updateItem(item.id, {
@@ -346,6 +364,7 @@ class QueueManager {
 
     // Subscribe to translation progress
     let hasUnsubscribed = false;
+    const currentItemId = item.id; // Capture item ID for this subscription
     const safeUnsubscribe = () => {
       if (!hasUnsubscribed) {
         hasUnsubscribed = true;
@@ -358,7 +377,7 @@ class QueueManager {
 
       if (job.videoUrl === item.videoUrl) {
         if (job.progress) {
-          this.updateItem(item.id, {
+          this.updateItem(currentItemId, {
             progress: {
               completed: job.progress.completedBatches,
               total: job.progress.totalBatches,
@@ -370,14 +389,20 @@ class QueueManager {
 
         // Update partial result for streaming
         if (job.partialResult) {
-          this.updateItem(item.id, {
+          this.updateItem(currentItemId, {
             partialSrt: job.partialResult,
             completedBatchRanges: job.completedBatchRanges,
           });
         }
 
         if (job.status === "completed") {
-          this.updateItem(item.id, {
+          // Check if this was a user-initiated stop - if so, don't mark as completed
+          if (this.userStoppedItemId === currentItemId) {
+            safeUnsubscribe();
+            return;
+          }
+
+          this.updateItem(currentItemId, {
             status: "completed",
             completedAt: Date.now(),
             progress: undefined,
@@ -387,19 +412,25 @@ class QueueManager {
             completedBatchRanges: undefined,
           });
           this.isProcessing = false;
+          this.currentProcessingItemId = null;
           safeUnsubscribe();
           // Only continue to next item if auto-process is enabled (user clicked "Translate All")
           if (this.autoProcessEnabled) {
+            console.log(
+              "[QueueManager] Queue item completed, checking for next..."
+            );
             this.processNextInQueue();
           }
         }
 
         if (job.status === "error") {
           // Check if this was a user-initiated stop - if so, stopTranslation already handled it
-          const wasUserStopped = this.userStoppedItemId === item.id;
+          const wasUserStopped = this.userStoppedItemId === currentItemId;
           if (wasUserStopped) {
             // User stopped - stopTranslation() already handled the state update
             // Just cleanup subscription and return
+            this.isProcessing = false;
+            this.currentProcessingItemId = null;
             safeUnsubscribe();
             return;
           }
@@ -411,7 +442,7 @@ class QueueManager {
             job.completedBatchRanges.length > 0;
           if (hasPartial) {
             // Keep partial data for resume
-            this.updateItem(item.id, {
+            this.updateItem(currentItemId, {
               status: "translating",
               partialSrt: job.partialResult || undefined,
               completedBatches: job.completedBatchRanges?.length || 0,
@@ -421,16 +452,20 @@ class QueueManager {
               error: job.error || "Có lỗi xảy ra",
             });
           } else {
-            this.updateItem(item.id, {
+            this.updateItem(currentItemId, {
               status: "error",
               error: job.error || "Có lỗi xảy ra",
               progress: undefined,
             });
           }
           this.isProcessing = false;
+          this.currentProcessingItemId = null;
           safeUnsubscribe();
           // Only continue to next item if auto-process is enabled (user clicked "Translate All")
           if (this.autoProcessEnabled) {
+            console.log(
+              "[QueueManager] Queue item errored, checking for next..."
+            );
             this.processNextInQueue();
           }
         }
@@ -460,6 +495,14 @@ class QueueManager {
       return;
     }
 
+    // Prevent concurrent calls
+    if (this.isProcessing) {
+      console.log(
+        "[QueueManager] Already processing, skipping processNextInQueue"
+      );
+      return;
+    }
+
     // Check if translationManager is already busy (e.g., user translating directly)
     if (translationManager.isTranslating()) {
       console.log("[QueueManager] translationManager busy, waiting...");
@@ -468,32 +511,45 @@ class QueueManager {
 
     // First, check for items already marked as "translating" (in queue)
     // Sort by startedAt to process in order they were added to translating
+    // Exclude items that were stopped/paused by user
     const translatingItems = this.items
-      .filter((i) => i.status === "translating")
+      .filter(
+        (i) =>
+          i.status === "translating" &&
+          i.id !== this.userStoppedItemId &&
+          !this.userPausedItems.has(i.id)
+      )
       .sort((a, b) => (a.startedAt || 0) - (b.startedAt || 0));
 
     const nextTranslating = translatingItems[0];
 
-    if (nextTranslating && !this.isProcessing) {
+    if (nextTranslating) {
       // processItem will auto-detect if should resume based on partial data
+      console.log(
+        "[QueueManager] Processing next translating item:",
+        nextTranslating.videoId
+      );
       setTimeout(() => this.processItem(nextTranslating), 2000);
       return;
     }
 
     // If auto-process is enabled, also pick up pending items
-    if (!this.isProcessing) {
-      const nextPending = this.items.find((i) => i.status === "pending");
-      if (nextPending) {
-        // Mark as translating first
-        await this.updateItem(nextPending.id, {
-          status: "translating",
-          startedAt: Date.now(),
-        });
-        setTimeout(() => this.processItem(nextPending), 2000);
-      } else {
-        // No more items to process, disable auto-process
-        this.autoProcessEnabled = false;
-      }
+    const nextPending = this.items.find((i) => i.status === "pending");
+    if (nextPending) {
+      // Mark as translating first
+      await this.updateItem(nextPending.id, {
+        status: "translating",
+        startedAt: Date.now(),
+      });
+      console.log(
+        "[QueueManager] Processing next pending item:",
+        nextPending.videoId
+      );
+      setTimeout(() => this.processItem(nextPending), 2000);
+    } else {
+      // No more items to process, disable auto-process
+      console.log("[QueueManager] No more items, disabling auto-process");
+      this.autoProcessEnabled = false;
     }
   }
 
@@ -511,6 +567,9 @@ class QueueManager {
 
   // Move to pending (re-queue)
   async moveToPending(itemId: string): Promise<void> {
+    // Clear from user paused items
+    this.userPausedItems.delete(itemId);
+
     await this.updateItem(itemId, {
       status: "pending",
       error: undefined,
@@ -522,6 +581,9 @@ class QueueManager {
 
   // Remove from queue
   async removeFromQueue(itemId: string): Promise<void> {
+    // Clear from user paused items
+    this.userPausedItems.delete(itemId);
+
     this.items = this.items.filter((i) => i.id !== itemId);
     await this.save();
     this.notify();
@@ -594,6 +656,9 @@ class QueueManager {
       );
       return { success: false, reason: "busy" };
     }
+
+    // Clear all user paused items - user is starting fresh auto-process
+    this.userPausedItems.clear();
 
     // Get all pending and error items sorted by addedAt ascending (FIFO - oldest first)
     const pendingItems = this.items
@@ -747,8 +812,15 @@ class QueueManager {
     const item = this.items.find((i) => i.id === itemId);
     if (!item || item.status !== "translating") return;
 
-    // Set flag to indicate user-initiated stop
+    // Set flag to indicate user-initiated stop BEFORE any async operations
     this.userStoppedItemId = itemId;
+
+    // Add to user paused items - this item won't auto-resume in processNextInQueue
+    this.userPausedItems.add(itemId);
+
+    // Disable auto-process to prevent queue from continuing with this item
+    // User can manually resume or restart auto-process later
+    const wasAutoProcessEnabled = this.autoProcessEnabled;
 
     // Check if this specific item is currently being processed by translationManager
     const isThisItemProcessing = translationManager.isTranslatingUrl(
@@ -760,6 +832,7 @@ class QueueManager {
       const result = await translationManager.abortTranslation(item.videoUrl);
       if (result.aborted) {
         this.isProcessing = false;
+        this.currentProcessingItemId = null;
 
         // Check if has partial data
         if (
@@ -791,11 +864,18 @@ class QueueManager {
         }
 
         // Clear the user stopped flag after handling
-        this.userStoppedItemId = null;
+        // Use setTimeout to ensure all callbacks have processed
+        // Clear AFTER processNextInQueue delay (1500ms > 1000ms)
+        setTimeout(() => {
+          if (this.userStoppedItemId === itemId) {
+            this.userStoppedItemId = null;
+          }
+        }, 1500);
 
-        // Process next item in queue if auto-process is enabled
-        if (this.autoProcessEnabled) {
-          this.processNextInQueue();
+        // Process next item in queue if auto-process was enabled
+        if (wasAutoProcessEnabled) {
+          // Small delay to ensure state is settled
+          setTimeout(() => this.processNextInQueue(), 1000);
         }
       }
     } else {
@@ -826,8 +906,12 @@ class QueueManager {
         });
       }
 
-      // Clear the user stopped flag
-      this.userStoppedItemId = null;
+      // Clear the user stopped flag after a delay
+      setTimeout(() => {
+        if (this.userStoppedItemId === itemId) {
+          this.userStoppedItemId = null;
+        }
+      }, 1500);
     }
   }
 
@@ -841,6 +925,7 @@ class QueueManager {
       const result = await translationManager.abortTranslation(item.videoUrl);
       if (result.aborted) {
         this.isProcessing = false;
+        this.currentProcessingItemId = null;
       }
     }
 
