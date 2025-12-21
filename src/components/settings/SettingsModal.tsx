@@ -20,6 +20,7 @@ import type {
   TTSSettings,
   GeminiConfig,
   FloatingUISettings,
+  NotificationSettings,
 } from "@src/types";
 import { getGeminiConfigs, saveGeminiConfigs } from "@utils/storage";
 import GeneralTab from "./GeneralTab";
@@ -44,6 +45,8 @@ interface SettingsModalProps {
   onTTSSettingsChange: (settings: TTSSettings) => void;
   floatingUISettings: FloatingUISettings;
   onFloatingUISettingsChange: (settings: FloatingUISettings) => void;
+  notificationSettings: NotificationSettings;
+  onNotificationSettingsChange: (settings: NotificationSettings) => void;
 }
 
 const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -59,6 +62,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   onTTSSettingsChange,
   floatingUISettings,
   onFloatingUISettingsChange,
+  notificationSettings,
+  onNotificationSettingsChange,
 }) => {
   const { t } = useTranslation();
   const { colors } = useTheme();
@@ -172,6 +177,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
           onTTSChange={onTTSSettingsChange}
           floatingUISettings={floatingUISettings}
           onFloatingUIChange={onFloatingUISettingsChange}
+          notificationSettings={notificationSettings}
+          onNotificationChange={onNotificationSettingsChange}
         />
       );
     }

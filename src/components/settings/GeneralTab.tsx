@@ -19,12 +19,14 @@ import type {
   BatchSettings,
   TTSSettings,
   FloatingUISettings,
+  NotificationSettings,
 } from "@src/types";
 import {
   DEFAULT_SUBTITLE_SETTINGS,
   DEFAULT_BATCH_SETTINGS,
   DEFAULT_TTS_SETTINGS,
   DEFAULT_FLOATING_UI_SETTINGS,
+  DEFAULT_NOTIFICATION_SETTINGS,
 } from "@constants/defaults";
 import {
   ApiKeysSection,
@@ -36,6 +38,7 @@ import {
   UpdateSection,
   DataSection,
   FloatingUISection,
+  NotificationSection,
 } from "./sections";
 import Button3D from "@components/common/Button3D";
 
@@ -58,6 +61,8 @@ interface GeneralTabProps {
   onTTSChange: (settings: TTSSettings) => void;
   floatingUISettings: FloatingUISettings;
   onFloatingUIChange: (settings: FloatingUISettings) => void;
+  notificationSettings: NotificationSettings;
+  onNotificationChange: (settings: NotificationSettings) => void;
 }
 
 type SettingGroup =
@@ -67,6 +72,7 @@ type SettingGroup =
   | "batch"
   | "tts"
   | "floatingUI"
+  | "notification"
   | "data"
   | "update"
   | null;
@@ -89,6 +95,8 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
   onTTSChange,
   floatingUISettings,
   onFloatingUIChange,
+  notificationSettings,
+  onNotificationChange,
 }) => {
   const { t } = useTranslation();
   const { colors } = useTheme();
@@ -138,6 +146,16 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
       description: t("settings.groups.floatingUIDesc"),
     },
     {
+      key: "notification",
+      icon: "bell-outline",
+      labelKey: "settings.notification.title",
+      description: t("settings.groups.notificationDesc", {
+        status: notificationSettings.enabled
+          ? t("settings.groups.enabled")
+          : t("settings.groups.disabled"),
+      }),
+    },
+    {
       key: "data",
       icon: "database",
       labelKey: "settings.data.title",
@@ -170,6 +188,7 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
         onBatchChange({ ...DEFAULT_BATCH_SETTINGS });
         onTTSChange({ ...DEFAULT_TTS_SETTINGS });
         onFloatingUIChange({ ...DEFAULT_FLOATING_UI_SETTINGS });
+        onNotificationChange({ ...DEFAULT_NOTIFICATION_SETTINGS });
       },
       t("settings.resetAll.confirm")
     );
@@ -223,6 +242,15 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
             <FloatingUISection
               floatingUISettings={floatingUISettings}
               onFloatingUIChange={onFloatingUIChange}
+            />
+          </View>
+        );
+      case "notification":
+        return (
+          <View style={styles.groupContent}>
+            <NotificationSection
+              notificationSettings={notificationSettings}
+              onNotificationChange={onNotificationChange}
             />
           </View>
         );

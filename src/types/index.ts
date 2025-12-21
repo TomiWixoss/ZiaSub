@@ -228,6 +228,13 @@ export interface FloatingUISettings {
 }
 
 // ============================================
+// NOTIFICATION SETTINGS
+// ============================================
+export interface NotificationSettings {
+  enabled: boolean; // Bật/tắt thông báo khi dịch xong
+}
+
+// ============================================
 // APP SETTINGS TYPES
 // ============================================
 export interface AppSettings {
@@ -236,6 +243,7 @@ export interface AppSettings {
   apiKeys: ApiKeysSettings;
   tts: TTSSettings;
   floatingUI: FloatingUISettings;
+  notification: NotificationSettings;
 }
 
 // ============================================

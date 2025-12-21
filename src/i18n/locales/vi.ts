@@ -167,6 +167,17 @@ export default {
       enabled: "Đang bật",
       disabled: "Đang tắt",
       floatingUIDesc: "Vị trí, bố cục nút nổi",
+      notificationDesc: "{{status}}",
+    },
+
+    // Notification
+    notification: {
+      title: "Thông báo",
+      enabled: "Thông báo khi dịch xong",
+      enabledHint: "Nhận thông báo khi app chạy nền và dịch xong video",
+      noPermission: "Chưa cấp quyền thông báo",
+      grantPermission: "Cấp quyền",
+      permissionGranted: "✓ Đã cấp quyền thông báo",
     },
 
     // Reset All Settings

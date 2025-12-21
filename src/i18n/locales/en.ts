@@ -167,6 +167,18 @@ export default {
       enabled: "Enabled",
       disabled: "Disabled",
       floatingUIDesc: "Position, layout of floating buttons",
+      notificationDesc: "{{status}}",
+    },
+
+    // Notification
+    notification: {
+      title: "Notifications",
+      enabled: "Notify when translation completes",
+      enabledHint:
+        "Get notified when app is in background and translation finishes",
+      noPermission: "Notification permission not granted",
+      grantPermission: "Grant permission",
+      permissionGranted: "✓ Notification permission granted",
     },
 
     // Reset All Settings

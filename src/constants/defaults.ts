@@ -5,6 +5,7 @@ import type {
   ApiKeysSettings,
   AppSettings,
   FloatingUISettings,
+  NotificationSettings,
 } from "@src/types";
 
 // ============================================
@@ -62,6 +63,13 @@ export const DEFAULT_API_KEYS_SETTINGS: ApiKeysSettings = {
 };
 
 // ============================================
+// DEFAULT NOTIFICATION SETTINGS
+// ============================================
+export const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettings = {
+  enabled: true, // Mặc định bật thông báo
+};
+
+// ============================================
 // DEFAULT APP SETTINGS
 // ============================================
 export const DEFAULT_APP_SETTINGS: AppSettings = {
@@ -70,6 +78,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   apiKeys: DEFAULT_API_KEYS_SETTINGS,
   tts: DEFAULT_TTS_SETTINGS,
   floatingUI: DEFAULT_FLOATING_UI_SETTINGS,
+  notification: DEFAULT_NOTIFICATION_SETTINGS,
 };
 
 // ============================================

@@ -5,6 +5,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { QueueItem, QueueStatus } from "@src/types";
 import { translationManager } from "./translationManager";
+import { notificationService } from "./notificationService";
 import {
   getActiveGeminiConfig,
   getBatchSettings,
@@ -404,6 +405,10 @@ class QueueManager {
             return;
           }
 
+          // Get item title for notification
+          const completedItem = this.items.find((i) => i.id === currentItemId);
+          const videoTitle = completedItem?.title || "Video";
+
           this.updateItem(currentItemId, {
             status: "completed",
             completedAt: Date.now(),
@@ -416,11 +421,26 @@ class QueueManager {
           this.isProcessing = false;
           this.currentProcessingItemId = null;
           safeUnsubscribe();
+
+          // Send notification when translation completes
+          notificationService.notifyTranslationComplete(videoTitle);
+
           // Only continue to next item if auto-process is enabled (user clicked "Translate All")
           if (this.autoProcessEnabled) {
             console.log(
               "[QueueManager] Queue item completed, checking for next..."
             );
+            // Check if there are more items to process
+            const remainingItems = this.items.filter(
+              (i) => i.status === "translating" || i.status === "pending"
+            );
+            if (remainingItems.length === 0) {
+              // All done - send queue complete notification
+              const completedCount = this.items.filter(
+                (i) => i.status === "completed"
+              ).length;
+              notificationService.notifyQueueComplete(completedCount);
+            }
             this.processNextInQueue();
           }
         }
@@ -436,6 +456,10 @@ class QueueManager {
             safeUnsubscribe();
             return;
           }
+
+          // Get item title for notification
+          const errorItem = this.items.find((i) => i.id === currentItemId);
+          const videoTitle = errorItem?.title || "Video";
 
           // Error (not user stopped) - check for partial
           const hasPartial =
@@ -459,6 +483,11 @@ class QueueManager {
               error: job.error || "Có lỗi xảy ra",
               progress: undefined,
             });
+            // Send error notification
+            notificationService.notifyTranslationError(
+              videoTitle,
+              job.error || undefined
+            );
           }
           this.isProcessing = false;
           this.currentProcessingItemId = null;

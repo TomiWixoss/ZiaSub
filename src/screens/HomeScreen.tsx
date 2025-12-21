@@ -50,11 +50,13 @@ const HomeScreen = () => {
     batchSettings,
     ttsSettings,
     floatingUISettings,
+    notificationSettings,
     apiKeys,
     updateSubtitleSettings,
     updateBatchSettings,
     updateTTSSettings,
     updateFloatingUISettings,
+    updateNotificationSettings,
     updateApiKeys,
   } = useAppSettings();
 
@@ -535,6 +537,8 @@ const HomeScreen = () => {
         onTTSSettingsChange={updateTTSSettings}
         floatingUISettings={floatingUISettings}
         onFloatingUISettingsChange={updateFloatingUISettings}
+        notificationSettings={notificationSettings}
+        onNotificationSettingsChange={updateNotificationSettings}
       />
 
       <TranslationQueueModal

@@ -23,7 +23,10 @@
       "edgeToEdgeEnabled": true,
       "package": "com.tomis.youtubesrtplayer",
       "softwareKeyboardLayoutMode": "resize",
-      "permissions": ["android.permission.REQUEST_INSTALL_PACKAGES"]
+      "permissions": [
+        "android.permission.REQUEST_INSTALL_PACKAGES",
+        "android.permission.POST_NOTIFICATIONS"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -34,6 +37,16 @@
       }
     },
     "owner": "tomisakae",
-    "plugins": ["expo-font", "./plugins/withInstallApkPermission"]
+    "plugins": [
+      "expo-font",
+      "./plugins/withInstallApkPermission",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#9B7ED9"
+        }
+      ]
+    ]
   }
 }

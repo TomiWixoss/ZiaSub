@@ -8,6 +8,7 @@ import type {
   BatchSettings,
   TTSSettings,
   FloatingUISettings,
+  NotificationSettings,
 } from "@src/types";
 import { cacheService } from "@services/cacheService";
 import {
@@ -15,9 +16,11 @@ import {
   DEFAULT_BATCH_SETTINGS,
   DEFAULT_TTS_SETTINGS,
   DEFAULT_FLOATING_UI_SETTINGS,
+  DEFAULT_NOTIFICATION_SETTINGS,
 } from "@constants/defaults";
 import { keyManager } from "@services/keyManager";
 import { ttsService } from "@services/ttsService";
+import { notificationService } from "@services/notificationService";
 
 export const useAppSettings = () => {
   const [subtitleSettings, setSubtitleSettings] = useState<SubtitleSettings>(
@@ -30,6 +33,8 @@ export const useAppSettings = () => {
     useState<TTSSettings>(DEFAULT_TTS_SETTINGS);
   const [floatingUISettings, setFloatingUISettings] =
     useState<FloatingUISettings>(DEFAULT_FLOATING_UI_SETTINGS);
+  const [notificationSettings, setNotificationSettings] =
+    useState<NotificationSettings>(DEFAULT_NOTIFICATION_SETTINGS);
   const [apiKeys, setApiKeys] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -46,6 +51,9 @@ export const useAppSettings = () => {
         setFloatingUISettings(
           settings.floatingUI || DEFAULT_FLOATING_UI_SETTINGS
         );
+        setNotificationSettings(
+          settings.notification || DEFAULT_NOTIFICATION_SETTINGS
+        );
 
         const keys = settings.apiKeys?.keys || [];
         setApiKeys(keys);
@@ -55,6 +63,9 @@ export const useAppSettings = () => {
           keyManager.initialize(keys);
         }
         ttsService.setSettings(settings.tts || DEFAULT_TTS_SETTINGS);
+
+        // Initialize notification service
+        notificationService.initialize();
       } catch (error) {
         console.error("Error loading settings:", error);
       } finally {
@@ -76,6 +87,9 @@ export const useAppSettings = () => {
       setTTSSettings(newSettings.tts || DEFAULT_TTS_SETTINGS);
       setFloatingUISettings(
         newSettings.floatingUI || DEFAULT_FLOATING_UI_SETTINGS
+      );
+      setNotificationSettings(
+        newSettings.notification || DEFAULT_NOTIFICATION_SETTINGS
       );
     });
 
@@ -137,17 +151,29 @@ export const useAppSettings = () => {
     []
   );
 
+  const updateNotificationSettings = useCallback(
+    (newSettings: NotificationSettings) => {
+      setNotificationSettings(newSettings);
+      const settings = cacheService.getSettings();
+      settings.notification = newSettings;
+      cacheService.setSettings(settings);
+    },
+    []
+  );
+
   return {
     subtitleSettings,
     batchSettings,
     ttsSettings,
     floatingUISettings,
+    notificationSettings,
     apiKeys,
     isLoading,
     updateSubtitleSettings,
     updateBatchSettings,
     updateTTSSettings,
     updateFloatingUISettings,
+    updateNotificationSettings,
     updateApiKeys,
   };
 };
