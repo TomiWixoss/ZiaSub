@@ -137,6 +137,7 @@ const ChatModal: React.FC<ChatModalProps> = ({
             : undefined,
           hasVideo: msg.hasVideo,
           videoTitle: msg.videoTitle,
+          videoTimeRange: msg.videoTimeRange,
           timestamp: msg.timestamp,
           status,
         });
@@ -197,7 +198,7 @@ const ChatModal: React.FC<ChatModalProps> = ({
   }, [visible]);
 
   useEffect(() => {
-    if (currentSession && messages.length > 0) {
+    if (currentSession) {
       const updatedSession = {
         ...currentSession,
         messages: messages as StoredChatMessage[],
@@ -448,6 +449,7 @@ const ChatModal: React.FC<ChatModalProps> = ({
       timestamp: Date.now(),
       hasVideo: task.hasVideo,
       videoTitle: task.videoTitle,
+      videoTimeRange: task.videoTimeRange,
     };
     const updatedMessages = [...newMessages, userMessage];
     setMessages(updatedMessages);
@@ -491,7 +493,8 @@ const ChatModal: React.FC<ChatModalProps> = ({
           abortControllerRef.current = null;
         },
       },
-      task.hasVideo ? videoUrl : undefined
+      task.hasVideo ? videoUrl : undefined,
+      task.videoTimeRange
     );
   };
 

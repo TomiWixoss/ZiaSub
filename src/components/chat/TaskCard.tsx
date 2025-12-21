@@ -15,6 +15,7 @@ import * as Clipboard from "expo-clipboard";
 import { useTheme } from "@src/contexts";
 import { useThemedStyles, createThemedStyles } from "@hooks/useThemedStyles";
 import { confirmDestructive } from "../common/CustomAlert";
+import type { VideoTimeRange } from "@src/types";
 
 export interface TaskItem {
   id: string;
@@ -22,6 +23,7 @@ export interface TaskItem {
   result?: string;
   hasVideo?: boolean;
   videoTitle?: string;
+  videoTimeRange?: VideoTimeRange;
   timestamp: number;
   status: "pending" | "done" | "error";
 }
@@ -49,6 +51,22 @@ const TaskCard: React.FC<TaskCardProps> = ({
   const rotateAnim = useRef(
     new Animated.Value(defaultExpanded ? 1 : 0)
   ).current;
+
+  // Format time range for display
+  const formatTimeRange = (range: VideoTimeRange) => {
+    const formatTime = (seconds: number) => {
+      const h = Math.floor(seconds / 3600);
+      const m = Math.floor((seconds % 3600) / 60);
+      const s = Math.floor(seconds % 60);
+      if (h > 0) {
+        return `${h}:${m.toString().padStart(2, "0")}:${s
+          .toString()
+          .padStart(2, "0")}`;
+      }
+      return `${m}:${s.toString().padStart(2, "0")}`;
+    };
+    return `${formatTime(range.startTime)} - ${formatTime(range.endTime)}`;
+  };
 
   const markdownStyles = useMemo(
     () => ({
@@ -177,6 +195,18 @@ const TaskCard: React.FC<TaskCardProps> = ({
                   />
                   <Text style={themedStyles.videoTagText} numberOfLines={1}>
                     {task.videoTitle || "Video"}
+                  </Text>
+                </View>
+              )}
+              {task.hasVideo && task.videoTimeRange && (
+                <View style={themedStyles.timeRangeTag}>
+                  <MaterialCommunityIcons
+                    name="clock-outline"
+                    size={10}
+                    color="#FFFFFF"
+                  />
+                  <Text style={themedStyles.timeRangeTagText}>
+                    {formatTimeRange(task.videoTimeRange)}
                   </Text>
                 </View>
               )}
@@ -324,6 +354,16 @@ const taskCardThemedStyles = createThemedStyles((colors) => ({
     maxWidth: 150,
   },
   videoTagText: { color: colors.textMuted, fontSize: 11, flexShrink: 1 },
+  timeRangeTag: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    backgroundColor: colors.primary,
+    borderRadius: 8,
+  },
+  timeRangeTagText: { color: "#FFFFFF", fontSize: 10, fontWeight: "500" },
   taskResult: { padding: 14, borderTopWidth: 1, borderTopColor: colors.border },
   taskLoading: {
     flexDirection: "row",
