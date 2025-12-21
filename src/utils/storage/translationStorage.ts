@@ -83,6 +83,7 @@ export const savePartialTranslation = async (
     rangeEnd?: number;
     videoDuration?: number;
     batchSettings?: BatchSettings;
+    batchStatuses?: Array<"pending" | "completed" | "error">;
   }
 ): Promise<SavedTranslation> => {
   const videoId = getVideoIdFromUrl(videoUrl);
@@ -105,6 +106,15 @@ export const savePartialTranslation = async (
     (t) => t.isPartial && t.configName === configName
   );
 
+  // Generate batchStatuses if not provided
+  const batchStatuses =
+    metadata.batchStatuses ||
+    Array.from({ length: metadata.totalBatches }, (_, i) =>
+      i < metadata.completedBatches
+        ? ("completed" as const)
+        : ("pending" as const)
+    );
+
   const partialTranslation: SavedTranslation = {
     id:
       existingPartialIndex >= 0
@@ -120,6 +130,7 @@ export const savePartialTranslation = async (
     rangeEnd: metadata.rangeEnd,
     videoDuration: metadata.videoDuration,
     batchSettings: metadata.batchSettings,
+    batchStatuses,
   };
 
   if (existingPartialIndex >= 0) {

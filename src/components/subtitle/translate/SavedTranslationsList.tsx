@@ -48,6 +48,7 @@ interface BatchInfo {
   endTime: number;
   subtitleCount: number;
   hasContent: boolean;
+  status: "pending" | "completed" | "error";
 }
 
 const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
@@ -87,12 +88,26 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
           (sub) => sub.startTime >= startTime && sub.startTime < endTime
         );
 
+        // Use saved batchStatuses if available, otherwise fallback to hasContent check
+        const savedStatus = item.batchStatuses?.[i];
+        const hasContent = subtitlesInBatch.length > 0;
+
+        // Determine status: use saved status if available, otherwise infer from content
+        let status: "pending" | "completed" | "error" = "pending";
+        if (savedStatus) {
+          status = savedStatus;
+        } else if (hasContent) {
+          // Fallback for old translations without batchStatuses
+          status = "completed";
+        }
+
         batches.push({
           index: i,
           startTime,
           endTime,
           subtitleCount: subtitlesInBatch.length,
-          hasContent: subtitlesInBatch.length > 0,
+          hasContent,
+          status,
         });
       }
 
@@ -232,9 +247,9 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
                       </Text>
                       <View style={styles.batchesGrid}>
                         {batches.map((batch) => {
-                          // Always use hasContent to check if batch has subtitles
-                          // This correctly handles cases where middle batches are missing
-                          const isCompleted = batch.hasContent;
+                          // Use status from batchStatuses metadata
+                          const isCompleted = batch.status === "completed";
+                          const isError = batch.status === "error";
 
                           return (
                             <View
@@ -245,7 +260,10 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
                                 style={[
                                   styles.batchChip,
                                   isCompleted && styles.batchChipCompleted,
-                                  !isCompleted && styles.batchChipPending,
+                                  isError && styles.batchChipError,
+                                  !isCompleted &&
+                                    !isError &&
+                                    styles.batchChipPending,
                                 ]}
                               >
                                 <Text
@@ -253,6 +271,7 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
                                     styles.batchChipText,
                                     isCompleted &&
                                       styles.batchChipTextCompleted,
+                                    isError && styles.batchChipTextError,
                                   ]}
                                 >
                                   {batch.index + 1}
@@ -262,6 +281,7 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
                                     styles.batchChipTime,
                                     isCompleted &&
                                       styles.batchChipTimeCompleted,
+                                    isError && styles.batchChipTimeError,
                                   ]}
                                 >
                                   {formatTime(batch.startTime)}

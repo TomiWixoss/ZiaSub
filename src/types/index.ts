@@ -36,6 +36,8 @@ export interface BatchProgress {
   batchStatuses: Array<"pending" | "processing" | "completed" | "error">;
 }
 
+export type BatchStatus = "pending" | "completed" | "error";
+
 export interface SavedTranslation {
   id: string;
   srtContent: string;
@@ -49,6 +51,9 @@ export interface SavedTranslation {
   rangeEnd?: number;
   videoDuration?: number;
   batchSettings?: Partial<BatchSettings>;
+  // Batch status tracking - array of status for each batch index
+  // e.g., ["completed", "completed", "pending"] means batch 0,1 done, batch 2 pending
+  batchStatuses?: BatchStatus[];
 }
 
 export interface VideoTranslations {
@@ -76,6 +81,8 @@ export interface TranslationJob {
   videoDuration?: number;
   batchSettings?: BatchSettings;
   completedBatchRanges?: Array<{ start: number; end: number }>;
+  // Track status of each batch
+  batchStatuses?: BatchStatus[];
 }
 
 // ============================================

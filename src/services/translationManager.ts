@@ -121,6 +121,7 @@ class TranslationManager {
     let completedRanges: Array<{ start: number; end: number }> =
       resumeData?.completedBatchRanges || [];
     let accumulatedSrt = resumeData?.partialSrt || "";
+    let currentBatchStatuses: Array<"pending" | "completed" | "error"> = [];
 
     try {
       const result = await translateVideoWithGemini(
@@ -141,9 +142,16 @@ class TranslationManager {
               this.currentJob.id === jobId &&
               !this.isAborted
             ) {
+              // Update batch statuses from progress
+              currentBatchStatuses = progress.batchStatuses.map((s) =>
+                s === "processing"
+                  ? ("pending" as const)
+                  : (s as "pending" | "completed" | "error")
+              );
               this.currentJob = {
                 ...this.currentJob,
                 progress,
+                batchStatuses: currentBatchStatuses,
               };
               this.notify();
             }
@@ -151,8 +159,8 @@ class TranslationManager {
           onKeyStatus,
           onBatchComplete: (
             partialSrt: string,
-            _batchIndex: number,
-            _totalBatches: number,
+            batchIndex: number,
+            totalBatches: number,
             newCompletedRanges: Array<{ start: number; end: number }>
           ) => {
             if (
@@ -162,10 +170,16 @@ class TranslationManager {
             ) {
               accumulatedSrt = partialSrt;
               completedRanges = newCompletedRanges;
+              // Update batch statuses - mark completed batch
+              if (currentBatchStatuses.length === 0) {
+                currentBatchStatuses = Array(totalBatches).fill("pending");
+              }
+              currentBatchStatuses[batchIndex] = "completed";
               this.currentJob = {
                 ...this.currentJob,
                 partialResult: partialSrt,
                 completedBatchRanges: newCompletedRanges,
+                batchStatuses: [...currentBatchStatuses],
               };
               this.notify();
             }
@@ -212,6 +226,7 @@ class TranslationManager {
                 rangeEnd,
                 videoDuration,
                 batchSettings,
+                batchStatuses: currentBatchStatuses,
               }
             );
             const { cacheService } = await import("./cacheService");
@@ -280,6 +295,7 @@ class TranslationManager {
 
     const partialResult = this.currentJob.partialResult || undefined;
     const completedRanges = this.currentJob.completedBatchRanges || [];
+    const batchStatuses = this.currentJob.batchStatuses || [];
     const hasPartial = partialResult && completedRanges.length > 0;
 
     // Save partial translation IMMEDIATELY (don't wait for catch block)
@@ -296,6 +312,7 @@ class TranslationManager {
             rangeEnd: this.currentJob.rangeEnd,
             videoDuration: this.currentJob.videoDuration,
             batchSettings: this.currentJob.batchSettings as any,
+            batchStatuses,
           }
         );
         // Force flush to persist immediately

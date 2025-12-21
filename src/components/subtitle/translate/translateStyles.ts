@@ -120,6 +120,10 @@ export const createTranslateStyles = (colors: ThemeColors) =>
       borderColor: colors.border,
       borderStyle: "dashed",
     },
+    batchChipError: {
+      backgroundColor: colors.error + "20",
+      borderColor: colors.error,
+    },
     batchChipText: {
       color: colors.textMuted,
       fontSize: 12,
@@ -128,6 +132,9 @@ export const createTranslateStyles = (colors: ThemeColors) =>
     batchChipTextCompleted: {
       color: colors.success,
     },
+    batchChipTextError: {
+      color: colors.error,
+    },
     batchChipTime: {
       color: colors.textMuted,
       fontSize: 9,
@@ -135,6 +142,9 @@ export const createTranslateStyles = (colors: ThemeColors) =>
     },
     batchChipTimeCompleted: {
       color: colors.success,
+    },
+    batchChipTimeError: {
+      color: colors.error,
     },
     batchActions: {
       flexDirection: "row",
