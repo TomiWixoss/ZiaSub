@@ -77,20 +77,31 @@ class QueueManager {
   // Subscribe to translationManager to detect when it becomes free
   private subscribeToTranslationManager(): void {
     translationManager.subscribe((job) => {
-      // When a job completes or errors (and it's not a queue item), try to process next
+      // When a job completes or errors, check if we should continue auto-processing
       if (job.status === "completed" || job.status === "error") {
-        // Check if this was NOT a queue item (queue items are handled separately)
+        // Only continue if auto-process is enabled AND this was a queue item being processed
+        // Don't auto-continue after direct translations - user must manually resume queue items
         const isQueueItem = this.items.some(
           (item) =>
             item.videoUrl === job.videoUrl && item.status === "translating"
         );
 
-        if (!isQueueItem && this.autoProcessEnabled) {
-          // User finished direct translation, queue can continue
+        // Only continue auto-processing if:
+        // 1. Auto-process is enabled (user started "Translate All")
+        // 2. This was a queue item (not direct translation)
+        // 3. We were actively processing this item
+        if (this.autoProcessEnabled && isQueueItem && this.isProcessing) {
           console.log(
-            "[QueueManager] Direct translation finished, checking queue..."
+            "[QueueManager] Queue item finished, checking for next..."
           );
-          setTimeout(() => this.processNextInQueue(), 2000);
+          // Note: processNextInQueue is already called in the job subscription in processItem
+          // This is just a fallback
+        } else if (!isQueueItem) {
+          // Direct translation finished - do NOT auto-continue queue items
+          // User must manually resume paused items
+          console.log(
+            "[QueueManager] Direct translation finished, NOT auto-continuing queue"
+          );
         }
       }
     });
@@ -199,9 +210,6 @@ class QueueManager {
       return { success: false, reason: "busy" };
     }
 
-    // Enable auto-process mode so it continues after this item
-    this.autoProcessEnabled = true;
-
     // Mark as translating (add to queue)
     await this.updateItem(itemId, {
       status: "translating",
@@ -209,7 +217,7 @@ class QueueManager {
       error: undefined,
     });
 
-    // Start processing this item
+    // Start processing this item (don't enable auto-process for single item)
     await this.processItem(item, isResume);
     return { success: true };
   }
@@ -237,7 +245,7 @@ class QueueManager {
 
   // Internal: Process a specific item
   private async processItem(
-    item: QueueItem,
+    itemParam: QueueItem,
     isResume: boolean = false
   ): Promise<void> {
     if (this.isProcessing) return;
@@ -250,9 +258,25 @@ class QueueManager {
       return;
     }
 
+    // Get the latest item data from this.items (itemParam might be stale)
+    const item = this.items.find((i) => i.id === itemParam.id);
+    if (!item) {
+      console.log("[QueueManager] Item not found, skipping processItem");
+      return;
+    }
+
+    // Auto-detect if should resume based on partial data
+    const shouldResume =
+      isResume ||
+      !!(
+        item.partialSrt &&
+        item.completedBatchRanges &&
+        item.completedBatchRanges.length > 0
+      );
+
     // Get config - use saved configId if resuming, otherwise get active config
     let config = null;
-    if (isResume && item.configId) {
+    if (shouldResume && item.configId) {
       const configs = await getGeminiConfigs();
       config = configs.find((c) => c.id === item.configId) || null;
     }
@@ -265,7 +289,10 @@ class QueueManager {
         status: "error",
         error: "Chưa chọn kiểu dịch",
       });
-      this.processNextInQueue();
+      // Only continue if auto-process enabled
+      if (this.autoProcessEnabled) {
+        this.processNextInQueue();
+      }
       return;
     }
 
@@ -298,7 +325,7 @@ class QueueManager {
         }
       | undefined;
 
-    if (isResume && item.partialSrt && item.completedBatchRanges) {
+    if (shouldResume && item.partialSrt && item.completedBatchRanges) {
       // Try to get existing translation ID from storage
       let existingTranslationId = item.savedTranslationId;
       if (!existingTranslationId) {
@@ -318,7 +345,17 @@ class QueueManager {
     }
 
     // Subscribe to translation progress
+    let hasUnsubscribed = false;
+    const safeUnsubscribe = () => {
+      if (!hasUnsubscribed) {
+        hasUnsubscribed = true;
+        unsubscribe();
+      }
+    };
     const unsubscribe = translationManager.subscribe((job) => {
+      // Skip if already unsubscribed
+      if (hasUnsubscribed) return;
+
       if (job.videoUrl === item.videoUrl) {
         if (job.progress) {
           this.updateItem(item.id, {
@@ -350,8 +387,11 @@ class QueueManager {
             completedBatchRanges: undefined,
           });
           this.isProcessing = false;
-          unsubscribe();
-          this.processNextInQueue();
+          safeUnsubscribe();
+          // Only continue to next item if auto-process is enabled (user clicked "Translate All")
+          if (this.autoProcessEnabled) {
+            this.processNextInQueue();
+          }
         }
 
         if (job.status === "error") {
@@ -360,7 +400,7 @@ class QueueManager {
           if (wasUserStopped) {
             // User stopped - stopTranslation() already handled the state update
             // Just cleanup subscription and return
-            unsubscribe();
+            safeUnsubscribe();
             return;
           }
 
@@ -388,8 +428,11 @@ class QueueManager {
             });
           }
           this.isProcessing = false;
-          unsubscribe();
-          this.processNextInQueue();
+          safeUnsubscribe();
+          // Only continue to next item if auto-process is enabled (user clicked "Translate All")
+          if (this.autoProcessEnabled) {
+            this.processNextInQueue();
+          }
         }
       }
     });
@@ -411,6 +454,12 @@ class QueueManager {
 
   // Process next item in queue (translating status first by startedAt order)
   private async processNextInQueue(): Promise<void> {
+    // Only continue if auto-process is enabled
+    if (!this.autoProcessEnabled) {
+      console.log("[QueueManager] Auto-process disabled, not continuing");
+      return;
+    }
+
     // Check if translationManager is already busy (e.g., user translating directly)
     if (translationManager.isTranslating()) {
       console.log("[QueueManager] translationManager busy, waiting...");
@@ -426,18 +475,13 @@ class QueueManager {
     const nextTranslating = translatingItems[0];
 
     if (nextTranslating && !this.isProcessing) {
-      // Check if this item has partial data - if so, resume instead of starting fresh
-      const shouldResume = !!(
-        nextTranslating.partialSrt &&
-        nextTranslating.completedBatchRanges &&
-        nextTranslating.completedBatchRanges.length > 0
-      );
-      setTimeout(() => this.processItem(nextTranslating, shouldResume), 2000);
+      // processItem will auto-detect if should resume based on partial data
+      setTimeout(() => this.processItem(nextTranslating), 2000);
       return;
     }
 
     // If auto-process is enabled, also pick up pending items
-    if (this.autoProcessEnabled && !this.isProcessing) {
+    if (!this.isProcessing) {
       const nextPending = this.items.find((i) => i.status === "pending");
       if (nextPending) {
         // Mark as translating first

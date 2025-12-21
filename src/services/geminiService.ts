@@ -552,13 +552,14 @@ export const translateVideoWithGemini = async (
 
         options?.onBatchProgress?.({
           totalBatches: numBatches,
-          completedBatches: completedIndices.length,
+          completedBatches: completedIndices.length + skipIndices.length,
           currentBatch: numBatches,
           status: "completed",
           batchStatuses: finalStatuses,
         });
 
-        const mergedSrt = mergeSrtContents(successfulResults);
+        // Use accumulatedResults which includes existing partial SRT + new results
+        const mergedSrt = mergeSrtContents(accumulatedResults);
         onChunk?.(mergedSrt);
         return mergedSrt;
       }
