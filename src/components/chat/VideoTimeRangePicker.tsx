@@ -1,13 +1,8 @@
-import React, { useState, useEffect, useRef } from "react";
-import {
-  View,
-  StyleSheet,
-  TouchableOpacity,
-  Modal,
-  PanResponder,
-} from "react-native";
+import React, { useState, useEffect } from "react";
+import { View, StyleSheet, TouchableOpacity, Modal } from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import Slider from "@react-native-community/slider";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@src/contexts";
 import Button3D from "../common/Button3D";
@@ -34,10 +29,6 @@ const formatTime = (seconds: number): string => {
   return `${m}:${s.toString().padStart(2, "0")}`;
 };
 
-const SLIDER_WIDTH = 280;
-const THUMB_SIZE = 28;
-const TRACK_HEIGHT = 8;
-
 const VideoTimeRangePicker: React.FC<VideoTimeRangePickerProps> = ({
   visible,
   onClose,
@@ -50,24 +41,6 @@ const VideoTimeRangePicker: React.FC<VideoTimeRangePickerProps> = ({
 
   const [startValue, setStartValue] = useState(0);
   const [endValue, setEndValue] = useState(videoDuration);
-  const [activeThumb, setActiveThumb] = useState<"start" | "end" | null>(null);
-
-  // Use refs to track current values for pan responders
-  const startValueRef = useRef(startValue);
-  const endValueRef = useRef(endValue);
-  const videoDurationRef = useRef(videoDuration);
-
-  useEffect(() => {
-    startValueRef.current = startValue;
-  }, [startValue]);
-
-  useEffect(() => {
-    endValueRef.current = endValue;
-  }, [endValue]);
-
-  useEffect(() => {
-    videoDurationRef.current = videoDuration;
-  }, [videoDuration]);
 
   useEffect(() => {
     if (visible) {
@@ -81,65 +54,26 @@ const VideoTimeRangePicker: React.FC<VideoTimeRangePickerProps> = ({
     }
   }, [visible, currentRange, videoDuration]);
 
-  // Convert value to position
-  const valueToPosition = (value: number) => {
-    return (value / videoDurationRef.current) * SLIDER_WIDTH;
+  const handleStartChange = (value: number) => {
+    // Đảm bảo start không vượt quá end - 5 giây
+    const maxStart = Math.max(0, endValue - 5);
+    setStartValue(Math.min(value, maxStart));
   };
 
-  // Create pan responders with refs
-  const startPanResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: () => setActiveThumb("start"),
-      onPanResponderMove: (_, gestureState) => {
-        const currentPos =
-          (startValueRef.current / videoDurationRef.current) * SLIDER_WIDTH;
-        const newPos = currentPos + gestureState.dx;
-        const newValue = Math.max(
-          0,
-          Math.min(
-            videoDurationRef.current,
-            Math.round((newPos / SLIDER_WIDTH) * videoDurationRef.current)
-          )
-        );
-        if (newValue < endValueRef.current - 5) {
-          setStartValue(newValue);
-        }
-      },
-      onPanResponderRelease: () => setActiveThumb(null),
-    })
-  ).current;
-
-  const endPanResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: () => setActiveThumb("end"),
-      onPanResponderMove: (_, gestureState) => {
-        const currentPos =
-          (endValueRef.current / videoDurationRef.current) * SLIDER_WIDTH;
-        const newPos = currentPos + gestureState.dx;
-        const newValue = Math.max(
-          0,
-          Math.min(
-            videoDurationRef.current,
-            Math.round((newPos / SLIDER_WIDTH) * videoDurationRef.current)
-          )
-        );
-        if (newValue > startValueRef.current + 5) {
-          setEndValue(newValue);
-        }
-      },
-      onPanResponderRelease: () => setActiveThumb(null),
-    })
-  ).current;
+  const handleEndChange = (value: number) => {
+    // Đảm bảo end không nhỏ hơn start + 5 giây
+    const minEnd = Math.min(videoDuration, startValue + 5);
+    setEndValue(Math.max(value, minEnd));
+  };
 
   const handleConfirm = () => {
     if (startValue === 0 && endValue === videoDuration) {
       onConfirm(null);
     } else {
-      onConfirm({ startTime: startValue, endTime: endValue });
+      onConfirm({
+        startTime: Math.round(startValue),
+        endTime: Math.round(endValue),
+      });
     }
     onClose();
   };
@@ -153,10 +87,6 @@ const VideoTimeRangePicker: React.FC<VideoTimeRangePickerProps> = ({
     setStartValue(0);
     setEndValue(videoDuration);
   };
-
-  const startPos = valueToPosition(startValue);
-  const endPos = valueToPosition(endValue);
-  const selectedWidth = endPos - startPos;
 
   return (
     <Modal
@@ -220,84 +150,54 @@ const VideoTimeRangePicker: React.FC<VideoTimeRangePickerProps> = ({
             </View>
           </View>
 
-          {/* Dual slider */}
+          {/* Start Slider */}
           <View style={styles.sliderSection}>
-            <View style={styles.sliderContainer}>
-              {/* Track background */}
-              <View
-                style={[styles.track, { backgroundColor: colors.border }]}
-              />
-
-              {/* Selected range */}
-              <View
-                style={[
-                  styles.selectedTrack,
-                  {
-                    backgroundColor: colors.primary,
-                    left: startPos,
-                    width: selectedWidth,
-                  },
-                ]}
-              />
-
-              {/* Start thumb */}
-              <View
-                {...startPanResponder.panHandlers}
-                style={[
-                  styles.thumb,
-                  {
-                    backgroundColor: colors.surface,
-                    borderColor: colors.primary,
-                    left: startPos - THUMB_SIZE / 2,
-                  },
-                  activeThumb === "start" && {
-                    transform: [{ scale: 1.15 }],
-                    borderColor: colors.accent,
-                  },
-                ]}
+            <View style={styles.sliderRow}>
+              <Text
+                style={[styles.sliderTitle, { color: colors.textSecondary }]}
               >
-                <View
-                  style={[
-                    styles.thumbInner,
-                    { backgroundColor: colors.primary },
-                  ]}
-                />
-              </View>
-
-              {/* End thumb */}
-              <View
-                {...endPanResponder.panHandlers}
-                style={[
-                  styles.thumb,
-                  {
-                    backgroundColor: colors.surface,
-                    borderColor: colors.primary,
-                    left: endPos - THUMB_SIZE / 2,
-                  },
-                  activeThumb === "end" && {
-                    transform: [{ scale: 1.15 }],
-                    borderColor: colors.accent,
-                  },
-                ]}
-              >
-                <View
-                  style={[
-                    styles.thumbInner,
-                    { backgroundColor: colors.primary },
-                  ]}
-                />
-              </View>
-            </View>
-
-            {/* Slider labels */}
-            <View style={styles.sliderLabels}>
-              <Text style={[styles.sliderLabel, { color: colors.textMuted }]}>
-                0:00
+                {t("chat.startTime")}
               </Text>
-              <Text style={[styles.sliderLabel, { color: colors.textMuted }]}>
-                {formatTime(videoDuration)}
+              <Text style={[styles.sliderValue, { color: colors.primary }]}>
+                {formatTime(startValue)}
               </Text>
             </View>
+            <Slider
+              style={styles.slider}
+              minimumValue={0}
+              maximumValue={videoDuration}
+              value={startValue}
+              onValueChange={handleStartChange}
+              minimumTrackTintColor={colors.primary}
+              maximumTrackTintColor={colors.border}
+              thumbTintColor={colors.primary}
+              step={1}
+            />
+          </View>
+
+          {/* End Slider */}
+          <View style={styles.sliderSection}>
+            <View style={styles.sliderRow}>
+              <Text
+                style={[styles.sliderTitle, { color: colors.textSecondary }]}
+              >
+                {t("chat.endTime")}
+              </Text>
+              <Text style={[styles.sliderValue, { color: colors.primary }]}>
+                {formatTime(endValue)}
+              </Text>
+            </View>
+            <Slider
+              style={styles.slider}
+              minimumValue={0}
+              maximumValue={videoDuration}
+              value={endValue}
+              onValueChange={handleEndChange}
+              minimumTrackTintColor={colors.primary}
+              maximumTrackTintColor={colors.border}
+              thumbTintColor={colors.primary}
+              step={1}
+            />
           </View>
 
           {/* Info row */}
@@ -412,59 +312,33 @@ const styles = StyleSheet.create({
   },
   sliderSection: {
     marginHorizontal: 16,
-    marginVertical: 16,
+    marginTop: 12,
   },
-  sliderContainer: {
-    width: SLIDER_WIDTH,
-    height: 50,
-    alignSelf: "center",
-    justifyContent: "center",
-  },
-  track: {
-    position: "absolute",
-    width: SLIDER_WIDTH,
-    height: TRACK_HEIGHT,
-    borderRadius: TRACK_HEIGHT / 2,
-  },
-  selectedTrack: {
-    position: "absolute",
-    height: TRACK_HEIGHT,
-    borderRadius: TRACK_HEIGHT / 2,
-  },
-  thumb: {
-    position: "absolute",
-    width: THUMB_SIZE,
-    height: THUMB_SIZE,
-    borderRadius: THUMB_SIZE / 2,
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 3,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  thumbInner: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
-  sliderLabels: {
+  sliderRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 8,
-    paddingHorizontal: 4,
+    alignItems: "center",
+    marginBottom: 4,
   },
-  sliderLabel: {
-    fontSize: 11,
+  sliderTitle: {
+    fontSize: 13,
+    fontWeight: "500",
+  },
+  sliderValue: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  slider: {
+    width: "100%",
+    height: 40,
   },
   infoRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     marginHorizontal: 16,
-    marginBottom: 16,
+    marginTop: 8,
+    marginBottom: 8,
   },
   infoItem: {
     flexDirection: "row",

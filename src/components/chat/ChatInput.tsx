@@ -81,7 +81,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                 <MaterialCommunityIcons
                   name="clock-outline"
                   size={12}
-                  color={colors.primary}
+                  color="#FFFFFF"
                 />
                 <Text style={themedStyles.timeRangeText}>
                   {formatTimeRange(videoTimeRange)}
@@ -221,12 +221,12 @@ const chatInputThemedStyles = createThemedStyles((colors) => ({
     gap: 4,
     paddingHorizontal: 8,
     paddingVertical: 4,
-    backgroundColor: colors.primaryLight || colors.surface,
+    backgroundColor: colors.primary,
     borderRadius: 12,
   },
   timeRangeText: {
     fontSize: 11,
-    color: colors.primary,
+    color: "#FFFFFF",
     fontWeight: "500",
   },
   timeRangeBtn: {
