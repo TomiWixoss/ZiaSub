@@ -8,6 +8,7 @@ import { useThemedStyles } from "@hooks/useThemedStyles";
 import type { SavedTranslation } from "@src/types";
 import { createTranslateStyles } from "./translateStyles";
 import { parseSRT } from "@utils/srtParser";
+import { PRESET_PROMPTS } from "@constants/defaults";
 
 interface SavedTranslationsListProps {
   translations: SavedTranslation[];
@@ -72,8 +73,30 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
       // IMPORTANT: Use original batch settings from the translation
       // This ensures batch display matches how it was originally translated
       const batchDuration = item.batchSettings?.maxVideoDuration || 600;
+      const batchOffset = item.batchSettings?.batchOffset ?? 60; // Default 60s tolerance
 
       if (duration <= 0) return [];
+
+      // Apply tolerance: if duration <= batchDuration + batchOffset, it's a single batch
+      // This matches the logic in geminiService.ts
+      const effectiveMaxDuration = batchDuration + batchOffset;
+      if (duration <= effectiveMaxDuration) {
+        // Single batch - video fits within tolerance
+        const parsed = parseSRT(item.srtContent);
+        const savedStatus = item.batchStatuses?.[0];
+        const hasContent = parsed.length > 0;
+
+        return [
+          {
+            index: 0,
+            startTime: 0,
+            endTime: duration,
+            subtitleCount: parsed.length,
+            hasContent,
+            status: savedStatus || (hasContent ? "completed" : "pending"),
+          },
+        ];
+      }
 
       const totalBatches = Math.ceil(duration / batchDuration);
       const parsed = parseSRT(item.srtContent);
@@ -114,6 +137,13 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
       return batches;
     };
   }, [videoDuration]);
+
+  // Get preset name from presetId
+  const getPresetName = (presetId?: string): string | null => {
+    if (!presetId) return null;
+    const preset = PRESET_PROMPTS.find((p) => p.id === presetId);
+    return preset?.nameVi || preset?.name || null;
+  };
 
   if (translations.length === 0) return null;
 
@@ -188,9 +218,34 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
                     }
                   />
                   <View style={styles.translationHeaderInfo}>
-                    <Text style={styles.translationConfig}>
-                      {item.configName}
-                    </Text>
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        flexWrap: "wrap",
+                        gap: 4,
+                      }}
+                    >
+                      <Text style={styles.translationConfig}>
+                        {item.configName}
+                      </Text>
+                      {getPresetName(item.presetId) && (
+                        <Text
+                          style={[
+                            styles.translationDate,
+                            {
+                              fontSize: 10,
+                              backgroundColor: colors.surfaceLight,
+                              paddingHorizontal: 4,
+                              paddingVertical: 1,
+                              borderRadius: 4,
+                            },
+                          ]}
+                        >
+                          {getPresetName(item.presetId)}
+                        </Text>
+                      )}
+                    </View>
                     <Text style={styles.translationDate}>
                       {formatDate(item.createdAt)}
                       {item.isPartial && ` • ${progressPercent}%`}
@@ -284,7 +339,8 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
                                     isError && styles.batchChipTimeError,
                                   ]}
                                 >
-                                  {formatTime(batch.startTime)}
+                                  {formatTime(batch.startTime)} -{" "}
+                                  {formatTime(batch.endTime)}
                                 </Text>
                               </View>
                               {/* Retranslate buttons */}

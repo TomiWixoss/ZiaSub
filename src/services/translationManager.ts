@@ -92,6 +92,7 @@ class TranslationManager {
       videoUrl,
       configName: config.name,
       configId: config.id,
+      presetId: config.presetId,
       status: "processing",
       progress: null,
       keyStatus: null,
@@ -197,7 +198,8 @@ class TranslationManager {
         videoUrl,
         result,
         config.name,
-        resumeData?.existingTranslationId
+        resumeData?.existingTranslationId,
+        config.presetId
       );
 
       if (this.currentJob && this.currentJob.id === jobId && !this.isAborted) {
@@ -234,6 +236,7 @@ class TranslationManager {
                 videoDuration,
                 batchSettings,
                 batchStatuses: currentBatchStatuses,
+                presetId: config.presetId,
               }
             );
             const { cacheService } = await import("./cacheService");
@@ -303,6 +306,7 @@ class TranslationManager {
     const partialResult = this.currentJob.partialResult || undefined;
     const completedRanges = this.currentJob.completedBatchRanges || [];
     const batchStatuses = this.currentJob.batchStatuses || [];
+    const presetId = this.currentJob.presetId;
     const hasPartial = partialResult && completedRanges.length > 0;
 
     // Save partial translation IMMEDIATELY (don't wait for catch block)
@@ -320,6 +324,7 @@ class TranslationManager {
             videoDuration: this.currentJob.videoDuration,
             batchSettings: this.currentJob.batchSettings as any,
             batchStatuses,
+            presetId,
           }
         );
         // Force flush to persist immediately
@@ -477,7 +482,8 @@ class TranslationManager {
         videoUrl,
         updatedSrt,
         config.name,
-        existingTranslationId
+        existingTranslationId,
+        config.presetId
       );
 
       if (this.currentJob && this.currentJob.id === jobId && !this.isAborted) {

@@ -44,6 +44,7 @@ export interface SavedTranslation {
   createdAt: number;
   updatedAt?: number;
   configName: string;
+  presetId?: string; // ID of preset prompt used for translation
   // Partial translation support
   isPartial?: boolean;
   completedBatches?: number;
@@ -68,6 +69,7 @@ export interface TranslationJob {
   videoUrl: string;
   configName: string;
   configId?: string;
+  presetId?: string; // ID of preset prompt used
   status: "pending" | "processing" | "completed" | "error";
   progress: BatchProgress | null;
   keyStatus: string | null;

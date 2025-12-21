@@ -32,7 +32,8 @@ export const saveTranslation = async (
   videoUrl: string,
   srtContent: string,
   configName: string,
-  existingTranslationId?: string
+  existingTranslationId?: string,
+  presetId?: string
 ): Promise<SavedTranslation> => {
   const videoId = getVideoIdFromUrl(videoUrl);
 
@@ -66,6 +67,7 @@ export const saveTranslation = async (
         ...data.translations[existingIndex],
         srtContent,
         configName,
+        presetId,
         isPartial: false,
         updatedAt: Date.now(),
       };
@@ -81,6 +83,7 @@ export const saveTranslation = async (
     srtContent,
     createdAt: Date.now(),
     configName,
+    presetId,
     isPartial: false,
   };
 
@@ -106,6 +109,7 @@ export const savePartialTranslation = async (
     videoDuration?: number;
     batchSettings?: BatchSettings;
     batchStatuses?: Array<"pending" | "completed" | "error">;
+    presetId?: string;
   }
 ): Promise<SavedTranslation> => {
   const videoId = getVideoIdFromUrl(videoUrl);
@@ -145,6 +149,7 @@ export const savePartialTranslation = async (
     srtContent,
     createdAt: Date.now(),
     configName,
+    presetId: metadata.presetId,
     isPartial: true,
     completedBatches: metadata.completedBatches,
     totalBatches: metadata.totalBatches,
