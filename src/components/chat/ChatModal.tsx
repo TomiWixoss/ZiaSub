@@ -198,7 +198,7 @@ const ChatModal: React.FC<ChatModalProps> = ({
   }, [visible]);
 
   useEffect(() => {
-    if (currentSession) {
+    if (currentSession && messages.length > 0) {
       const updatedSession = {
         ...currentSession,
         messages: messages as StoredChatMessage[],
@@ -498,7 +498,7 @@ const ChatModal: React.FC<ChatModalProps> = ({
     );
   };
 
-  const handleDeleteTask = (taskId: string) => {
+  const handleDeleteTask = async (taskId: string) => {
     const taskIndex = messages.findIndex((m) => m.id === taskId);
     if (taskIndex === -1) return;
     const hasResponse = messages[taskIndex + 1]?.role === "model";
@@ -508,6 +508,20 @@ const ChatModal: React.FC<ChatModalProps> = ({
       ...messages.slice(taskIndex + removeCount),
     ];
     setMessages(newMessages);
+
+    // Immediately persist to storage
+    if (currentSession) {
+      const updatedSession = {
+        ...currentSession,
+        messages: newMessages as StoredChatMessage[],
+        updatedAt: Date.now(),
+      };
+      await updateChatSession(updatedSession);
+      setCurrentSession(updatedSession);
+      setSessions((prev) =>
+        prev.map((s) => (s.id === updatedSession.id ? updatedSession : s))
+      );
+    }
   };
 
   const renderTask = ({ item, index }: { item: TaskItem; index: number }) => {
