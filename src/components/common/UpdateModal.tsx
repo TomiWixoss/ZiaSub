@@ -1,7 +1,7 @@
 /**
  * Update Modal - Shows update notification and download progress
  */
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useMemo } from "react";
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import {
   Animated,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import Markdown from "react-native-markdown-display";
 import { useTheme } from "@src/contexts";
 import { useTranslation } from "react-i18next";
 import { updateService, UpdateCheckResult } from "@services/updateService";
@@ -132,18 +133,117 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
     return new Date(dateString).toLocaleDateString();
   };
 
-  const formatChangelog = (body: string) => {
-    return body
-      .split("\n")
-      .map((line) => line.trim())
-      .filter((line) => line.length > 0);
-  };
+  // Markdown styles based on theme
+  const markdownStyles = useMemo(
+    () => ({
+      body: {
+        color: colors.textSecondary,
+        fontSize: 13,
+        lineHeight: 20,
+      },
+      heading1: {
+        color: colors.text,
+        fontSize: 16,
+        fontWeight: "700" as const,
+        marginTop: 12,
+        marginBottom: 6,
+      },
+      heading2: {
+        color: colors.text,
+        fontSize: 15,
+        fontWeight: "600" as const,
+        marginTop: 10,
+        marginBottom: 4,
+      },
+      heading3: {
+        color: colors.text,
+        fontSize: 14,
+        fontWeight: "600" as const,
+        marginTop: 8,
+        marginBottom: 4,
+      },
+      bullet_list: {
+        marginVertical: 4,
+      },
+      ordered_list: {
+        marginVertical: 4,
+      },
+      list_item: {
+        flexDirection: "row" as const,
+        marginVertical: 2,
+      },
+      bullet_list_icon: {
+        color: colors.primary,
+        fontSize: 14,
+        marginRight: 8,
+        fontWeight: "600" as const,
+      },
+      strong: {
+        color: colors.text,
+        fontWeight: "600" as const,
+      },
+      em: {
+        fontStyle: "italic" as const,
+      },
+      code_inline: {
+        backgroundColor: colors.border,
+        color: colors.primary,
+        paddingHorizontal: 4,
+        paddingVertical: 2,
+        borderRadius: 4,
+        fontSize: 12,
+        fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
+      },
+      fence: {
+        backgroundColor: colors.border,
+        padding: 8,
+        borderRadius: 6,
+        marginVertical: 4,
+      },
+      code_block: {
+        color: colors.text,
+        fontSize: 12,
+        fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
+      },
+      link: {
+        color: colors.primary,
+        textDecorationLine: "underline" as const,
+      },
+      paragraph: {
+        marginVertical: 4,
+      },
+      table: {
+        borderWidth: 1,
+        borderColor: colors.border,
+        borderRadius: 6,
+        marginVertical: 8,
+      },
+      thead: {
+        backgroundColor: colors.border,
+      },
+      th: {
+        padding: 8,
+        borderRightWidth: 1,
+        borderBottomWidth: 1,
+        borderColor: colors.border,
+      },
+      tr: {
+        flexDirection: "row" as const,
+        borderBottomWidth: 1,
+        borderColor: colors.border,
+      },
+      td: {
+        padding: 8,
+        borderRightWidth: 1,
+        borderColor: colors.border,
+      },
+    }),
+    [colors]
+  );
 
   if (!updateResult?.hasUpdate || !release) {
     return null;
   }
-
-  const changelogLines = release.body ? formatChangelog(release.body) : [];
 
   return (
     <Modal
@@ -210,7 +310,7 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
           </View>
 
           {/* Changelog */}
-          {changelogLines.length > 0 && (
+          {release.body && (
             <View style={styles.changelogSection}>
               <Text style={[styles.changelogTitle, { color: colors.text }]}>
                 {t("update.changelog")}
@@ -223,51 +323,7 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
                 contentContainerStyle={styles.changelogContent}
                 showsVerticalScrollIndicator={false}
               >
-                {changelogLines.map((line, index) => (
-                  <View
-                    key={index}
-                    style={[
-                      styles.changelogLine,
-                      index === changelogLines.length - 1 && styles.lastLine,
-                    ]}
-                  >
-                    {line.startsWith("-") || line.startsWith("*") ? (
-                      <>
-                        <Text
-                          style={[styles.bullet, { color: colors.primary }]}
-                        >
-                          •
-                        </Text>
-                        <Text
-                          style={[
-                            styles.changelogText,
-                            { color: colors.textSecondary },
-                          ]}
-                        >
-                          {line.substring(1).trim()}
-                        </Text>
-                      </>
-                    ) : line.startsWith("#") ? (
-                      <Text
-                        style={[
-                          styles.changelogHeading,
-                          { color: colors.text },
-                        ]}
-                      >
-                        {line.replace(/^#+\s*/, "")}
-                      </Text>
-                    ) : (
-                      <Text
-                        style={[
-                          styles.changelogText,
-                          { color: colors.textSecondary },
-                        ]}
-                      >
-                        {line}
-                      </Text>
-                    )}
-                  </View>
-                ))}
+                <Markdown style={markdownStyles}>{release.body}</Markdown>
               </ScrollView>
             </View>
           )}
@@ -429,29 +485,6 @@ const styles = StyleSheet.create({
   changelogContent: {
     padding: 12,
     paddingBottom: 16,
-  },
-  changelogLine: {
-    flexDirection: "row",
-    marginBottom: 6,
-  },
-  lastLine: {
-    marginBottom: 0,
-  },
-  bullet: {
-    fontSize: 14,
-    marginRight: 8,
-    fontWeight: "600",
-  },
-  changelogText: {
-    fontSize: 13,
-    lineHeight: 20,
-    flex: 1,
-  },
-  changelogHeading: {
-    fontSize: 14,
-    fontWeight: "600",
-    marginTop: 8,
-    marginBottom: 4,
   },
   errorBox: {
     flexDirection: "row",
