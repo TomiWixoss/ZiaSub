@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import {
   View,
-  TouchableOpacity,
+  Pressable,
   TextInput as RNTextInput,
   StatusBar,
   Platform,
@@ -164,21 +164,21 @@ const GeminiEdit: React.FC<GeminiEditProps> = ({
       ]}
     >
       <View style={styles.header}>
-        <TouchableOpacity style={styles.headerBtn} onPress={onCancel}>
+        <Pressable style={styles.headerBtn} onPress={onCancel}>
           <MaterialCommunityIcons
             name="arrow-left"
             size={22}
             color={colors.text}
           />
-        </TouchableOpacity>
+        </Pressable>
         <Text style={styles.headerTitle}>{t("settings.editConfig")}</Text>
-        <TouchableOpacity style={styles.headerBtn} onPress={onSave}>
+        <Pressable style={styles.headerBtn} onPress={onSave}>
           <MaterialCommunityIcons
             name="check"
             size={22}
             color={colors.primary}
           />
-        </TouchableOpacity>
+        </Pressable>
       </View>
       <KeyboardAwareScrollView
         style={styles.container}
@@ -202,7 +202,7 @@ const GeminiEdit: React.FC<GeminiEditProps> = ({
           <Text style={styles.settingLabel}>
             {t("settings.geminiConfig.model")}
           </Text>
-          <TouchableOpacity
+          <Pressable
             style={styles.modelPicker}
             onPress={() => setShowModelPicker(!showModelPicker)}
           >
@@ -212,11 +212,11 @@ const GeminiEdit: React.FC<GeminiEditProps> = ({
               size={20}
               color={colors.textMuted}
             />
-          </TouchableOpacity>
+          </Pressable>
           {showModelPicker && (
             <View style={styles.modelDropdown}>
               {AVAILABLE_MODELS.map((model) => (
-                <TouchableOpacity
+                <Pressable
                   key={model.id}
                   style={[
                     styles.modelOption,
@@ -236,7 +236,7 @@ const GeminiEdit: React.FC<GeminiEditProps> = ({
                     {model.name}
                   </Text>
                   <Text style={styles.modelOptionId}>{model.id}</Text>
-                </TouchableOpacity>
+                </Pressable>
               ))}
             </View>
           )}
@@ -268,7 +268,7 @@ const GeminiEdit: React.FC<GeminiEditProps> = ({
             <Text style={styles.settingLabel}>
               {t("settings.geminiConfig.mediaResolution")}
             </Text>
-            <TouchableOpacity
+            <Pressable
               style={styles.modelPicker}
               onPress={() => setShowResolutionPicker(!showResolutionPicker)}
             >
@@ -280,11 +280,11 @@ const GeminiEdit: React.FC<GeminiEditProps> = ({
                 size={20}
                 color={colors.textMuted}
               />
-            </TouchableOpacity>
+            </Pressable>
             {showResolutionPicker && (
               <View style={styles.modelDropdown}>
                 {MEDIA_RESOLUTION_OPTIONS.map((option) => (
-                  <TouchableOpacity
+                  <Pressable
                     key={option.id}
                     style={[
                       styles.modelOption,
@@ -308,7 +308,7 @@ const GeminiEdit: React.FC<GeminiEditProps> = ({
                     >
                       {option.name}
                     </Text>
-                  </TouchableOpacity>
+                  </Pressable>
                 ))}
               </View>
             )}
@@ -328,7 +328,7 @@ const GeminiEdit: React.FC<GeminiEditProps> = ({
           {(thinkingMode === "level_full" ||
             thinkingMode === "level_limited") && (
             <>
-              <TouchableOpacity
+              <Pressable
                 style={styles.modelPicker}
                 onPress={() => setShowThinkingPicker(!showThinkingPicker)}
               >
@@ -340,11 +340,11 @@ const GeminiEdit: React.FC<GeminiEditProps> = ({
                   size={20}
                   color={colors.textMuted}
                 />
-              </TouchableOpacity>
+              </Pressable>
               {showThinkingPicker && (
                 <View style={styles.modelDropdown}>
                   {thinkingLevelOptions.map((option) => (
-                    <TouchableOpacity
+                    <Pressable
                       key={option.id}
                       style={[
                         styles.modelOption,
@@ -368,7 +368,7 @@ const GeminiEdit: React.FC<GeminiEditProps> = ({
                       >
                         {option.name}
                       </Text>
-                    </TouchableOpacity>
+                    </Pressable>
                   ))}
                 </View>
               )}

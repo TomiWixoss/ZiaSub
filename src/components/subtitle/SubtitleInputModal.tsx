@@ -4,8 +4,9 @@ import {
   Modal,
   StyleSheet,
   Dimensions,
-  TouchableOpacity,
+  Pressable,
   Animated,
+  Platform,
 } from "react-native";
 import { alert, confirm } from "../common/CustomAlert";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -284,12 +285,11 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
       statusBarTranslucent
     >
       <View style={styles.modalOverlay}>
-        <Animated.View style={[styles.modalBackdrop, { opacity: fadeAnim }]}>
-          <TouchableOpacity
-            style={StyleSheet.absoluteFill}
-            activeOpacity={1}
-            onPress={handleClose}
-          />
+        <Animated.View
+          style={[styles.modalBackdrop, { opacity: fadeAnim }]}
+          collapsable={false}
+        >
+          <Pressable style={StyleSheet.absoluteFill} onPress={handleClose} />
         </Animated.View>
         <Animated.View
           style={[
@@ -299,20 +299,22 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
               transform: [{ translateY: slideAnim }],
             },
           ]}
+          collapsable={false}
+          renderToHardwareTextureAndroid={Platform.OS === "android"}
         >
           <View style={styles.sheetHeader}>
             <View style={styles.dragHandle} />
             <Text style={styles.title}>{t("subtitleModal.title")}</Text>
-            <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
+            <Pressable style={styles.closeButton} onPress={handleClose}>
               <MaterialCommunityIcons
                 name="close"
                 size={20}
                 color={colors.textSecondary}
               />
-            </TouchableOpacity>
+            </Pressable>
           </View>
           <View style={styles.tabBar}>
-            <TouchableOpacity
+            <Pressable
               style={[
                 styles.tab,
                 activeTab === "translate" && styles.tabActive,
@@ -334,8 +336,8 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
               >
                 {t("subtitleModal.tabs.translate")}
               </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
+            </Pressable>
+            <Pressable
               style={[styles.tab, activeTab === "srt" && styles.tabActive]}
               onPress={() => setActiveTab("srt")}
             >
@@ -352,7 +354,7 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
               >
                 {t("subtitleModal.tabs.srt")}
               </Text>
-            </TouchableOpacity>
+            </Pressable>
           </View>
           {activeTab === "srt" ? (
             <SrtTab

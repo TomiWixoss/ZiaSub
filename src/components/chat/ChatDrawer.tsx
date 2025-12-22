@@ -2,10 +2,11 @@ import React, { useState } from "react";
 import {
   View,
   StyleSheet,
-  TouchableOpacity,
+  Pressable,
   ScrollView,
   TextInput,
   Animated,
+  Platform,
 } from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -85,6 +86,8 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({
         themedStyles.drawer,
         { top: 0, paddingTop, transform: [{ translateX: drawerAnim }] },
       ]}
+      collapsable={false}
+      renderToHardwareTextureAndroid={Platform.OS === "android"}
     >
       <View style={styles.drawerBrand}>
         <MaterialCommunityIcons
@@ -108,23 +111,23 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({
           onChangeText={setSearchQuery}
         />
         {searchQuery.length > 0 && (
-          <TouchableOpacity onPress={() => setSearchQuery("")}>
+          <Pressable onPress={() => setSearchQuery("")}>
             <MaterialCommunityIcons
               name="close"
               size={18}
               color={colors.textMuted}
             />
-          </TouchableOpacity>
+          </Pressable>
         )}
       </View>
-      <TouchableOpacity style={themedStyles.newChatBtn} onPress={onNewChat}>
+      <Pressable style={themedStyles.newChatBtn} onPress={onNewChat}>
         <MaterialCommunityIcons
           name="pencil-box-outline"
           size={20}
           color={colors.text}
         />
         <Text style={themedStyles.newChatText}>{t("chat.newChat")}</Text>
-      </TouchableOpacity>
+      </Pressable>
       <Text style={themedStyles.drawerSectionTitle}>{t("chat.history")}</Text>
       <ScrollView
         style={styles.sessionList}
@@ -154,16 +157,16 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({
                     onBlur={handleSaveSessionName}
                     onSubmitEditing={handleSaveSessionName}
                   />
-                  <TouchableOpacity onPress={handleSaveSessionName}>
+                  <Pressable onPress={handleSaveSessionName}>
                     <MaterialCommunityIcons
                       name="check"
                       size={20}
                       color={colors.success}
                     />
-                  </TouchableOpacity>
+                  </Pressable>
                 </View>
               ) : (
-                <TouchableOpacity
+                <Pressable
                   style={styles.sessionContent}
                   onPress={() => onSelectSession(session)}
                 >
@@ -178,7 +181,7 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({
                     {session.name}
                   </Text>
                   <View style={styles.sessionActions}>
-                    <TouchableOpacity
+                    <Pressable
                       style={styles.sessionActionBtn}
                       onPress={() => handleStartEdit(session)}
                     >
@@ -187,8 +190,8 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({
                         size={16}
                         color={colors.textMuted}
                       />
-                    </TouchableOpacity>
-                    <TouchableOpacity
+                    </Pressable>
+                    <Pressable
                       style={styles.sessionActionBtn}
                       onPress={() => handleDelete(session.id)}
                     >
@@ -197,9 +200,9 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({
                         size={16}
                         color={colors.textMuted}
                       />
-                    </TouchableOpacity>
+                    </Pressable>
                   </View>
-                </TouchableOpacity>
+                </Pressable>
               )}
             </View>
           ))

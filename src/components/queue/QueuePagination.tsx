@@ -1,5 +1,5 @@
 import React from "react";
-import { View, TouchableOpacity } from "react-native";
+import { View, Pressable } from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTheme } from "@src/contexts";
@@ -24,7 +24,7 @@ const QueuePagination: React.FC<QueuePaginationProps> = ({
 
   return (
     <View style={styles.pagination}>
-      <TouchableOpacity
+      <Pressable
         style={[styles.pageBtn, page === 1 && styles.pageBtnDisabled]}
         onPress={() => onPageChange(Math.max(1, page - 1))}
         disabled={page === 1}
@@ -34,11 +34,11 @@ const QueuePagination: React.FC<QueuePaginationProps> = ({
           size={24}
           color={page === 1 ? colors.textMuted : colors.text}
         />
-      </TouchableOpacity>
+      </Pressable>
       <Text style={styles.pageText}>
         {page} / {totalPages}
       </Text>
-      <TouchableOpacity
+      <Pressable
         style={[styles.pageBtn, page === totalPages && styles.pageBtnDisabled]}
         onPress={() => onPageChange(Math.min(totalPages, page + 1))}
         disabled={page === totalPages}
@@ -48,7 +48,7 @@ const QueuePagination: React.FC<QueuePaginationProps> = ({
           size={24}
           color={page === totalPages ? colors.textMuted : colors.text}
         />
-      </TouchableOpacity>
+      </Pressable>
     </View>
   );
 };

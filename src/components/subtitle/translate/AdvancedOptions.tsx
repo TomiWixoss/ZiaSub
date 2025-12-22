@@ -1,5 +1,5 @@
 import React, { useCallback } from "react";
-import { View, TouchableOpacity, TextInput, Switch } from "react-native";
+import { View, Pressable, TextInput, Switch } from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
@@ -113,13 +113,9 @@ const TimeInput: React.FC<TimeInputProps> = ({
 
   return (
     <View style={styles.timeInputWrapper}>
-      <TouchableOpacity
-        style={styles.timeAdjustBtn}
-        onPress={() => adjustTime(-10)}
-        activeOpacity={0.7}
-      >
+      <Pressable style={styles.timeAdjustBtn} onPress={() => adjustTime(-10)}>
         <MaterialCommunityIcons name="minus" size={18} color={colors.text} />
-      </TouchableOpacity>
+      </Pressable>
       <TextInput
         style={styles.timeInputField}
         value={value}
@@ -130,13 +126,9 @@ const TimeInput: React.FC<TimeInputProps> = ({
         keyboardType="numeric"
         maxLength={8}
       />
-      <TouchableOpacity
-        style={styles.timeAdjustBtn}
-        onPress={() => adjustTime(10)}
-        activeOpacity={0.7}
-      >
+      <Pressable style={styles.timeAdjustBtn} onPress={() => adjustTime(10)}>
         <MaterialCommunityIcons name="plus" size={18} color={colors.text} />
-      </TouchableOpacity>
+      </Pressable>
     </View>
   );
 };
@@ -178,10 +170,7 @@ const AdvancedOptions: React.FC<AdvancedOptionsProps> = ({
 
   return (
     <>
-      <TouchableOpacity
-        style={styles.advancedToggle}
-        onPress={onToggleAdvanced}
-      >
+      <Pressable style={styles.advancedToggle} onPress={onToggleAdvanced}>
         <MaterialCommunityIcons
           name="tune-variant"
           size={18}
@@ -195,7 +184,7 @@ const AdvancedOptions: React.FC<AdvancedOptionsProps> = ({
           size={18}
           color={colors.textMuted}
         />
-      </TouchableOpacity>
+      </Pressable>
       {showAdvanced && (
         <View style={styles.advancedPanel}>
           <View style={styles.advancedRow}>

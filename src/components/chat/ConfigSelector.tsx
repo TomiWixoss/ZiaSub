@@ -3,7 +3,7 @@ import {
   View,
   StyleSheet,
   Modal,
-  TouchableOpacity,
+  Pressable,
   TouchableWithoutFeedback,
   ScrollView,
 } from "react-native";
@@ -46,13 +46,13 @@ const ConfigSelector: React.FC<ConfigSelectorProps> = ({
             <View style={themedStyles.container}>
               <View style={styles.header}>
                 <Text style={themedStyles.title}>{t("chat.selectConfig")}</Text>
-                <TouchableOpacity onPress={onClose}>
+                <Pressable onPress={onClose}>
                   <MaterialCommunityIcons
                     name="close"
                     size={24}
                     color={colors.textMuted}
                   />
-                </TouchableOpacity>
+                </Pressable>
               </View>
               <ScrollView
                 style={styles.list}
@@ -61,7 +61,7 @@ const ConfigSelector: React.FC<ConfigSelectorProps> = ({
                 {configs.map((config) => {
                   const isActive = activeConfig?.id === config.id;
                   return (
-                    <TouchableOpacity
+                    <Pressable
                       key={config.id}
                       style={[
                         themedStyles.item,
@@ -96,7 +96,7 @@ const ConfigSelector: React.FC<ConfigSelectorProps> = ({
                           color={colors.primary}
                         />
                       )}
-                    </TouchableOpacity>
+                    </Pressable>
                   );
                 })}
               </ScrollView>

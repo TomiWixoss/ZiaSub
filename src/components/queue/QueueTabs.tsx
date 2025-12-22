@@ -1,5 +1,5 @@
 import React from "react";
-import { View, TouchableOpacity } from "react-native";
+import { View, Pressable } from "react-native";
 import { Text } from "react-native-paper";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@src/contexts";
@@ -31,7 +31,7 @@ const QueueTabs: React.FC<QueueTabsProps> = ({
 
   return (
     <View style={styles.tabBar}>
-      <TouchableOpacity
+      <Pressable
         style={[styles.tab, activeTab === "pending" && styles.tabActive]}
         onPress={() => onTabChange("pending")}
       >
@@ -53,8 +53,8 @@ const QueueTabs: React.FC<QueueTabsProps> = ({
             <Text style={styles.badgeText}>{pendingCount}</Text>
           </View>
         )}
-      </TouchableOpacity>
-      <TouchableOpacity
+      </Pressable>
+      <Pressable
         style={[styles.tab, activeTab === "translating" && styles.tabActive]}
         onPress={() => onTabChange("translating")}
       >
@@ -77,8 +77,8 @@ const QueueTabs: React.FC<QueueTabsProps> = ({
             <Text style={styles.badgeText}>{counts.translating}</Text>
           </View>
         )}
-      </TouchableOpacity>
-      <TouchableOpacity
+      </Pressable>
+      <Pressable
         style={[styles.tab, activeTab === "completed" && styles.tabActive]}
         onPress={() => onTabChange("completed")}
       >
@@ -101,7 +101,7 @@ const QueueTabs: React.FC<QueueTabsProps> = ({
             <Text style={styles.badgeText}>{counts.completed}</Text>
           </View>
         )}
-      </TouchableOpacity>
+      </Pressable>
     </View>
   );
 };

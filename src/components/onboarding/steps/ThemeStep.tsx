@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, Pressable } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useTheme, ThemeMode } from "@src/contexts";
 import Button3D from "@components/common/Button3D";
@@ -56,7 +56,7 @@ export const ThemeStep: React.FC<StepProps> = ({ onNext, onPrevious }) => {
 
         <View style={styles.options}>
           {themeOptions.map((option) => (
-            <TouchableOpacity
+            <Pressable
               key={option.mode}
               style={[
                 styles.optionCard,
@@ -68,7 +68,6 @@ export const ThemeStep: React.FC<StepProps> = ({ onNext, onPrevious }) => {
                 },
               ]}
               onPress={() => handleThemeSelect(option.mode)}
-              activeOpacity={0.7}
             >
               <Ionicons
                 name={option.icon}
@@ -101,18 +100,18 @@ export const ThemeStep: React.FC<StepProps> = ({ onNext, onPrevious }) => {
                   <Ionicons name="checkmark" size={14} color="#fff" />
                 </View>
               )}
-            </TouchableOpacity>
+            </Pressable>
           ))}
         </View>
       </View>
 
       <View style={styles.footer}>
-        <TouchableOpacity
+        <Pressable
           style={[styles.backButton, { borderColor: colors.border }]}
           onPress={onPrevious}
         >
           <Ionicons name="arrow-back" size={20} color={colors.text} />
-        </TouchableOpacity>
+        </Pressable>
         <Button3D
           title={t("common.next")}
           onPress={onNext}

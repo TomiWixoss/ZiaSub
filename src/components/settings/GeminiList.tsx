@@ -1,5 +1,5 @@
 import React from "react";
-import { View, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
+import { View, StyleSheet, Pressable, ScrollView } from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
@@ -29,7 +29,7 @@ const GeminiList: React.FC<GeminiListProps> = ({
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
         {configs.map((config) => (
-          <TouchableOpacity
+          <Pressable
             key={config.id}
             style={themedStyles.configItem}
             onPress={() => onEdit(config)}
@@ -39,7 +39,7 @@ const GeminiList: React.FC<GeminiListProps> = ({
               <Text style={themedStyles.configModel}>{config.model}</Text>
             </View>
             <View style={styles.configActions}>
-              <TouchableOpacity
+              <Pressable
                 style={styles.configActionBtn}
                 onPress={() => onDelete(config.id)}
               >
@@ -48,14 +48,14 @@ const GeminiList: React.FC<GeminiListProps> = ({
                   size={20}
                   color={colors.textMuted}
                 />
-              </TouchableOpacity>
+              </Pressable>
               <MaterialCommunityIcons
                 name="chevron-right"
                 size={20}
                 color={colors.textMuted}
               />
             </View>
-          </TouchableOpacity>
+          </Pressable>
         ))}
       </ScrollView>
       <Button3D

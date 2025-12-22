@@ -3,7 +3,7 @@ import {
   View,
   Modal,
   StyleSheet,
-  TouchableOpacity,
+  Pressable,
   FlatList,
   Animated,
   Dimensions,
@@ -313,16 +313,18 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
               transform: [{ translateY: slideAnim }],
             },
           ]}
+          collapsable={false}
+          renderToHardwareTextureAndroid={Platform.OS === "android"}
         >
           <View style={styles.header}>
             <Text style={themedStyles.headerTitle}>{t("queue.title")}</Text>
-            <TouchableOpacity style={styles.closeBtn} onPress={handleClose}>
+            <Pressable style={styles.closeBtn} onPress={handleClose}>
               <MaterialCommunityIcons
                 name="close"
                 size={24}
                 color={colors.text}
               />
-            </TouchableOpacity>
+            </Pressable>
           </View>
           <QueueTabs
             activeTab={activeTab}
@@ -346,7 +348,7 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
           )}
           {activeTab === "completed" && counts.completed > 0 && (
             <View style={queueStyles.actionSection}>
-              <TouchableOpacity
+              <Pressable
                 style={queueStyles.clearAllBtnFull}
                 onPress={handleClearCompleted}
               >
@@ -358,12 +360,12 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
                 <Text style={queueStyles.clearAllText}>
                   {t("queue.actions.clearAll")}
                 </Text>
-              </TouchableOpacity>
+              </Pressable>
             </View>
           )}
           {activeTab === "translating" && counts.translating > 0 && (
             <View style={queueStyles.actionSection}>
-              <TouchableOpacity
+              <Pressable
                 style={[
                   queueStyles.clearAllBtnFull,
                   { borderColor: colors.warning },
@@ -380,7 +382,7 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
                 >
                   {t("queue.actions.stopAll")}
                 </Text>
-              </TouchableOpacity>
+              </Pressable>
             </View>
           )}
           <FlatList

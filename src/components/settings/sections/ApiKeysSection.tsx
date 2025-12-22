@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, StyleSheet, TouchableOpacity, Linking } from "react-native";
+import { View, StyleSheet, Pressable, Linking } from "react-native";
 import * as Clipboard from "expo-clipboard";
 import { alert, confirmDestructive } from "../../common/CustomAlert";
 import Button3D from "../../common/Button3D";
@@ -86,7 +86,7 @@ const ApiKeysSection: React.FC<ApiKeysSectionProps> = ({
         <Text style={themedStyles.sectionHint}>
           {t("settings.apiKeys.description")}{" "}
         </Text>
-        <TouchableOpacity
+        <Pressable
           onPress={() =>
             Linking.openURL("https://aistudio.google.com/app/apikey")
           }
@@ -94,7 +94,7 @@ const ApiKeysSection: React.FC<ApiKeysSectionProps> = ({
           <Text style={themedStyles.linkText}>
             {t("settings.apiKeys.getKey")}
           </Text>
-        </TouchableOpacity>
+        </Pressable>
       </View>
       <View style={themedStyles.apiKeysContainer}>
         {apiKeys.map((key, index) => (
@@ -116,7 +116,7 @@ const ApiKeysSection: React.FC<ApiKeysSectionProps> = ({
                 </View>
               )}
             </View>
-            <TouchableOpacity
+            <Pressable
               onPress={() => handleDeleteKey(index)}
               style={styles.deleteKeyBtn}
             >
@@ -125,7 +125,7 @@ const ApiKeysSection: React.FC<ApiKeysSectionProps> = ({
                 size={18}
                 color={colors.error}
               />
-            </TouchableOpacity>
+            </Pressable>
           </View>
         ))}
         <View style={styles.addKeyRow}>
@@ -141,7 +141,7 @@ const ApiKeysSection: React.FC<ApiKeysSectionProps> = ({
             disabled={isAddingKey}
             style={styles.addKeyFromClipboardBtn}
           />
-          <TouchableOpacity
+          <Pressable
             onPress={() => setShowKeys(!showKeys)}
             style={styles.eyeBtn}
           >
@@ -150,7 +150,7 @@ const ApiKeysSection: React.FC<ApiKeysSectionProps> = ({
               size={20}
               color={colors.textMuted}
             />
-          </TouchableOpacity>
+          </Pressable>
         </View>
         <Text style={themedStyles.clipboardHint}>
           {t("settings.apiKeys.clipboardHint")}

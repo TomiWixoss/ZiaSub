@@ -3,7 +3,7 @@ import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
+  Pressable,
   ActivityIndicator,
   Platform,
 } from "react-native";
@@ -233,7 +233,7 @@ export const StorageStep: React.FC<StepProps> = ({ onNext, onPrevious }) => {
 
         {/* Path Options */}
         <View style={styles.optionsContainer}>
-          <TouchableOpacity
+          <Pressable
             style={[
               styles.optionButton,
               { backgroundColor: colors.surface, borderColor: colors.border },
@@ -244,10 +244,10 @@ export const StorageStep: React.FC<StepProps> = ({ onNext, onPrevious }) => {
             <Text style={[styles.optionText, { color: colors.text }]}>
               {t("onboarding.storage.useDefault")}
             </Text>
-          </TouchableOpacity>
+          </Pressable>
 
           {Platform.OS === "android" && (
-            <TouchableOpacity
+            <Pressable
               style={[
                 styles.optionButton,
                 { backgroundColor: colors.surface, borderColor: colors.border },
@@ -262,7 +262,7 @@ export const StorageStep: React.FC<StepProps> = ({ onNext, onPrevious }) => {
               <Text style={[styles.optionText, { color: colors.text }]}>
                 {t("onboarding.storage.pickFolder")}
               </Text>
-            </TouchableOpacity>
+            </Pressable>
           )}
         </View>
       </View>

@@ -1,11 +1,8 @@
-/**
- * Update Section - Check for app updates
- */
 import React, { useState, useCallback } from "react";
 import {
   View,
   StyleSheet,
-  TouchableOpacity,
+  Pressable,
   ActivityIndicator,
   Platform,
 } from "react-native";
@@ -54,10 +51,9 @@ const UpdateSection: React.FC = () => {
       </View>
 
       {hasUpdate && updateResult?.latestRelease && (
-        <TouchableOpacity
+        <Pressable
           style={[styles.updateBox, themedStyles.updateBox]}
           onPress={showUpdateModal}
-          activeOpacity={0.7}
         >
           <View style={styles.updateHeader}>
             <MaterialCommunityIcons
@@ -79,11 +75,11 @@ const UpdateSection: React.FC = () => {
               color={colors.textMuted}
             />
           </View>
-        </TouchableOpacity>
+        </Pressable>
       )}
 
       {!hasUpdate && (
-        <TouchableOpacity
+        <Pressable
           style={[styles.checkButton, themedStyles.checkButton]}
           onPress={checkUpdate}
           disabled={checking}
@@ -102,7 +98,7 @@ const UpdateSection: React.FC = () => {
               </Text>
             </>
           )}
-        </TouchableOpacity>
+        </Pressable>
       )}
     </View>
   );

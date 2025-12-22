@@ -2,7 +2,7 @@ import React from "react";
 import {
   View,
   StyleSheet,
-  TouchableOpacity,
+  Pressable,
   TextInput as RNTextInput,
   Platform,
 } from "react-native";
@@ -94,7 +94,7 @@ export const SrtTab: React.FC<SrtTabProps> = ({
           autoCorrect={false}
         />
         {srtContent.length > 0 && (
-          <TouchableOpacity
+          <Pressable
             style={styles.clearButton}
             onPress={() => setSrtContent("")}
           >
@@ -103,7 +103,7 @@ export const SrtTab: React.FC<SrtTabProps> = ({
               size={18}
               color={colors.textMuted}
             />
-          </TouchableOpacity>
+          </Pressable>
         )}
       </View>
       <Button3D

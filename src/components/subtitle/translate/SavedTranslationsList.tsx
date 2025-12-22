@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { View, TouchableOpacity, LayoutAnimation } from "react-native";
+import { View, Pressable, LayoutAnimation } from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
@@ -189,10 +189,9 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
               ]}
             >
               {/* Header - always visible */}
-              <TouchableOpacity
+              <Pressable
                 style={styles.translationHeader}
                 onPress={() => toggleExpand(item.id)}
-                activeOpacity={0.7}
               >
                 <View style={styles.translationHeaderLeft}>
                   <MaterialCommunityIcons
@@ -250,7 +249,7 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
                 {/* Quick actions on header */}
                 <View style={styles.translationHeaderActions}>
                   {item.isPartial && onResume && (
-                    <TouchableOpacity
+                    <Pressable
                       style={styles.headerActionBtn}
                       onPress={(e) => {
                         e.stopPropagation();
@@ -262,10 +261,10 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
                         size={20}
                         color={colors.success}
                       />
-                    </TouchableOpacity>
+                    </Pressable>
                   )}
                 </View>
-              </TouchableOpacity>
+              </Pressable>
 
               {/* Expanded content */}
               {isExpanded && (
@@ -341,7 +340,7 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
                               {/* Retranslate buttons */}
                               {onRetranslateBatch && (
                                 <View style={styles.batchActions}>
-                                  <TouchableOpacity
+                                  <Pressable
                                     style={styles.batchActionBtn}
                                     onPress={() =>
                                       handleRetranslateBatch(
@@ -356,8 +355,8 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
                                       size={14}
                                       color={colors.primary}
                                     />
-                                  </TouchableOpacity>
-                                  <TouchableOpacity
+                                  </Pressable>
+                                  <Pressable
                                     style={styles.batchActionBtn}
                                     onPress={() =>
                                       handleRetranslateBatch(
@@ -372,7 +371,7 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
                                       size={14}
                                       color={colors.warning}
                                     />
-                                  </TouchableOpacity>
+                                  </Pressable>
                                 </View>
                               )}
                             </View>
@@ -387,7 +386,7 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
 
                   {/* Action buttons */}
                   <View style={styles.expandedActions}>
-                    <TouchableOpacity
+                    <Pressable
                       style={[
                         styles.expandedActionBtn,
                         styles.expandedActionBtnPrimary,
@@ -402,8 +401,8 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
                       <Text style={styles.expandedActionBtnTextPrimary}>
                         {t("subtitleModal.translate.useThis")}
                       </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
+                    </Pressable>
+                    <Pressable
                       style={[
                         styles.expandedActionBtn,
                         styles.expandedActionBtnDanger,
@@ -415,7 +414,7 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
                         size={18}
                         color={colors.error}
                       />
-                    </TouchableOpacity>
+                    </Pressable>
                   </View>
                 </View>
               )}

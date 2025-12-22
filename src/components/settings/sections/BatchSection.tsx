@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, StyleSheet, TouchableOpacity } from "react-native";
+import { View, StyleSheet, Pressable } from "react-native";
 import { Text } from "react-native-paper";
 import Slider from "@react-native-community/slider";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -166,10 +166,9 @@ const BatchSection: React.FC<BatchSectionProps> = ({
         <Text style={themedStyles.settingHint}>
           {t("settings.batch.presubConfigHint")}
         </Text>
-        <TouchableOpacity
+        <Pressable
           style={themedStyles.configPicker}
           onPress={() => setShowConfigPicker(!showConfigPicker)}
-          activeOpacity={0.7}
         >
           <View style={styles.configPickerLeft}>
             <MaterialCommunityIcons
@@ -186,10 +185,10 @@ const BatchSection: React.FC<BatchSectionProps> = ({
             size={20}
             color={colors.textMuted}
           />
-        </TouchableOpacity>
+        </Pressable>
         {showConfigPicker && (
           <View style={themedStyles.configDropdown}>
-            <TouchableOpacity
+            <Pressable
               style={[
                 themedStyles.configOption,
                 !batchSettings.presubConfigId &&
@@ -213,9 +212,9 @@ const BatchSection: React.FC<BatchSectionProps> = ({
                   color={colors.warning}
                 />
               )}
-            </TouchableOpacity>
+            </Pressable>
             {geminiConfigs.map((config) => (
-              <TouchableOpacity
+              <Pressable
                 key={config.id}
                 style={[
                   themedStyles.configOption,
@@ -249,7 +248,7 @@ const BatchSection: React.FC<BatchSectionProps> = ({
                     color={colors.warning}
                   />
                 )}
-              </TouchableOpacity>
+              </Pressable>
             ))}
           </View>
         )}

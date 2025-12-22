@@ -3,7 +3,7 @@ import {
   ScrollView,
   StyleSheet,
   View,
-  TouchableOpacity,
+  Pressable,
   LayoutAnimation,
   Platform,
   UIManager,
@@ -279,13 +279,12 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
           group.key === "update" && hasUpdate && !isExpanded;
         return (
           <View key={group.key} style={themedStyles.groupContainer}>
-            <TouchableOpacity
+            <Pressable
               style={[
                 themedStyles.groupHeader,
                 isExpanded && themedStyles.groupHeaderExpanded,
               ]}
               onPress={() => toggleGroup(group.key)}
-              activeOpacity={0.7}
             >
               <View style={styles.groupHeaderLeft}>
                 <View style={styles.iconWrapper}>
@@ -347,7 +346,7 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
                 size={24}
                 color={isExpanded ? colors.primary : colors.textMuted}
               />
-            </TouchableOpacity>
+            </Pressable>
             {isExpanded && renderGroupContent(group.key)}
           </View>
         );
