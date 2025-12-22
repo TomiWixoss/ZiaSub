@@ -24,6 +24,7 @@ import { UpdateModal } from "@components/common/UpdateModal";
 import { storageService } from "@services/storageService";
 import { backupService } from "@services/backupService";
 import { keyManager } from "@services/keyManager";
+import { backgroundService } from "@services/backgroundService";
 
 type InitState = "loading" | "onboarding" | "ready" | "error";
 
@@ -99,6 +100,9 @@ const AppContent = () => {
         if (apiKeys.length > 0) {
           keyManager.initialize(apiKeys);
         }
+
+        // Step 5: Initialize background service
+        await backgroundService.initialize();
 
         // All done!
         setInitState("ready");

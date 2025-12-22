@@ -6,6 +6,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { QueueItem, QueueStatus } from "@src/types";
 import { translationManager } from "./translationManager";
 import { notificationService } from "./notificationService";
+import { backgroundService } from "./backgroundService";
 import {
   getActiveGeminiConfig,
   getBatchSettings,
@@ -327,6 +328,9 @@ class QueueManager {
     this.isProcessing = true;
     this.currentProcessingItemId = item.id;
 
+    // Start background service để giữ app chạy khi ở background
+    await backgroundService.onTranslationStart(item.title || config.name);
+
     // Keep existing startedAt to maintain order, only set if not exists
     await this.updateItem(item.id, {
       status: "translating",
@@ -388,6 +392,13 @@ class QueueManager {
             completedBatches: job.progress.completedBatches,
             totalBatches: job.progress.totalBatches,
           });
+
+          // Update background notification progress
+          backgroundService.updateProgress(
+            job.progress.currentBatch,
+            job.progress.totalBatches,
+            item.title
+          );
         }
 
         // Update partial result for streaming
@@ -421,6 +432,9 @@ class QueueManager {
           this.isProcessing = false;
           this.currentProcessingItemId = null;
           safeUnsubscribe();
+
+          // Stop background service khi dịch xong
+          backgroundService.onTranslationComplete();
 
           // Send notification when translation completes
           notificationService.notifyTranslationComplete(videoTitle, "queue");
@@ -493,6 +507,10 @@ class QueueManager {
           this.isProcessing = false;
           this.currentProcessingItemId = null;
           safeUnsubscribe();
+
+          // Stop background service khi lỗi
+          backgroundService.onTranslationStop();
+
           // Only continue to next item if auto-process is enabled (user clicked "Translate All")
           if (this.autoProcessEnabled) {
             console.log(
@@ -866,6 +884,9 @@ class QueueManager {
         this.isProcessing = false;
         this.currentProcessingItemId = null;
 
+        // Stop background service
+        await backgroundService.onTranslationStop();
+
         // Check if has partial data
         if (
           result.partialResult &&
@@ -1035,6 +1056,9 @@ class QueueManager {
       if (result.aborted) {
         this.isProcessing = false;
         this.currentProcessingItemId = null;
+
+        // Stop background service
+        await backgroundService.onTranslationStop();
 
         // Add to paused items
         this.userPausedItems.add(currentItem.id);

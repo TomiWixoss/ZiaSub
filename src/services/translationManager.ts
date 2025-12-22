@@ -8,6 +8,7 @@ import type {
 import { saveTranslation, savePartialTranslation } from "@utils/storage";
 import { translateVideoWithGemini } from "./geminiService";
 import { notificationService } from "./notificationService";
+import { backgroundService } from "./backgroundService";
 
 type TranslationListener = (job: TranslationJob) => void;
 
@@ -88,6 +89,9 @@ class TranslationManager {
     this.abortController = new AbortController();
     this.isAborted = false;
 
+    // Start background service để giữ app chạy khi ở background
+    await backgroundService.onTranslationStart(config.name);
+
     const jobId = `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
     this.currentJob = {
       id: jobId,
@@ -160,6 +164,13 @@ class TranslationManager {
                 batchStatuses: currentBatchStatuses,
               };
               this.notify();
+
+              // Update background notification progress
+              backgroundService.updateProgress(
+                progress.currentBatch,
+                progress.totalBatches,
+                config.name
+              );
             }
           },
           onKeyStatus,
@@ -291,6 +302,8 @@ class TranslationManager {
       throw error;
     } finally {
       this.abortController = null;
+      // Stop background service khi dịch xong (dù thành công hay lỗi)
+      backgroundService.onTranslationComplete();
     }
   }
 
@@ -423,6 +436,9 @@ class TranslationManager {
     this.abortController = new AbortController();
     this.isAborted = false;
 
+    // Start background service
+    await backgroundService.onTranslationStart(config.name);
+
     const jobId = `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
     this.currentJob = {
       id: jobId,
@@ -537,6 +553,8 @@ class TranslationManager {
       throw error;
     } finally {
       this.abortController = null;
+      // Stop background service
+      backgroundService.onTranslationComplete();
     }
   }
 }

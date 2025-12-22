@@ -10,3 +10,4 @@ export type { QueueItem, QueueStatus } from "./queueManager";
 export { ttsService } from "./ttsService";
 export { updateService } from "./updateService";
 export type { ReleaseInfo, UpdateCheckResult } from "./updateService";
+export { backgroundService } from "./backgroundService";
