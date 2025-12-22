@@ -384,6 +384,9 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
       if (result.queued) {
         alert(t("common.notice"), t("queue.addedToWaitingQueue"));
       }
+    } else {
+      // Video was removed from queue - start fresh translation
+      handleTranslate();
     }
   };
 

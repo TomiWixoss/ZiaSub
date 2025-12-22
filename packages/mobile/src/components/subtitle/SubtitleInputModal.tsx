@@ -184,11 +184,64 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
   // Subscribe to queue changes
   useEffect(() => {
     const unsubscribe = queueManager.subscribe(() => {
-      checkQueueStatus();
+      // Re-check queue status when queue changes
+      if (!videoUrl) {
+        setIsWaitingInQueue(false);
+        setIsPausedInQueue(false);
+        setQueuePosition(null);
+        setPausedProgress(null);
+        return;
+      }
+
+      const queueStatus = queueManager.getVideoQueueStatus(videoUrl);
+
+      // Check if paused
+      if (queueStatus.inQueue && queueStatus.status === "paused") {
+        setIsPausedInQueue(true);
+        setIsWaitingInQueue(false);
+        setQueuePosition(null);
+        const queueItem = queueManager.isInQueue(videoUrl);
+        if (queueItem && queueItem.completedBatches && queueItem.totalBatches) {
+          setPausedProgress({
+            completed: queueItem.completedBatches,
+            total: queueItem.totalBatches,
+          });
+        } else {
+          setPausedProgress(null);
+        }
+        return;
+      }
+
+      // Reset paused state if not paused
+      setIsPausedInQueue(false);
+      setPausedProgress(null);
+
+      if (queueStatus.inQueue && queueStatus.status === "translating") {
+        const currentJob = translationManager.getCurrentJob();
+        const currentVideoId = extractVideoId(videoUrl);
+        const jobVideoId = currentJob
+          ? extractVideoId(currentJob.videoUrl)
+          : null;
+
+        if (
+          currentJob &&
+          jobVideoId === currentVideoId &&
+          currentJob.status === "processing"
+        ) {
+          setIsWaitingInQueue(false);
+          setQueuePosition(null);
+        } else {
+          setIsWaitingInQueue(true);
+          setQueuePosition(queueStatus.position || null);
+        }
+      } else {
+        setIsWaitingInQueue(false);
+        setQueuePosition(null);
+      }
     });
     checkQueueStatus();
     return () => unsubscribe();
-  }, [checkQueueStatus]);
+  }, [videoUrl]); // Only depend on videoUrl, not checkQueueStatus
 
   // Handle cancel waiting in queue - move to pending instead of removing
   const handleCancelQueue = useCallback(async () => {
