@@ -36,6 +36,7 @@ import {
 
 interface TranslateTabProps {
   videoUrl?: string;
+  videoTitle?: string;
   videoDuration?: number;
   batchSettings?: BatchSettings;
   isTranslating: boolean;
@@ -57,6 +58,7 @@ interface TranslateTabProps {
 
 export const TranslateTab: React.FC<TranslateTabProps> = ({
   videoUrl,
+  videoTitle,
   videoDuration,
   batchSettings,
   isTranslating,
@@ -231,7 +233,7 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
       // forceRetranslate = true to allow re-translating completed videos
       await queueManager.syncDirectTranslation(
         videoUrl,
-        undefined,
+        videoTitle,
         videoDuration,
         config.name,
         true // forceRetranslate
@@ -344,7 +346,7 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
       const { queueManager } = await import("@services/queueManager");
       await queueManager.syncDirectTranslation(
         videoUrl,
-        undefined,
+        videoTitle,
         videoDuration,
         config.name,
         true // forceRetranslate
@@ -470,7 +472,7 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
             const { queueManager } = await import("@services/queueManager");
             await queueManager.syncDirectTranslation(
               videoUrl,
-              undefined,
+              videoTitle,
               videoDuration,
               config.name,
               true // forceRetranslate

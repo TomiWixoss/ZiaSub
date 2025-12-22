@@ -48,6 +48,7 @@ interface SubtitleInputModalProps {
   onApplySubtitles?: (content: string) => void;
   onClearSubtitles?: () => void;
   videoUrl?: string;
+  videoTitle?: string;
   videoDuration?: number;
   batchSettings?: BatchSettings;
   onBatchSettingsChange?: (settings: BatchSettings) => void;
@@ -66,6 +67,7 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
   onApplySubtitles,
   onClearSubtitles,
   videoUrl,
+  videoTitle,
   videoDuration,
   batchSettings,
   onBatchSettingsChange,
@@ -538,6 +540,7 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
             ) : (
               <TranslateTab
                 videoUrl={videoUrl}
+                videoTitle={videoTitle}
                 videoDuration={videoDuration}
                 batchSettings={batchSettings}
                 isTranslating={isTranslating}

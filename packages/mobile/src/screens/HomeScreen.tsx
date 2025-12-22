@@ -533,6 +533,7 @@ const HomeScreen = () => {
           }
         }}
         videoUrl={currentUrl}
+        videoTitle={videoTitle}
         videoDuration={videoDuration}
         batchSettings={batchSettings}
         onBatchSettingsChange={updateBatchSettings}
