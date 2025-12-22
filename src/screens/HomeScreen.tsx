@@ -4,7 +4,7 @@ import {
   StyleSheet,
   StatusBar,
   Text,
-  Pressable,
+  TouchableOpacity,
   TextInput,
 } from "react-native";
 import { alert, showAlert } from "@components/common/CustomAlert";
@@ -351,35 +351,41 @@ const HomeScreen = () => {
         >
           <View style={styles.header}>
             <View style={styles.navButtons}>
-              <Pressable
+              <TouchableOpacity
                 style={[styles.navBtn, !canGoBack && styles.navBtnDisabled]}
                 onPress={handleGoBack}
                 disabled={!canGoBack}
+                activeOpacity={0.7}
               >
                 <MaterialCommunityIcons
                   name="arrow-left"
                   size={18}
                   color={canGoBack ? colors.text : colors.textMuted}
                 />
-              </Pressable>
-              <Pressable
+              </TouchableOpacity>
+              <TouchableOpacity
                 style={[styles.navBtn, !canGoForward && styles.navBtnDisabled]}
                 onPress={handleGoForward}
                 disabled={!canGoForward}
+                activeOpacity={0.7}
               >
                 <MaterialCommunityIcons
                   name="arrow-right"
                   size={18}
                   color={canGoForward ? colors.text : colors.textMuted}
                 />
-              </Pressable>
-              <Pressable style={styles.navBtn} onPress={reloadWebView}>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.navBtn}
+                onPress={reloadWebView}
+                activeOpacity={0.7}
+              >
                 <MaterialCommunityIcons
                   name="reload"
                   size={18}
                   color={colors.text}
                 />
-              </Pressable>
+              </TouchableOpacity>
             </View>
 
             {showUrlInput ? (
@@ -420,7 +426,7 @@ const HomeScreen = () => {
                     }, 100);
                   }}
                 />
-                <Pressable
+                <TouchableOpacity
                   style={styles.urlInputClose}
                   onPress={() => {
                     setShowUrlInput(false);
@@ -432,12 +438,13 @@ const HomeScreen = () => {
                     size={16}
                     color={colors.textMuted}
                   />
-                </Pressable>
+                </TouchableOpacity>
               </View>
             ) : (
-              <Pressable
+              <TouchableOpacity
                 style={[styles.urlBar, themedStyles.urlBar]}
                 onPress={() => setShowUrlInput(true)}
+                activeOpacity={0.7}
               >
                 <MaterialCommunityIcons
                   name="magnify"
@@ -450,7 +457,7 @@ const HomeScreen = () => {
                 >
                   {currentUrl || "m.youtube.com"}
                 </Text>
-              </Pressable>
+              </TouchableOpacity>
             )}
 
             <View style={styles.brandContainer}>

@@ -8,7 +8,7 @@ import {
   StyleSheet,
   Modal,
   ScrollView,
-  Pressable,
+  TouchableOpacity,
   Platform,
   Animated,
 } from "react-native";
@@ -271,9 +271,12 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
                 v{release.version} • {formatDate(release.publishedAt)}
               </Text>
             </View>
-            <Pressable onPress={handleDismiss} style={styles.closeButton}>
+            <TouchableOpacity
+              onPress={handleDismiss}
+              style={styles.closeButton}
+            >
               <Ionicons name="close" size={24} color={colors.textSecondary} />
-            </Pressable>
+            </TouchableOpacity>
           </View>
 
           {/* Version Info */}

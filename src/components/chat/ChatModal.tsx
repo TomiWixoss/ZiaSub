@@ -8,12 +8,11 @@ import React, {
 import {
   View,
   StyleSheet,
-  Pressable,
+  TouchableOpacity,
   FlatList,
   Modal,
   Animated,
   Dimensions,
-  Platform,
 } from "react-native";
 import { useKeyboardHandler } from "react-native-keyboard-controller";
 import Reanimated, {
@@ -562,27 +561,25 @@ const ChatModal: React.FC<ChatModalProps> = ({
               transform: [{ translateY: slideAnim }],
             },
           ]}
-          collapsable={false}
-          renderToHardwareTextureAndroid={Platform.OS === "android"}
         >
           <View style={styles.header}>
-            <Pressable style={styles.headerBtn} onPress={toggleDrawer}>
+            <TouchableOpacity style={styles.headerBtn} onPress={toggleDrawer}>
               <MaterialCommunityIcons
                 name="menu"
                 size={24}
                 color={colors.text}
               />
-            </Pressable>
+            </TouchableOpacity>
             <Text style={themedStyles.headerTitle} numberOfLines={1}>
               {currentSession?.name || "Zia"}
             </Text>
-            <Pressable style={styles.headerBtn} onPress={handleClose}>
+            <TouchableOpacity style={styles.headerBtn} onPress={handleClose}>
               <MaterialCommunityIcons
                 name="close"
                 size={24}
                 color={colors.text}
               />
-            </Pressable>
+            </TouchableOpacity>
           </View>
           <FlatList
             ref={flatListRef}
@@ -621,7 +618,11 @@ const ChatModal: React.FC<ChatModalProps> = ({
             />
           </Reanimated.View>
           {drawerOpen && (
-            <Pressable style={styles.drawerOverlay} onPress={toggleDrawer} />
+            <TouchableOpacity
+              style={styles.drawerOverlay}
+              activeOpacity={1}
+              onPress={toggleDrawer}
+            />
           )}
           <ChatDrawer
             sessions={sessions}

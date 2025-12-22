@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Pressable } from "react-native";
+import { View, TouchableOpacity } from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
@@ -30,7 +30,7 @@ const TranslateConfigPicker: React.FC<TranslateConfigPickerProps> = ({
 
   return (
     <>
-      <Pressable style={styles.configPicker} onPress={onTogglePicker}>
+      <TouchableOpacity style={styles.configPicker} onPress={onTogglePicker}>
         <View style={styles.configPickerLeft}>
           <MaterialCommunityIcons
             name="robot"
@@ -46,11 +46,11 @@ const TranslateConfigPicker: React.FC<TranslateConfigPickerProps> = ({
           size={20}
           color={colors.textMuted}
         />
-      </Pressable>
+      </TouchableOpacity>
       {showPicker && (
         <View style={styles.configDropdown}>
           {configs.map((config) => (
-            <Pressable
+            <TouchableOpacity
               key={config.id}
               style={[
                 styles.configOption,
@@ -67,7 +67,7 @@ const TranslateConfigPicker: React.FC<TranslateConfigPickerProps> = ({
               >
                 {config.name}
               </Text>
-            </Pressable>
+            </TouchableOpacity>
           ))}
         </View>
       )}

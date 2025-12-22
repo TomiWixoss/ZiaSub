@@ -1,5 +1,5 @@
 import React from "react";
-import { View, StyleSheet, TextInput, Pressable } from "react-native";
+import { View, StyleSheet, TextInput, TouchableOpacity } from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
@@ -74,7 +74,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
               {videoTitle || t("chat.video")}
             </Text>
             {videoTimeRange && (
-              <Pressable
+              <TouchableOpacity
                 style={themedStyles.timeRangeBadge}
                 onPress={onOpenTimeRange}
               >
@@ -86,10 +86,10 @@ const ChatInput: React.FC<ChatInputProps> = ({
                 <Text style={themedStyles.timeRangeText}>
                   {formatTimeRange(videoTimeRange)}
                 </Text>
-              </Pressable>
+              </TouchableOpacity>
             )}
             {!videoTimeRange && (
-              <Pressable
+              <TouchableOpacity
                 style={themedStyles.timeRangeBtn}
                 onPress={onOpenTimeRange}
               >
@@ -98,16 +98,16 @@ const ChatInput: React.FC<ChatInputProps> = ({
                   size={16}
                   color={colors.textMuted}
                 />
-              </Pressable>
+              </TouchableOpacity>
             )}
-            <Pressable
+            <TouchableOpacity
               style={themedStyles.attachmentCancelBtn}
               onPress={onToggleVideo}
             >
               <Text style={themedStyles.attachmentCancelText}>
                 {t("common.cancel")}
               </Text>
-            </Pressable>
+            </TouchableOpacity>
           </View>
         )}
         <TextInput
@@ -126,26 +126,29 @@ const ChatInput: React.FC<ChatInputProps> = ({
         />
         <View style={styles.inputBottomRow}>
           {videoUrl && !attachVideo && (
-            <Pressable style={styles.videoBtn} onPress={onToggleVideo}>
+            <TouchableOpacity style={styles.videoBtn} onPress={onToggleVideo}>
               <MaterialCommunityIcons
                 name="youtube"
                 size={20}
                 color={colors.error}
               />
-            </Pressable>
+            </TouchableOpacity>
           )}
-          <Pressable style={themedStyles.modelSelector} onPress={onOpenConfig}>
+          <TouchableOpacity
+            style={themedStyles.modelSelector}
+            onPress={onOpenConfig}
+          >
             <Text style={themedStyles.modelText} numberOfLines={1}>
               {configName}
             </Text>
-          </Pressable>
+          </TouchableOpacity>
           <View style={styles.inputSpacer} />
           {isLoading ? (
-            <Pressable style={themedStyles.stopBtn} onPress={onStop}>
+            <TouchableOpacity style={themedStyles.stopBtn} onPress={onStop}>
               <MaterialCommunityIcons name="stop" size={18} color="#FFFFFF" />
-            </Pressable>
+            </TouchableOpacity>
           ) : (
-            <Pressable
+            <TouchableOpacity
               style={[
                 themedStyles.sendBtn,
                 (!inputText.trim() || disabled) && themedStyles.sendBtnDisabled,
@@ -160,7 +163,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                   inputText.trim() && !disabled ? "#FFFFFF" : colors.textMuted
                 }
               />
-            </Pressable>
+            </TouchableOpacity>
           )}
         </View>
       </View>

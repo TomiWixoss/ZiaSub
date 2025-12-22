@@ -3,7 +3,7 @@ import {
   View,
   Text,
   StyleSheet,
-  Pressable,
+  TouchableOpacity,
   TextInput,
   Linking,
   Keyboard,
@@ -165,7 +165,7 @@ export const ApiKeyStep: React.FC<StepProps> = ({
                 autoCapitalize="none"
                 autoCorrect={false}
               />
-              <Pressable
+              <TouchableOpacity
                 style={styles.pasteButton}
                 onPress={handlePasteFromClipboard}
               >
@@ -174,7 +174,7 @@ export const ApiKeyStep: React.FC<StepProps> = ({
                   size={20}
                   color={colors.primary}
                 />
-              </Pressable>
+              </TouchableOpacity>
             </View>
 
             {error ? (
@@ -183,7 +183,7 @@ export const ApiKeyStep: React.FC<StepProps> = ({
               </Text>
             ) : null}
 
-            <Pressable
+            <TouchableOpacity
               style={[
                 styles.addButton,
                 {
@@ -205,14 +205,14 @@ export const ApiKeyStep: React.FC<StepProps> = ({
                   ? t("settings.apiKeys.adding")
                   : t("settings.apiKeys.add")}
               </Text>
-            </Pressable>
+            </TouchableOpacity>
 
-            <Pressable style={styles.getKeyLink} onPress={handleGetKey}>
+            <TouchableOpacity style={styles.getKeyLink} onPress={handleGetKey}>
               <Ionicons name="open-outline" size={16} color={colors.primary} />
               <Text style={[styles.getKeyText, { color: colors.primary }]}>
                 {t("settings.apiKeys.getKey")}
               </Text>
-            </Pressable>
+            </TouchableOpacity>
           </View>
 
           {hasKey && (
@@ -234,7 +234,7 @@ export const ApiKeyStep: React.FC<StepProps> = ({
                       {maskApiKey(key)}
                     </Text>
                   </View>
-                  <Pressable
+                  <TouchableOpacity
                     style={styles.deleteButton}
                     onPress={() => handleDeleteKey(key)}
                   >
@@ -243,7 +243,7 @@ export const ApiKeyStep: React.FC<StepProps> = ({
                       size={22}
                       color={colors.error}
                     />
-                  </Pressable>
+                  </TouchableOpacity>
                 </View>
               ))}
             </View>
@@ -253,20 +253,20 @@ export const ApiKeyStep: React.FC<StepProps> = ({
 
       <View style={styles.footer}>
         {!hasKey && (
-          <Pressable style={styles.skipButton} onPress={onSkip}>
+          <TouchableOpacity style={styles.skipButton} onPress={onSkip}>
             <Text style={[styles.skipText, { color: colors.textSecondary }]}>
               {t("onboarding.skip")}
             </Text>
-          </Pressable>
+          </TouchableOpacity>
         )}
 
         <View style={styles.footerButtons}>
-          <Pressable
+          <TouchableOpacity
             style={[styles.backButton, { borderColor: colors.border }]}
             onPress={onPrevious}
           >
             <Ionicons name="arrow-back" size={20} color={colors.text} />
-          </Pressable>
+          </TouchableOpacity>
 
           <Button3D
             title={t("common.done")}

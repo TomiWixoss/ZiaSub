@@ -1,5 +1,5 @@
 import React from "react";
-import { View, StyleSheet, Pressable } from "react-native";
+import { View, StyleSheet, TouchableOpacity } from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
@@ -25,13 +25,14 @@ const LanguageSection: React.FC = () => {
       </View>
       <View style={themedStyles.languageList}>
         {supportedLanguages.map((lang) => (
-          <Pressable
+          <TouchableOpacity
             key={lang.code}
             style={[
               themedStyles.languageItem,
               currentLanguage === lang.code && themedStyles.languageItemActive,
             ]}
             onPress={() => setLanguage(lang.code)}
+            activeOpacity={0.7}
           >
             <Text
               style={[
@@ -49,7 +50,7 @@ const LanguageSection: React.FC = () => {
                 color={colors.primary}
               />
             )}
-          </Pressable>
+          </TouchableOpacity>
         ))}
       </View>
     </View>

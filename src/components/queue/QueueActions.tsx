@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, Pressable } from "react-native";
+import { View, TouchableOpacity } from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
@@ -111,13 +111,13 @@ const QueueActions: React.FC<QueueActionsProps> = ({
             disabled={!hasApiKey}
           />
         </View>
-        <Pressable style={styles.clearAllBtn} onPress={onClearPending}>
+        <TouchableOpacity style={styles.clearAllBtn} onPress={onClearPending}>
           <MaterialCommunityIcons
             name="delete-sweep"
             size={22}
             color={colors.error}
           />
-        </Pressable>
+        </TouchableOpacity>
       </View>
     </View>
   );

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import {
   View,
   StyleSheet,
-  Pressable,
+  TouchableOpacity,
   ActivityIndicator,
   Platform,
 } from "react-native";
@@ -311,13 +311,13 @@ export const DataSection: React.FC = () => {
               {dataInfo?.backupPath || t("settings.data.notConfigured")}
             </Text>
           </View>
-          <Pressable onPress={handleChangeBackupPath}>
+          <TouchableOpacity onPress={handleChangeBackupPath}>
             <MaterialCommunityIcons
               name="pencil"
               size={20}
               color={colors.primary}
             />
-          </Pressable>
+          </TouchableOpacity>
         </View>
         <View style={[styles.divider, { backgroundColor: colors.border }]} />
         <View style={styles.infoRow}>
@@ -339,7 +339,7 @@ export const DataSection: React.FC = () => {
 
       {/* Backup Actions */}
       <View style={styles.actionsContainer}>
-        <Pressable
+        <TouchableOpacity
           style={[
             styles.actionButton,
             {
@@ -367,9 +367,9 @@ export const DataSection: React.FC = () => {
               {t("settings.data.backupNowDesc")}
             </Text>
           </View>
-        </Pressable>
+        </TouchableOpacity>
 
-        <Pressable
+        <TouchableOpacity
           style={[
             styles.actionButton,
             {
@@ -397,10 +397,10 @@ export const DataSection: React.FC = () => {
               {t("settings.data.restoreDesc")}
             </Text>
           </View>
-        </Pressable>
+        </TouchableOpacity>
 
         {/* Auto Backup Toggle */}
-        <Pressable
+        <TouchableOpacity
           style={[
             styles.actionButton,
             {
@@ -442,7 +442,7 @@ export const DataSection: React.FC = () => {
                 : colors.textSecondary
             }
           />
-        </Pressable>
+        </TouchableOpacity>
       </View>
 
       {/* Danger Zone */}
@@ -450,7 +450,7 @@ export const DataSection: React.FC = () => {
         {t("settings.data.dangerZone")}
       </Text>
       <View style={styles.actionsContainer}>
-        <Pressable
+        <TouchableOpacity
           style={[
             styles.actionButton,
             {
@@ -473,9 +473,9 @@ export const DataSection: React.FC = () => {
               {t("settings.data.clearAllDesc")}
             </Text>
           </View>
-        </Pressable>
+        </TouchableOpacity>
 
-        <Pressable
+        <TouchableOpacity
           style={[
             styles.actionButton,
             {
@@ -503,7 +503,7 @@ export const DataSection: React.FC = () => {
               {t("settings.data.resetAppDesc")}
             </Text>
           </View>
-        </Pressable>
+        </TouchableOpacity>
       </View>
     </View>
   );

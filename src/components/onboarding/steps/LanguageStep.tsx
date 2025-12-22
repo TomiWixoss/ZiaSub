@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, StyleSheet, Pressable } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@src/contexts";
 import Button3D from "@components/common/Button3D";
@@ -49,7 +49,7 @@ export const LanguageStep: React.FC<StepProps> = ({ onNext, onPrevious }) => {
 
         <View style={styles.options}>
           {supportedLanguages.map((lang) => (
-            <Pressable
+            <TouchableOpacity
               key={lang.code}
               style={[
                 styles.optionCard,
@@ -63,6 +63,7 @@ export const LanguageStep: React.FC<StepProps> = ({ onNext, onPrevious }) => {
                 },
               ]}
               onPress={() => handleLanguageSelect(lang.code)}
+              activeOpacity={0.7}
             >
               <Text style={styles.flag}>{languageFlags[lang.code]}</Text>
               <Text
@@ -89,18 +90,18 @@ export const LanguageStep: React.FC<StepProps> = ({ onNext, onPrevious }) => {
                   <Ionicons name="checkmark" size={14} color="#fff" />
                 </View>
               )}
-            </Pressable>
+            </TouchableOpacity>
           ))}
         </View>
       </View>
 
       <View style={styles.footer}>
-        <Pressable
+        <TouchableOpacity
           style={[styles.backButton, { borderColor: colors.border }]}
           onPress={onPrevious}
         >
           <Ionicons name="arrow-back" size={20} color={colors.text} />
-        </Pressable>
+        </TouchableOpacity>
         <Button3D
           title={t("common.next")}
           onPress={onNext}

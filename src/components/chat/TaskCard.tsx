@@ -2,7 +2,7 @@ import React, { useState, useRef, useMemo } from "react";
 import {
   View,
   StyleSheet,
-  Pressable,
+  TouchableOpacity,
   Animated,
   Platform,
   ActivityIndicator,
@@ -167,7 +167,11 @@ const TaskCard: React.FC<TaskCardProps> = ({
 
   return (
     <View style={themedStyles.taskCard}>
-      <Pressable style={styles.taskHeader} onPress={toggleExpand}>
+      <TouchableOpacity
+        style={styles.taskHeader}
+        onPress={toggleExpand}
+        activeOpacity={0.7}
+      >
         <View style={styles.taskHeaderLeft}>
           <MaterialCommunityIcons
             name={statusIcon}
@@ -219,12 +223,12 @@ const TaskCard: React.FC<TaskCardProps> = ({
             />
           </Animated.View>
         )}
-      </Pressable>
+      </TouchableOpacity>
       {expanded && task.result && (
         <View style={themedStyles.taskResult}>
           <Markdown style={markdownStyles}>{task.result}</Markdown>
           <View style={themedStyles.actionButtons}>
-            <Pressable
+            <TouchableOpacity
               style={styles.actionBtn}
               onPress={async () => {
                 if (task.result) {
@@ -248,8 +252,8 @@ const TaskCard: React.FC<TaskCardProps> = ({
               >
                 {copied ? t("common.copied") : t("common.copy")}
               </Text>
-            </Pressable>
-            <Pressable
+            </TouchableOpacity>
+            <TouchableOpacity
               style={styles.actionBtn}
               onPress={() => onRegenerate?.(task)}
             >
@@ -261,8 +265,8 @@ const TaskCard: React.FC<TaskCardProps> = ({
               <Text style={themedStyles.actionText}>
                 {t("common.regenerate")}
               </Text>
-            </Pressable>
-            <Pressable
+            </TouchableOpacity>
+            <TouchableOpacity
               style={styles.actionBtn}
               onPress={() =>
                 confirmDestructive(
@@ -282,7 +286,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
               >
                 {t("common.delete")}
               </Text>
-            </Pressable>
+            </TouchableOpacity>
           </View>
         </View>
       )}

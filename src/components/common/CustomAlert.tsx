@@ -3,9 +3,8 @@ import {
   View,
   Modal,
   StyleSheet,
-  Pressable,
+  TouchableOpacity,
   Animated,
-  Platform,
 } from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -157,10 +156,10 @@ const CustomAlert: React.FC<CustomAlertProps> = ({
           styles.overlay,
           { backgroundColor: colors.overlay, opacity: fadeAnim },
         ]}
-        collapsable={false}
       >
-        <Pressable
+        <TouchableOpacity
           style={StyleSheet.absoluteFill}
+          activeOpacity={1}
           onPress={() => {
             const hasCancel = buttons.some((b) => b.style === "cancel");
             if (hasCancel || buttons.length === 1) onClose();
@@ -176,8 +175,6 @@ const CustomAlert: React.FC<CustomAlertProps> = ({
               opacity: fadeAnim,
             },
           ]}
-          collapsable={false}
-          renderToHardwareTextureAndroid={Platform.OS === "android"}
         >
           <View
             style={[

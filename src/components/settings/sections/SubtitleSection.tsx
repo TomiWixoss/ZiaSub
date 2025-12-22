@@ -1,5 +1,10 @@
 import React from "react";
-import { View, StyleSheet, Text as RNText, Pressable } from "react-native";
+import {
+  View,
+  StyleSheet,
+  Text as RNText,
+  TouchableOpacity,
+} from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Slider from "@react-native-community/slider";
@@ -90,13 +95,14 @@ const SubtitleSection: React.FC<SubtitleSectionProps> = ({
         />
       </View>
       <View style={styles.styleButtonsRow}>
-        <Pressable
+        <TouchableOpacity
           onPress={toggleBold}
           style={[
             themedStyles.styleButton,
             subtitleSettings.fontWeight === "bold" &&
               themedStyles.styleButtonActive,
           ]}
+          activeOpacity={0.7}
         >
           <MaterialCommunityIcons
             name="format-bold"
@@ -116,14 +122,15 @@ const SubtitleSection: React.FC<SubtitleSectionProps> = ({
           >
             {t("settings.subtitle.bold")}
           </Text>
-        </Pressable>
-        <Pressable
+        </TouchableOpacity>
+        <TouchableOpacity
           onPress={toggleItalic}
           style={[
             themedStyles.styleButton,
             subtitleSettings.fontStyle === "italic" &&
               themedStyles.styleButtonActive,
           ]}
+          activeOpacity={0.7}
         >
           <MaterialCommunityIcons
             name="format-italic"
@@ -143,7 +150,7 @@ const SubtitleSection: React.FC<SubtitleSectionProps> = ({
           >
             {t("settings.subtitle.italic")}
           </Text>
-        </Pressable>
+        </TouchableOpacity>
       </View>
       <View style={styles.settingGroup}>
         <Text style={themedStyles.settingLabel}>

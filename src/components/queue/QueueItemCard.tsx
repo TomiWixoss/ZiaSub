@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Pressable, Image } from "react-native";
+import { View, TouchableOpacity, Image } from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
@@ -91,12 +91,13 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
   const showProgressBar = isActivelyTranslating || isPaused;
 
   return (
-    <Pressable
+    <TouchableOpacity
       style={[
         styles.card,
         showProgressBar && { borderColor: statusStyle.color, borderWidth: 1.5 },
       ]}
       onPress={() => onSelect(item)}
+      activeOpacity={0.7}
     >
       {/* Progress bar at bottom */}
       {showProgressBar && (
@@ -197,7 +198,7 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
         {/* Actions */}
         <View style={styles.actions}>
           {(item.status === "pending" || item.status === "error") && (
-            <Pressable
+            <TouchableOpacity
               style={[styles.actionBtn, !hasApiKey && styles.actionBtnDisabled]}
               onPress={() => onStart(item)}
               disabled={!hasApiKey}
@@ -207,12 +208,12 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
                 size={22}
                 color={hasApiKey ? colors.primary : colors.textMuted}
               />
-            </Pressable>
+            </TouchableOpacity>
           )}
 
           {(isActivelyTranslating || isWaitingInQueue) && (
             <>
-              <Pressable
+              <TouchableOpacity
                 style={styles.actionBtn}
                 onPress={() => onStop?.(item)}
               >
@@ -221,8 +222,8 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
                   size={22}
                   color={colors.warning}
                 />
-              </Pressable>
-              <Pressable
+              </TouchableOpacity>
+              <TouchableOpacity
                 style={styles.actionBtn}
                 onPress={() => onAbort?.(item)}
               >
@@ -231,13 +232,13 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
                   size={22}
                   color={colors.error}
                 />
-              </Pressable>
+              </TouchableOpacity>
             </>
           )}
 
           {isPaused && (
             <>
-              <Pressable
+              <TouchableOpacity
                 style={[
                   styles.actionBtn,
                   !hasApiKey && styles.actionBtnDisabled,
@@ -250,8 +251,8 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
                   size={22}
                   color={hasApiKey ? colors.success : colors.textMuted}
                 />
-              </Pressable>
-              <Pressable
+              </TouchableOpacity>
+              <TouchableOpacity
                 style={styles.actionBtn}
                 onPress={() => onRemove(item)}
               >
@@ -260,13 +261,13 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
                   size={22}
                   color={colors.error}
                 />
-              </Pressable>
+              </TouchableOpacity>
             </>
           )}
 
           {item.status === "completed" && (
             <>
-              <Pressable
+              <TouchableOpacity
                 style={styles.actionBtn}
                 onPress={() => onRequeue(item)}
               >
@@ -275,8 +276,8 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
                   size={22}
                   color={colors.textMuted}
                 />
-              </Pressable>
-              <Pressable
+              </TouchableOpacity>
+              <TouchableOpacity
                 style={styles.actionBtn}
                 onPress={() => onRemove(item)}
               >
@@ -285,22 +286,25 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
                   size={22}
                   color={colors.error}
                 />
-              </Pressable>
+              </TouchableOpacity>
             </>
           )}
 
           {(item.status === "pending" || item.status === "error") && (
-            <Pressable style={styles.actionBtn} onPress={() => onRemove(item)}>
+            <TouchableOpacity
+              style={styles.actionBtn}
+              onPress={() => onRemove(item)}
+            >
               <MaterialCommunityIcons
                 name="delete-outline"
                 size={22}
                 color={colors.error}
               />
-            </Pressable>
+            </TouchableOpacity>
           )}
         </View>
       </View>
-    </Pressable>
+    </TouchableOpacity>
   );
 };
 

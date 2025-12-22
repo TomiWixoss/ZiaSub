@@ -3,10 +3,9 @@ import {
   View,
   Modal,
   StyleSheet,
-  Pressable,
+  TouchableOpacity,
   Animated,
   Dimensions,
-  Platform,
 } from "react-native";
 import { alert, confirmDestructive } from "../common/CustomAlert";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -208,9 +207,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
             themedStyles.modalBackdrop,
             { opacity: fadeAnim },
           ]}
-          collapsable={false}
         >
-          <Pressable style={StyleSheet.absoluteFill} onPress={handleClose} />
+          <TouchableOpacity
+            style={StyleSheet.absoluteFill}
+            activeOpacity={1}
+            onPress={handleClose}
+          />
         </Animated.View>
 
         <Animated.View
@@ -222,26 +224,24 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
               transform: [{ translateY: slideAnim }],
             },
           ]}
-          collapsable={false}
-          renderToHardwareTextureAndroid={Platform.OS === "android"}
         >
           <View style={styles.sheetHeader}>
             <View style={[styles.dragHandle, themedStyles.dragHandle]} />
             <Text style={[styles.title, themedStyles.title]}>
               {editingConfig ? t("settings.editConfig") : t("settings.title")}
             </Text>
-            <Pressable style={styles.closeButton} onPress={handleClose}>
+            <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
               <MaterialCommunityIcons
                 name="close"
                 size={20}
                 color={colors.textSecondary}
               />
-            </Pressable>
+            </TouchableOpacity>
           </View>
 
           {!editingConfig && (
             <View style={[styles.tabBar, themedStyles.tabBar]}>
-              <Pressable
+              <TouchableOpacity
                 style={[
                   styles.tab,
                   activeTab === "general" && [
@@ -267,8 +267,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 >
                   {t("settings.general")}
                 </Text>
-              </Pressable>
-              <Pressable
+              </TouchableOpacity>
+              <TouchableOpacity
                 style={[
                   styles.tab,
                   activeTab === "gemini" && [
@@ -294,7 +294,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 >
                   {t("settings.gemini")}
                 </Text>
-              </Pressable>
+              </TouchableOpacity>
             </View>
           )}
 

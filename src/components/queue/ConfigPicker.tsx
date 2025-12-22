@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Pressable } from "react-native";
+import { View, TouchableOpacity } from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
@@ -30,7 +30,7 @@ const ConfigPicker: React.FC<ConfigPickerProps> = ({
 
   return (
     <>
-      <Pressable style={styles.configPicker} onPress={onToggleDropdown}>
+      <TouchableOpacity style={styles.configPicker} onPress={onToggleDropdown}>
         <View style={styles.configPickerLeft}>
           <MaterialCommunityIcons
             name="robot"
@@ -46,11 +46,11 @@ const ConfigPicker: React.FC<ConfigPickerProps> = ({
           size={18}
           color={colors.textMuted}
         />
-      </Pressable>
+      </TouchableOpacity>
       {showDropdown && (
         <View style={styles.configDropdown}>
           {configs.map((config) => (
-            <Pressable
+            <TouchableOpacity
               key={config.id}
               style={[
                 styles.configOption,
@@ -67,7 +67,7 @@ const ConfigPicker: React.FC<ConfigPickerProps> = ({
               >
                 {config.name}
               </Text>
-            </Pressable>
+            </TouchableOpacity>
           ))}
         </View>
       )}

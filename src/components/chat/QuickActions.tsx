@@ -1,5 +1,5 @@
 import React from "react";
-import { View, StyleSheet, Pressable } from "react-native";
+import { View, StyleSheet, TouchableOpacity } from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
@@ -42,7 +42,7 @@ const QuickActions: React.FC<QuickActionsProps> = ({ onAction, disabled }) => {
   return (
     <View style={styles.container}>
       {QUICK_ACTIONS.map((action) => (
-        <Pressable
+        <TouchableOpacity
           key={action.id}
           style={[themedStyles.actionBtn, disabled && styles.actionDisabled]}
           onPress={() => onAction(action.id)}
@@ -54,7 +54,7 @@ const QuickActions: React.FC<QuickActionsProps> = ({ onAction, disabled }) => {
             color={colors.text}
           />
           <Text style={themedStyles.actionLabel}>{t(action.labelKey)}</Text>
-        </Pressable>
+        </TouchableOpacity>
       ))}
     </View>
   );

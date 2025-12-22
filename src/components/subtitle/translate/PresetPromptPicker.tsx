@@ -1,14 +1,14 @@
 import React, { useState, useRef, useEffect } from "react";
 import {
   View,
-  Pressable,
+  TouchableOpacity,
   ScrollView,
   StyleSheet,
   Modal,
   Animated,
   Dimensions,
+  Pressable,
   ViewStyle,
-  Platform,
 } from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -102,9 +102,10 @@ const PresetPromptPicker: React.FC<PresetPromptPickerProps> = ({
 
   return (
     <>
-      <Pressable
+      <TouchableOpacity
         style={[styles.pickerButton, style]}
         onPress={() => setVisible(true)}
+        activeOpacity={0.7}
       >
         <View style={styles.pickerLeft}>
           <View style={styles.pickerIconContainer}>
@@ -134,7 +135,7 @@ const PresetPromptPicker: React.FC<PresetPromptPickerProps> = ({
           size={20}
           color={colors.textMuted}
         />
-      </Pressable>
+      </TouchableOpacity>
 
       <Modal
         visible={visible}
@@ -144,10 +145,7 @@ const PresetPromptPicker: React.FC<PresetPromptPickerProps> = ({
         statusBarTranslucent
       >
         <View style={styles.modalOverlay}>
-          <Animated.View
-            style={[styles.modalBackdrop, { opacity: fadeAnim }]}
-            collapsable={false}
-          >
+          <Animated.View style={[styles.modalBackdrop, { opacity: fadeAnim }]}>
             <Pressable style={StyleSheet.absoluteFill} onPress={handleClose} />
           </Animated.View>
 
@@ -159,21 +157,22 @@ const PresetPromptPicker: React.FC<PresetPromptPickerProps> = ({
                 transform: [{ translateY: slideAnim }],
               },
             ]}
-            collapsable={false}
-            renderToHardwareTextureAndroid={Platform.OS === "android"}
           >
             <View style={styles.sheetHeader}>
               <View style={styles.dragHandle} />
               <Text style={styles.title}>
                 {t("settings.geminiConfig.selectPreset")}
               </Text>
-              <Pressable style={styles.closeButton} onPress={handleClose}>
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={handleClose}
+              >
                 <MaterialCommunityIcons
                   name="close"
                   size={20}
                   color={colors.textSecondary}
                 />
-              </Pressable>
+              </TouchableOpacity>
             </View>
 
             <ScrollView
@@ -182,12 +181,13 @@ const PresetPromptPicker: React.FC<PresetPromptPickerProps> = ({
               showsVerticalScrollIndicator={false}
             >
               {/* Custom option - use user's own system prompt */}
-              <Pressable
+              <TouchableOpacity
                 style={[
                   styles.presetItem,
                   isCustomSelected && styles.presetItemSelected,
                 ]}
                 onPress={handleSelectCustom}
+                activeOpacity={0.7}
               >
                 <View
                   style={[
@@ -223,7 +223,7 @@ const PresetPromptPicker: React.FC<PresetPromptPickerProps> = ({
                     color={colors.primary}
                   />
                 )}
-              </Pressable>
+              </TouchableOpacity>
 
               {/* Divider */}
               <View style={styles.divider}>
@@ -238,13 +238,14 @@ const PresetPromptPicker: React.FC<PresetPromptPickerProps> = ({
                 const isSelected =
                   preset.id === currentPresetId && !isCustomSelected;
                 return (
-                  <Pressable
+                  <TouchableOpacity
                     key={preset.id}
                     style={[
                       styles.presetItem,
                       isSelected && styles.presetItemSelected,
                     ]}
                     onPress={() => handleSelect(preset)}
+                    activeOpacity={0.7}
                   >
                     <View
                       style={[
@@ -278,7 +279,7 @@ const PresetPromptPicker: React.FC<PresetPromptPickerProps> = ({
                         color={colors.primary}
                       />
                     )}
-                  </Pressable>
+                  </TouchableOpacity>
                 );
               })}
             </ScrollView>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, StyleSheet, Pressable, Modal } from "react-native";
+import { View, StyleSheet, TouchableOpacity, Modal } from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Slider from "@react-native-community/slider";
@@ -114,13 +114,13 @@ const VideoTimeRangePicker: React.FC<VideoTimeRangePickerProps> = ({
                 {t("chat.timeRangeHint")}
               </Text>
             </View>
-            <Pressable onPress={onClose} style={styles.closeButton}>
+            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
               <MaterialCommunityIcons
                 name="close"
                 size={24}
                 color={colors.textSecondary}
               />
-            </Pressable>
+            </TouchableOpacity>
           </View>
 
           {/* Time display */}
@@ -210,7 +210,7 @@ const VideoTimeRangePicker: React.FC<VideoTimeRangePickerProps> = ({
                 {formatTime(endValue - startValue)}
               </Text>
             </View>
-            <Pressable
+            <TouchableOpacity
               onPress={handleReset}
               style={[
                 styles.resetBtn,
@@ -225,7 +225,7 @@ const VideoTimeRangePicker: React.FC<VideoTimeRangePickerProps> = ({
               <Text style={[styles.resetText, { color: colors.textSecondary }]}>
                 {t("common.reset")}
               </Text>
-            </Pressable>
+            </TouchableOpacity>
           </View>
 
           {/* Buttons */}
