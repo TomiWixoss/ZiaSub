@@ -315,23 +315,26 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
               job.error || "Có lỗi xảy ra"
             );
           } else {
-            const queueItem = queueManager.isInQueue(job.videoUrl);
-            if (queueItem && queueItem.status === "translating") {
-              const hasPartial =
-                job.partialResult &&
-                job.completedBatchRanges &&
-                job.completedBatchRanges.length > 0;
-              queueManager.markVideoStopped(
-                job.videoUrl,
-                hasPartial
-                  ? {
-                      partialSrt: job.partialResult!,
-                      completedBatchRanges: job.completedBatchRanges!,
-                      completedBatches: job.completedBatchRanges!.length,
-                      totalBatches: job.progress?.totalBatches || 0,
-                    }
-                  : undefined
-              );
+            // Check if video is being removed from queue - if so, don't mark as stopped
+            if (!queueManager.isBeingRemoved(job.videoUrl)) {
+              const queueItem = queueManager.isInQueue(job.videoUrl);
+              if (queueItem && queueItem.status === "translating") {
+                const hasPartial =
+                  job.partialResult &&
+                  job.completedBatchRanges &&
+                  job.completedBatchRanges.length > 0;
+                queueManager.markVideoStopped(
+                  job.videoUrl,
+                  hasPartial
+                    ? {
+                        partialSrt: job.partialResult!,
+                        completedBatchRanges: job.completedBatchRanges!,
+                        completedBatches: job.completedBatchRanges!.length,
+                        totalBatches: job.progress?.totalBatches || 0,
+                      }
+                    : undefined
+                );
+              }
             }
           }
           translationManager.clearCompletedJob(job.videoUrl);

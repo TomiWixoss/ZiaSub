@@ -1143,6 +1143,14 @@ class QueueManager {
     );
   }
 
+  // Check if a video is being removed from queue
+  isBeingRemoved(videoUrl: string): boolean {
+    if (!this.removingItemId) return false;
+    const videoId = this.extractVideoId(videoUrl);
+    const item = this.items.find((i) => i.videoId === videoId);
+    return item?.id === this.removingItemId;
+  }
+
   // Get partial SRT for an item
   getPartialSrt(itemId: string): string | undefined {
     const item = this.items.find((i) => i.id === itemId);
