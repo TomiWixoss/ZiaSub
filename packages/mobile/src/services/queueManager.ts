@@ -103,20 +103,22 @@ class QueueManager {
           // Clear direct translation tracking
           if (this.directTranslationVideoUrl === job.videoUrl) {
             this.directTranslationVideoUrl = null;
+          }
 
-            // If there are pending items in queue that were waiting, start processing them
-            const waitingItems = this.items.filter(
-              (i) =>
-                i.status === "translating" && !this.userPausedItems.has(i.id)
+          // If there are items in queue that were waiting, start processing them
+          // This works even if autoProcessEnabled is false - we process waiting items
+          const waitingItems = this.items.filter(
+            (i) => i.status === "translating" && !this.userPausedItems.has(i.id)
+          );
+          if (waitingItems.length > 0) {
+            console.log(
+              "[QueueManager] Direct translation done, continuing queue with",
+              waitingItems.length,
+              "items"
             );
-            if (waitingItems.length > 0 && this.autoProcessEnabled) {
-              console.log(
-                "[QueueManager] Direct translation done, continuing queue with",
-                waitingItems.length,
-                "items"
-              );
-              setTimeout(() => this.processNextInQueue(), 1000);
-            }
+            // Enable auto-process to continue with remaining items
+            this.autoProcessEnabled = true;
+            setTimeout(() => this.processNextInQueue(), 1000);
           }
         }
         // Note: Queue item completion is handled by processItem's subscription

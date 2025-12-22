@@ -220,24 +220,18 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
       );
 
     // Check if another video is being translated
-    // Instead of blocking, we can add to queue if queue is active
+    // Instead of blocking, add to queue and show waiting state
     if (translationManager.isTranslating()) {
       const { queueManager } = await import("@services/queueManager");
-      if (queueManager.isAutoProcessing()) {
-        // Queue is active - sync this video to queue
-        await queueManager.syncDirectTranslation(
-          videoUrl,
-          undefined,
-          videoDuration,
-          config.name
-        );
-        alert(t("common.notice"), t("queue.addedToWaitingQueue"));
-        return;
-      }
-      return alert(
-        t("common.notice"),
-        t("subtitleModal.translate.anotherTranslating")
+      // Always sync to queue when another video is translating
+      await queueManager.syncDirectTranslation(
+        videoUrl,
+        undefined,
+        videoDuration,
+        config.name
       );
+      alert(t("common.notice"), t("queue.addedToWaitingQueue"));
+      return;
     }
 
     let rangeStart: number | undefined;
@@ -438,10 +432,15 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
           }
           if (!videoUrl) return;
           if (translationManager.isTranslating()) {
-            alert(
-              t("common.notice"),
-              t("subtitleModal.translate.anotherTranslating")
+            // Add to queue instead of blocking
+            const { queueManager } = await import("@services/queueManager");
+            await queueManager.syncDirectTranslation(
+              videoUrl,
+              undefined,
+              videoDuration,
+              config.name
             );
+            alert(t("common.notice"), t("queue.addedToWaitingQueue"));
             return;
           }
 
