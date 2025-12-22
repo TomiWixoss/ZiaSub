@@ -15,7 +15,6 @@ import { useTranslation } from "react-i18next";
 
 import { useTheme, useUpdate } from "@src/contexts";
 import { useThemedStyles, createThemedStyles } from "@hooks/useThemedStyles";
-import { hasTranslation } from "@utils/storage";
 import { ttsService } from "@services/ttsService";
 import { queueManager } from "@services/queueManager";
 
@@ -217,12 +216,6 @@ const HomeScreen = () => {
   }) => {
     const { videoUrl, title, duration } = payload;
 
-    const alreadyTranslated = await hasTranslation(videoUrl);
-    if (alreadyTranslated) {
-      alert(t("common.notice"), t("queue.alreadyTranslated"));
-      return;
-    }
-
     const result = await queueManager.addToQueue(videoUrl, title, duration);
 
     if (result.isExisting) {
@@ -290,12 +283,6 @@ const HomeScreen = () => {
         t("queue.waitingForVideoData") ||
           "Đang tải thông tin video, vui lòng thử lại sau giây lát"
       );
-      return;
-    }
-
-    const alreadyTranslated = await hasTranslation(currentUrl);
-    if (alreadyTranslated) {
-      alert(t("common.notice"), t("queue.alreadyTranslated"));
       return;
     }
 
