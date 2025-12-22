@@ -22,6 +22,8 @@ interface SavedTranslationsListProps {
     mode: "single" | "fromHere"
   ) => void;
   videoDuration?: number;
+  isPausedInQueue?: boolean;
+  isTranslating?: boolean;
 }
 
 const formatDate = (timestamp: number) => {
@@ -60,6 +62,8 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
   onResume,
   onRetranslateBatch,
   videoDuration,
+  isPausedInQueue = false,
+  isTranslating = false,
 }) => {
   const { t } = useTranslation();
   const { colors } = useTheme();
@@ -247,8 +251,27 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
                     </Text>
                   </View>
                 </View>
-                {/* Quick actions on header - removed resume button, use main Resume button below instead */}
-                <View style={styles.translationHeaderActions}></View>
+                {/* Quick actions on header */}
+                <View style={styles.translationHeaderActions}>
+                  {item.isPartial &&
+                    onResume &&
+                    !isPausedInQueue &&
+                    !isTranslating && (
+                      <TouchableOpacity
+                        style={styles.headerActionBtn}
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          onResume(item);
+                        }}
+                      >
+                        <MaterialCommunityIcons
+                          name="play-circle-outline"
+                          size={20}
+                          color={colors.success}
+                        />
+                      </TouchableOpacity>
+                    )}
+                </View>
               </TouchableOpacity>
 
               {/* Expanded content */}

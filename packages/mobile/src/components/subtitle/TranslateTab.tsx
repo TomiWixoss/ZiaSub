@@ -606,6 +606,8 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
           onResume={handleResumeTranslation}
           onRetranslateBatch={handleRetranslateBatch}
           videoDuration={videoDuration}
+          isPausedInQueue={isPausedInQueue}
+          isTranslating={isTranslating}
         />
         {!hasApiKey && (
           <View style={themedStyles.warningContainer}>
