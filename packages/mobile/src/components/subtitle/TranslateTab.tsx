@@ -372,6 +372,21 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
     );
   };
 
+  // Handle resume from queue (when video is paused in queue)
+  const handleResumeFromQueue = async () => {
+    if (!videoUrl) return;
+
+    const { queueManager } = await import("@services/queueManager");
+    const queueItem = queueManager.isInQueue(videoUrl);
+
+    if (queueItem) {
+      const result = await queueManager.resumeTranslation(queueItem.id);
+      if (result.queued) {
+        alert(t("common.notice"), t("queue.addedToWaitingQueue"));
+      }
+    }
+  };
+
   // Helper to format SRT time
   const formatSrtTime = (seconds: number) => {
     const h = Math.floor(seconds / 3600);
@@ -714,7 +729,7 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
               </Text>
             </View>
             <Button3D
-              onPress={() => handleTranslate()}
+              onPress={handleResumeFromQueue}
               title={t("queue.resumeTranslation")}
               variant="primary"
               size="small"
