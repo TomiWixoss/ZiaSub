@@ -2,27 +2,96 @@
 
 ## [0.0.5] - 2024-12-22
 
-### 🔄 Refactor Storage System
+### ✨ Tính năng mới
 
-- **Chuyển sang AsyncStorage làm primary storage**
+- **Background Service cho Android**
 
-  - Thay thế file-based storage bằng AsyncStorage (bộ nhớ app)
-  - Tăng giới hạn AsyncStorage lên 200MB trên Android
-  - Tạo `storageService.ts` - quản lý tất cả data trong AsyncStorage
-  - Tạo `backupService.ts` - xử lý backup/restore ra file system
-  - Xóa `cacheService.ts` và `fileStorageService.ts` không còn cần thiết
+  - Thêm BackgroundServiceManager với foreground service support cho Android
+  - Tích hợp react-native-background-actions và expo-task-manager
+  - Thêm quyền FOREGROUND_SERVICE, FOREGROUND_SERVICE_DATA_SYNC, và WAKE_LOCK
+  - Quản lý queue và translation task khi app chạy nền
+  - Cho phép dịch liên tục ngay cả khi app ở background
 
-- **Backup/Restore System**
+- **Cấu hình Presub mặc định**
 
-  - Onboarding: chọn thư mục backup, có thể restore từ backup cũ
-  - Settings: backup thủ công, restore, auto backup khi thoát app
-  - Hỗ trợ cả local storage và SAF (Storage Access Framework) trên Android
-  - Migration tự động từ file storage cũ sang AsyncStorage mới
+  - Thêm DEFAULT_PRESUB_CONFIG_ID constant cho config reference nhất quán
+  - Tạo createDefaultPresubConfig() với settings tối ưu cho presub mode
+  - Tự động khởi tạo default presub config nếu chưa có
+  - Tách biệt cấu hình presub khỏi translation pipeline chính
 
-- **Cải thiện hiệu suất**
-  - Giảm I/O liên tục - chỉ backup định kỳ hoặc thủ công
-  - Tăng tốc độ đọc/ghi data
-  - Đơn giản hóa logic storage
+- **Chọn Presub Config cho Batch Translation**
+
+  - Thêm presub config picker UI trong BatchSection với dropdown menu
+  - Lọc và hiển thị các Gemini configs khả dụng (loại trừ chat config)
+  - Thêm presubConfigId field vào BatchSettings type
+  - Translation manager sử dụng presub config khi xử lý batches
+  - Visual indicators (icons, checkmarks) cho config đã chọn
+
+- **Notification Preferences chi tiết**
+
+  - Thêm notification source filtering (queue vs direct translation)
+  - Thêm notification type preferences (completion, batch completion, errors)
+  - Extract ToggleRow component cho reusable notification toggle UI
+  - Cập nhật NotificationSettings type với các preference fields mới
+  - Disabled state styling cho conditional toggle rows
+
+- **Keyboard Controller Integration**
+  - Thêm KeyboardProvider wrapper vào App.tsx root component
+  - Cài đặt react-native-keyboard-controller dependency
+  - Cải thiện keyboard handling trong ChatModal, GeminiEdit, SrtTab, SubtitleInputModal
+  - Thêm statusBarTranslucent và navigationBarTranslucent props
+  - Auto-scroll to latest messages khi content size thay đổi
+
+### 🐛 Sửa lỗi
+
+- **Queue Background Service Lifecycle**
+
+  - Di chuyển background service stop call chỉ khi queue hoàn toàn trống
+  - Dừng background service ngay lập tức cho single item translations
+  - Thêm remaining items check trước khi stop service
+  - Ngăn chặn việc dừng background service sớm trong batch processing
+
+- **Notification Improvements**
+  - Loại bỏ emoji characters (✅, ❌, 🎉) khỏi notification titles
+  - Thêm "direct" source parameter cho tất cả notification calls
+  - Cải thiện notification consistency và source tracking
+
+### 🔧 Cải tiến
+
+- **Translation Manager Options**
+
+  - Thêm skipNotification flag để ngăn duplicate notifications
+  - Thêm skipBackgroundControl option để ngăn duplicate background service calls
+  - Queue manager quản lý toàn bộ notification delivery
+  - Ngăn race conditions giữa queue và translation manager
+
+- **Keyboard Handling Refactor**
+
+  - Thay thế KeyboardAwareScrollView bằng ScrollView trong SrtTab
+  - Implement react-native-keyboard-controller cho keyboard height tracking
+  - Thêm Reanimated animated styles cho smooth keyboard avoidance
+  - Wrap bottom sheet content với keyboard-aware container
+  - Cải thiện performance với worklet-based event handlers
+
+- **Dependencies**
+
+  - Thêm react-native-reanimated ~4.1.1 với babel plugin integration
+  - Upgrade @babel/code-frame từ 7.10.4 lên 7.27.1
+  - Deduplicate và flatten dependency tree trong package-lock.json
+
+- **Storage Migration**
+
+  - Migrate từ file-based storage sang AsyncStorage
+  - Tăng AsyncStorage limit lên 200MB trên Android
+  - Tạo storageService.ts và backupService.ts mới
+  - Thêm backup/restore functionality trong onboarding và settings
+  - Auto-backup khi app goes to background
+  - Hỗ trợ local storage và SAF (Storage Access Framework)
+  - Tự động migration từ file storage cũ sang AsyncStorage mới
+
+- **Config Updates**
+  - Cập nhật Android package name từ com.tomis.youtubesrtplayer sang com.tomisakae.ziasub
+  - Thêm local.properties với Android SDK directory configuration
 
 ## [0.0.4] - 2024-12-21
 
