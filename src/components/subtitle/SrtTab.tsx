@@ -6,6 +6,7 @@ import {
   TextInput as RNTextInput,
   Platform,
 } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { alert } from "../common/CustomAlert";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
@@ -59,7 +60,12 @@ export const SrtTab: React.FC<SrtTabProps> = ({
   };
 
   return (
-    <View style={styles.tabContent}>
+    <KeyboardAwareScrollView
+      style={styles.tabContent}
+      contentContainerStyle={styles.scrollContent}
+      showsVerticalScrollIndicator={false}
+      bottomOffset={20}
+    >
       <View style={styles.buttonRow}>
         <Button3D
           onPress={handlePickFile}
@@ -105,15 +111,21 @@ export const SrtTab: React.FC<SrtTabProps> = ({
         title={t("subtitleModal.srt.load")}
         variant="primary"
       />
-    </View>
+    </KeyboardAwareScrollView>
   );
 };
 
 const styles = StyleSheet.create({
   tabContent: { flex: 1 },
+  scrollContent: { flexGrow: 1 },
   buttonRow: { flexDirection: "row", gap: 12, marginBottom: 16 },
   rowButton: { flex: 1 },
-  inputContainer: { flex: 1, marginBottom: 16, position: "relative" },
+  inputContainer: {
+    flex: 1,
+    marginBottom: 16,
+    position: "relative",
+    minHeight: 200,
+  },
   clearButton: { position: "absolute", top: 12, right: 12, padding: 4 },
 });
 

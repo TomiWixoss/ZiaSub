@@ -3,11 +3,10 @@ import {
   View,
   TouchableOpacity,
   TextInput as RNTextInput,
-  ScrollView,
   StatusBar,
   Platform,
-  KeyboardAvoidingView,
 } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Slider from "@react-native-community/slider";
@@ -158,13 +157,11 @@ const GeminiEdit: React.FC<GeminiEditProps> = ({
   const topPadding = Math.max(insets.top, statusBarHeight);
 
   return (
-    <KeyboardAvoidingView
+    <View
       style={[
         styles.fullScreen,
         { paddingTop: topPadding, paddingBottom: insets.bottom },
       ]}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
     >
       <View style={styles.header}>
         <TouchableOpacity style={styles.headerBtn} onPress={onCancel}>
@@ -183,11 +180,11 @@ const GeminiEdit: React.FC<GeminiEditProps> = ({
           />
         </TouchableOpacity>
       </View>
-      <ScrollView
+      <KeyboardAwareScrollView
         style={styles.container}
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
+        bottomOffset={20}
       >
         <View style={styles.settingGroup}>
           <Text style={styles.settingLabel}>
@@ -410,8 +407,8 @@ const GeminiEdit: React.FC<GeminiEditProps> = ({
             textAlignVertical="top"
           />
         </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      </KeyboardAwareScrollView>
+    </View>
   );
 };
 

@@ -10,13 +10,15 @@ import {
   StyleSheet,
   TouchableOpacity,
   FlatList,
-  KeyboardAvoidingView,
-  Platform,
   Modal,
   Animated,
   Dimensions,
-  Keyboard,
 } from "react-native";
+import { useKeyboardHandler } from "react-native-keyboard-controller";
+import Reanimated, {
+  useSharedValue,
+  useAnimatedStyle,
+} from "react-native-reanimated";
 import { Text } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -98,7 +100,6 @@ const ChatModal: React.FC<ChatModalProps> = ({
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [isFromHistory, setIsFromHistory] = useState(false);
   const [hasApiKey, setHasApiKey] = useState(true);
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [videoTimeRange, setVideoTimeRange] = useState<VideoTimeRange | null>(
     null
   );
@@ -106,6 +107,29 @@ const ChatModal: React.FC<ChatModalProps> = ({
   const flatListRef = useRef<FlatList>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const currentSessionIdRef = useRef<string | null>(null);
+
+  // Keyboard handling with react-native-keyboard-controller
+  const keyboardHeight = useSharedValue(0);
+  useKeyboardHandler(
+    {
+      onMove: (event) => {
+        "worklet";
+        keyboardHeight.value = Math.max(event.height, 0);
+      },
+      onEnd: () => {
+        // Scroll to end when keyboard finishes showing
+        setTimeout(
+          () => flatListRef.current?.scrollToEnd({ animated: true }),
+          100
+        );
+      },
+    },
+    []
+  );
+
+  const keyboardAnimatedStyle = useAnimatedStyle(() => ({
+    paddingBottom: keyboardHeight.value,
+  }));
 
   const tasks = useMemo((): TaskItem[] => {
     const result: TaskItem[] = [];
@@ -151,28 +175,6 @@ const ChatModal: React.FC<ChatModalProps> = ({
   useEffect(() => {
     currentSessionIdRef.current = currentSession?.id || null;
   }, [currentSession]);
-
-  // Keyboard handling for proper input positioning
-  useEffect(() => {
-    const keyboardWillShow = Keyboard.addListener(
-      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
-      (e) => {
-        setKeyboardHeight(e.endCoordinates.height);
-        setTimeout(
-          () => flatListRef.current?.scrollToEnd({ animated: true }),
-          100
-        );
-      }
-    );
-    const keyboardWillHide = Keyboard.addListener(
-      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
-      () => setKeyboardHeight(0)
-    );
-    return () => {
-      keyboardWillShow.remove();
-      keyboardWillHide.remove();
-    };
-  }, []);
 
   useEffect(() => {
     if (visible) {
@@ -600,10 +602,7 @@ const ChatModal: React.FC<ChatModalProps> = ({
               />
             }
           />
-          <KeyboardAvoidingView
-            behavior={Platform.OS === "ios" ? "padding" : "height"}
-            keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
-          >
+          <Reanimated.View style={keyboardAnimatedStyle}>
             <ChatInput
               inputText={inputText}
               onChangeText={setInputText}
@@ -620,7 +619,7 @@ const ChatModal: React.FC<ChatModalProps> = ({
               videoTimeRange={videoTimeRange}
               onOpenTimeRange={() => setShowTimeRangePicker(true)}
             />
-          </KeyboardAvoidingView>
+          </Reanimated.View>
           {drawerOpen && (
             <TouchableOpacity
               style={styles.drawerOverlay}

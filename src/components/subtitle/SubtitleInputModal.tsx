@@ -3,8 +3,6 @@ import {
   View,
   Modal,
   StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
   Dimensions,
   TouchableOpacity,
   Animated,
@@ -93,12 +91,10 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
     onApplySubtitlesRef.current = onApplySubtitles;
   }, [onApplySubtitles]);
 
-  // Callback to reload translations list in TranslateTab
   const reloadTranslationsRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     const unsubscribe = translationManager.subscribe((job: TranslationJob) => {
-      // Compare by video ID to handle different URL formats
       const jobVideoId = extractVideoId(job.videoUrl);
       const currentVideoId = videoUrl ? extractVideoId(videoUrl) : null;
 
@@ -107,7 +103,6 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
         setBatchProgress(job.progress);
         setKeyStatus(job.keyStatus);
         if (job.progress) {
-          // Show current batch being translated (completedBatches + 1)
           const currentBatch = job.progress.completedBatches + 1;
           setTranslateStatus(
             job.progress.totalBatches > 1
@@ -136,11 +131,9 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
           setTranslateStatus("Xong rồi!");
           setKeyStatus(null);
           setSrtContent(job.result);
-          // Apply subtitles directly with the result content
           onApplySubtitlesRef.current?.(job.result);
           queueManager.markVideoCompleted(job.videoUrl, job.configName);
           translationManager.clearCompletedJob(job.videoUrl);
-          // Reload translations list to show new translation
           reloadTranslationsRef.current?.();
           if (visible)
             alert("Thành công", "Dịch xong rồi! Phụ đề đã sẵn sàng.");
@@ -148,8 +141,6 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
         if (job.status === "error") {
           setTranslateStatus("");
           setKeyStatus(null);
-
-          // Don't mark as error in queue if user manually stopped
           const isUserStopped = job.error?.startsWith("Đã dừng");
           if (!isUserStopped) {
             queueManager.markVideoError(
@@ -157,15 +148,12 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
               job.error || "Có lỗi xảy ra"
             );
           } else {
-            // User stopped - update queue item status if in queue
             const queueItem = queueManager.isInQueue(job.videoUrl);
             if (queueItem && queueItem.status === "translating") {
-              // Check if has partial data
               const hasPartial =
                 job.partialResult &&
                 job.completedBatchRanges &&
                 job.completedBatchRanges.length > 0;
-
               queueManager.markVideoStopped(
                 job.videoUrl,
                 hasPartial
@@ -179,13 +167,8 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
               );
             }
           }
-
           translationManager.clearCompletedJob(job.videoUrl);
-
-          // Reload translations list to show partial translation (if any)
           reloadTranslationsRef.current?.();
-
-          // Only show error alert if not user-initiated stop
           if (!isUserStopped) {
             alert("Không dịch được", job.error || "Không thể dịch video này.");
           }
@@ -308,115 +291,99 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
             onPress={handleClose}
           />
         </Animated.View>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          style={styles.keyboardView}
-          keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+        <Animated.View
+          style={[
+            styles.bottomSheet,
+            {
+              paddingBottom: Math.max(insets.bottom, 20),
+              transform: [{ translateY: slideAnim }],
+            },
+          ]}
         >
-          <Animated.View
-            style={[
-              styles.bottomSheet,
-              {
-                paddingBottom: Math.max(insets.bottom, 20),
-                transform: [{ translateY: slideAnim }],
-              },
-            ]}
-          >
-            <View style={styles.sheetHeader}>
-              <View style={styles.dragHandle} />
-              <Text style={styles.title}>{t("subtitleModal.title")}</Text>
-              <TouchableOpacity
-                style={styles.closeButton}
-                onPress={handleClose}
-              >
-                <MaterialCommunityIcons
-                  name="close"
-                  size={20}
-                  color={colors.textSecondary}
-                />
-              </TouchableOpacity>
-            </View>
-            <View style={styles.tabBar}>
-              <TouchableOpacity
+          <View style={styles.sheetHeader}>
+            <View style={styles.dragHandle} />
+            <Text style={styles.title}>{t("subtitleModal.title")}</Text>
+            <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
+              <MaterialCommunityIcons
+                name="close"
+                size={20}
+                color={colors.textSecondary}
+              />
+            </TouchableOpacity>
+          </View>
+          <View style={styles.tabBar}>
+            <TouchableOpacity
+              style={[
+                styles.tab,
+                activeTab === "translate" && styles.tabActive,
+              ]}
+              onPress={() => setActiveTab("translate")}
+            >
+              <MaterialCommunityIcons
+                name="translate"
+                size={18}
+                color={
+                  activeTab === "translate" ? colors.primary : colors.textMuted
+                }
+              />
+              <Text
                 style={[
-                  styles.tab,
-                  activeTab === "translate" && styles.tabActive,
+                  styles.tabText,
+                  activeTab === "translate" && styles.tabTextActive,
                 ]}
-                onPress={() => setActiveTab("translate")}
               >
-                <MaterialCommunityIcons
-                  name="translate"
-                  size={18}
-                  color={
-                    activeTab === "translate"
-                      ? colors.primary
-                      : colors.textMuted
-                  }
-                />
-                <Text
-                  style={[
-                    styles.tabText,
-                    activeTab === "translate" && styles.tabTextActive,
-                  ]}
-                >
-                  {t("subtitleModal.tabs.translate")}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.tab, activeTab === "srt" && styles.tabActive]}
-                onPress={() => setActiveTab("srt")}
+                {t("subtitleModal.tabs.translate")}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.tab, activeTab === "srt" && styles.tabActive]}
+              onPress={() => setActiveTab("srt")}
+            >
+              <MaterialCommunityIcons
+                name="file-document-outline"
+                size={18}
+                color={activeTab === "srt" ? colors.primary : colors.textMuted}
+              />
+              <Text
+                style={[
+                  styles.tabText,
+                  activeTab === "srt" && styles.tabTextActive,
+                ]}
               >
-                <MaterialCommunityIcons
-                  name="file-document-outline"
-                  size={18}
-                  color={
-                    activeTab === "srt" ? colors.primary : colors.textMuted
-                  }
-                />
-                <Text
-                  style={[
-                    styles.tabText,
-                    activeTab === "srt" && styles.tabTextActive,
-                  ]}
-                >
-                  {t("subtitleModal.tabs.srt")}
-                </Text>
-              </TouchableOpacity>
-            </View>
-            {activeTab === "srt" ? (
-              <SrtTab
-                srtContent={srtContent}
-                setSrtContent={setSrtContent}
-                onLoadSubtitles={onLoadSubtitles}
-              />
-            ) : (
-              <TranslateTab
-                videoUrl={videoUrl}
-                videoDuration={videoDuration}
-                batchSettings={batchSettings}
-                isTranslating={isTranslating}
-                translateStatus={translateStatus}
-                keyStatus={keyStatus}
-                batchProgress={batchProgress}
-                onClose={handleClose}
-                onSelectTranslation={(srt) => {
-                  setSrtContent(srt);
-                  // Use onApplySubtitles directly with the srt content
-                  // instead of onLoadSubtitles which uses stale srtContent from closure
-                  onApplySubtitles?.(srt);
-                }}
-                onBatchSettingsChange={onBatchSettingsChange}
-                onTranslationDeleted={() => {
-                  // Clear SRT content directly - don't rely on state update
-                  setSrtContent("");
-                  onClearSubtitles?.();
-                }}
-                onReloadRef={reloadTranslationsRef}
-                visible={visible}
-              />
-            )}
-          </Animated.View>
-        </KeyboardAvoidingView>
+                {t("subtitleModal.tabs.srt")}
+              </Text>
+            </TouchableOpacity>
+          </View>
+          {activeTab === "srt" ? (
+            <SrtTab
+              srtContent={srtContent}
+              setSrtContent={setSrtContent}
+              onLoadSubtitles={onLoadSubtitles}
+            />
+          ) : (
+            <TranslateTab
+              videoUrl={videoUrl}
+              videoDuration={videoDuration}
+              batchSettings={batchSettings}
+              isTranslating={isTranslating}
+              translateStatus={translateStatus}
+              keyStatus={keyStatus}
+              batchProgress={batchProgress}
+              onClose={handleClose}
+              onSelectTranslation={(srt) => {
+                setSrtContent(srt);
+                onApplySubtitles?.(srt);
+              }}
+              onBatchSettingsChange={onBatchSettingsChange}
+              onTranslationDeleted={() => {
+                setSrtContent("");
+                onClearSubtitles?.();
+              }}
+              onReloadRef={reloadTranslationsRef}
+              visible={visible}
+            />
+          )}
+        </Animated.View>
       </View>
     </Modal>
   );
@@ -428,7 +395,6 @@ const themedStyles = createThemedStyles((colors) => ({
     ...StyleSheet.absoluteFillObject,
     backgroundColor: colors.overlay,
   },
-  keyboardView: { width: "100%" as const },
   bottomSheet: {
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,

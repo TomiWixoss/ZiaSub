@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { View, StyleSheet, ScrollView } from "react-native";
+import { View, StyleSheet } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { alert, confirm, confirmDestructive } from "../common/CustomAlert";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -554,11 +555,11 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
 
   return (
     <View style={styles.tabContent}>
-      <ScrollView
+      <KeyboardAwareScrollView
         style={styles.scrollContent}
         contentContainerStyle={styles.scrollContentContainer}
         showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
+        bottomOffset={20}
       >
         <SavedTranslationsList
           translations={savedTranslations}
@@ -654,7 +655,7 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
           keyStatus={keyStatus}
           batchProgress={batchProgress}
         />
-      </ScrollView>
+      </KeyboardAwareScrollView>
       <View style={styles.translateButtonContainer}>
         {isTranslating ? (
           <Button3D

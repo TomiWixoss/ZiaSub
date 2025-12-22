@@ -8,6 +8,7 @@ import {
   AppStateStatus,
 } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { KeyboardProvider } from "react-native-keyboard-controller";
 import { PaperProvider, MD3DarkTheme, MD3LightTheme } from "react-native-paper";
 import {
   ThemeProvider,
@@ -219,11 +220,13 @@ const AppContent = () => {
 export default function App() {
   return (
     <SafeAreaProvider>
-      <ThemeProvider>
-        <UpdateProvider>
-          <AppContent />
-        </UpdateProvider>
-      </ThemeProvider>
+      <KeyboardProvider>
+        <ThemeProvider>
+          <UpdateProvider>
+            <AppContent />
+          </UpdateProvider>
+        </ThemeProvider>
+      </KeyboardProvider>
     </SafeAreaProvider>
   );
 }
