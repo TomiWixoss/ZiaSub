@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ZiaSub - Cài đặt</title>
+    <link rel="stylesheet" href="options.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@mdi/font@7.4.47/css/materialdesignicons.min.css"
+    />
+  </head>
+  <body>
+    <div class="container">
+      <!-- Header -->
+      <div class="header">
+        <div class="header-left">
+          <img src="icons/icon128.png" alt="ZiaSub" class="logo" />
+          <div class="header-info">
+            <h1 class="title">ZiaSub</h1>
+            <span class="version">Cài đặt</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Settings Groups -->
+      <div class="settings-content">
+        <!-- Subtitle Settings -->
+        <div class="settings-group">
+          <div class="group-header" data-group="subtitle">
+            <div class="group-header-left">
+              <div class="icon-container">
+                <i class="mdi mdi-subtitles"></i>
+              </div>
+              <div class="group-info">
+                <span class="group-title">Phụ đề</span>
+                <span class="group-desc">Tùy chỉnh font chữ và vị trí</span>
+              </div>
+            </div>
+            <i class="mdi mdi-chevron-down chevron"></i>
+          </div>
+          <div class="group-content" id="subtitle-content">
+            <!-- Preview -->
+            <div class="preview-container">
+              <span id="subtitlePreview">Xin chào, đây là phụ đề mẫu!</span>
+            </div>
+
+            <!-- Font Size -->
+            <div class="setting-row">
+              <label class="setting-label"
+                >Cỡ chữ: <span id="fontSizeValue">15</span>px</label
+              >
+              <input
+                type="range"
+                id="fontSize"
+                min="10"
+                max="28"
+                value="15"
+                class="slider"
+              />
+            </div>
+
+            <!-- Font Style Buttons -->
+            <div class="style-buttons">
+              <button class="style-btn" id="boldBtn" data-active="true">
+                <i class="mdi mdi-format-bold"></i>
+                <span>Đậm</span>
+              </button>
+              <button class="style-btn" id="italicBtn" data-active="false">
+                <i class="mdi mdi-format-italic"></i>
+                <span>Nghiêng</span>
+              </button>
+            </div>
+
+            <!-- Position -->
+            <div class="setting-row">
+              <label class="setting-label"
+                >Vị trí từ đáy: <span id="bottomOffsetValue">60</span>px</label
+              >
+              <input
+                type="range"
+                id="bottomOffset"
+                min="20"
+                max="200"
+                value="60"
+                class="slider"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- Overlay Settings -->
+        <div class="settings-group">
+          <div class="group-header" data-group="overlay">
+            <div class="group-header-left">
+              <div class="icon-container">
+                <i class="mdi mdi-layers"></i>
+              </div>
+              <div class="group-info">
+                <span class="group-title">Lớp phủ</span>
+                <span class="group-desc">Tùy chỉnh hiển thị phụ đề</span>
+              </div>
+            </div>
+            <i class="mdi mdi-chevron-down chevron"></i>
+          </div>
+          <div class="group-content hidden" id="overlay-content">
+            <!-- Background Opacity -->
+            <div class="setting-row">
+              <label class="setting-label"
+                >Độ mờ nền: <span id="bgOpacityValue">70</span>%</label
+              >
+              <input
+                type="range"
+                id="bgOpacity"
+                min="0"
+                max="100"
+                value="70"
+                class="slider"
+              />
+            </div>
+
+            <!-- Text Shadow -->
+            <div class="setting-row">
+              <div class="toggle-row">
+                <span class="setting-label">Đổ bóng chữ</span>
+                <button
+                  class="toggle-btn"
+                  id="textShadowToggle"
+                  data-active="true"
+                >
+                  <span class="toggle-track"></span>
+                  <span class="toggle-thumb"></span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Reset Button -->
+        <button class="btn-3d secondary" id="resetBtn">
+          <div class="shadow"></div>
+          <div class="button">
+            <i class="mdi mdi-restore"></i>
+            <span>Khôi phục mặc định</span>
+          </div>
+        </button>
+        <p class="reset-hint">Đặt lại tất cả cài đặt về giá trị ban đầu</p>
+      </div>
+
+      <!-- Toast -->
+      <div class="toast hidden" id="toast">
+        <span id="toastMessage"></span>
+      </div>
+    </div>
+
+    <script src="dist/options/index.js" type="module"></script>
+  </body>
+</html>

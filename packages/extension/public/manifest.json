@@ -11,6 +11,7 @@
       "128": "icons/icon128.png"
     }
   },
+  "options_page": "options.html",
   "background": {
     "service_worker": "dist/background/index.js",
     "type": "module"

@@ -6,6 +6,7 @@ import type { MessageType, MessageResponse } from "../types/messages";
 // DOM Elements
 const tabs = document.querySelectorAll<HTMLButtonElement>(".tab");
 const tabContents = document.querySelectorAll<HTMLDivElement>(".tab-content");
+const settingsBtn = document.getElementById("settingsBtn") as HTMLButtonElement;
 const fileBtn = document.getElementById("fileBtn") as HTMLButtonElement;
 const pasteBtn = document.getElementById("pasteBtn") as HTMLButtonElement;
 const fileInput = document.getElementById("fileInput") as HTMLInputElement;
@@ -18,7 +19,6 @@ const subtitleCount = document.getElementById(
   "subtitleCount"
 ) as HTMLSpanElement;
 const applyBtn = document.getElementById("applyBtn") as HTMLButtonElement;
-const clearBtn = document.getElementById("clearBtn") as HTMLButtonElement;
 const toast = document.getElementById("toast") as HTMLDivElement;
 const toastMessage = document.getElementById("toastMessage") as HTMLSpanElement;
 
@@ -165,10 +165,17 @@ pasteBtn.addEventListener("click", async () => {
   }
 });
 
-// Clear input
-clearInputBtn.addEventListener("click", () => {
+// Clear input and subtitles
+clearInputBtn.addEventListener("click", async () => {
   srtInput.value = "";
   updateUI();
+
+  // Also clear subtitles on YouTube
+  try {
+    await sendToContentScript({ type: "CLEAR_SUBTITLES" });
+  } catch {
+    // Ignore if not on YouTube
+  }
 });
 
 // Text input change
@@ -194,17 +201,9 @@ applyBtn.addEventListener("click", async () => {
   }
 });
 
-// Clear subtitles
-clearBtn.addEventListener("click", async () => {
-  try {
-    await sendToContentScript({ type: "CLEAR_SUBTITLES" });
-
-    srtInput.value = "";
-    updateUI();
-    showToast("Đã xóa phụ đề", "info");
-  } catch (err) {
-    showToast((err as Error).message, "error");
-  }
+// Settings button - open options page
+settingsBtn.addEventListener("click", () => {
+  chrome.runtime.openOptionsPage();
 });
 
 // Check clipboard on load for SRT content

@@ -3,8 +3,8 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "dev": "bun run build --watch",
-    "build": "bun build src/background/index.ts --outdir=public/dist/background && bun build src/content/index.ts --outdir=public/dist/content && bun build src/popup/index.ts --outdir=public/dist/popup && bun build src/options/index.ts --outdir=public/dist/options",
+    "dev": "bun --watch run build.ts",
+    "build": "bun run build.ts",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf public/dist"
   },
@@ -12,6 +12,7 @@
     "@ziasub/shared": "workspace:*"
   },
   "devDependencies": {
+    "@types/bun": "^1.3.5",
     "@types/chrome": "^0.0.287",
     "typescript": "^5.9.3"
   }
