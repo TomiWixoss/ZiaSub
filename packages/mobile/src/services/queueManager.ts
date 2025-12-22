@@ -661,24 +661,12 @@ class QueueManager {
       return;
     }
 
-    // If auto-process is enabled, also pick up pending items
-    const nextPending = this.items.find((i) => i.status === "pending");
-    if (nextPending) {
-      // Mark as translating first
-      await this.updateItem(nextPending.id, {
-        status: "translating",
-        startedAt: Date.now(),
-      });
-      console.log(
-        "[QueueManager] Processing next pending item:",
-        nextPending.videoId
-      );
-      setTimeout(() => this.processItem(nextPending), 2000);
-    } else {
-      // No more items to process, disable auto-process
-      console.log("[QueueManager] No more items, disabling auto-process");
-      this.autoProcessEnabled = false;
-    }
+    // No more translating items - disable auto-process
+    // Don't automatically pick up pending items - user must explicitly start them
+    console.log(
+      "[QueueManager] No more translating items, disabling auto-process"
+    );
+    this.autoProcessEnabled = false;
   }
 
   // Update item
