@@ -539,7 +539,9 @@ class QueueManager {
         queueBatchSettings,
         undefined,
         undefined,
-        resumeData
+        resumeData,
+        undefined,
+        { skipBackgroundControl: true } // Queue tự quản lý background service
       );
     } catch (e: any) {
       // Error handled in subscription

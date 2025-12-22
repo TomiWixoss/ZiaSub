@@ -18,6 +18,7 @@ class TranslationManager {
   private listeners: Set<TranslationListener> = new Set();
   private abortController: AbortController | null = null;
   private isAborted: boolean = false;
+  private skipBackgroundControl: boolean = false; // true khi gọi từ queue
 
   private constructor() {}
 
@@ -76,7 +77,10 @@ class TranslationManager {
       completedBatchRanges: Array<{ start: number; end: number }>;
       existingTranslationId?: string;
     },
-    presubConfig?: GeminiConfig
+    presubConfig?: GeminiConfig,
+    options?: {
+      skipBackgroundControl?: boolean; // true khi gọi từ queue - queue tự quản lý background
+    }
   ): Promise<string> {
     if (this.isTranslatingUrl(videoUrl)) {
       throw new Error("Video này đang dịch rồi");
@@ -90,7 +94,11 @@ class TranslationManager {
     this.isAborted = false;
 
     // Start background service để giữ app chạy khi ở background
-    await backgroundService.onTranslationStart(config.name);
+    // Skip nếu được gọi từ queue (queue tự quản lý background)
+    this.skipBackgroundControl = options?.skipBackgroundControl ?? false;
+    if (!this.skipBackgroundControl) {
+      await backgroundService.onTranslationStart(config.name);
+    }
 
     const jobId = `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
     this.currentJob = {
@@ -303,7 +311,10 @@ class TranslationManager {
     } finally {
       this.abortController = null;
       // Stop background service khi dịch xong (dù thành công hay lỗi)
-      backgroundService.onTranslationComplete();
+      // Skip nếu được gọi từ queue (queue tự quản lý background)
+      if (!this.skipBackgroundControl) {
+        backgroundService.onTranslationComplete();
+      }
     }
   }
 
@@ -554,7 +565,10 @@ class TranslationManager {
     } finally {
       this.abortController = null;
       // Stop background service
-      backgroundService.onTranslationComplete();
+      // Skip nếu được gọi từ queue (queue tự quản lý background)
+      if (!this.skipBackgroundControl) {
+        backgroundService.onTranslationComplete();
+      }
     }
   }
 }
