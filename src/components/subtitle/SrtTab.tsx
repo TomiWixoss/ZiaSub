@@ -5,8 +5,8 @@ import {
   TouchableOpacity,
   TextInput as RNTextInput,
   Platform,
+  ScrollView,
 } from "react-native";
-import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { alert } from "../common/CustomAlert";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
@@ -60,11 +60,10 @@ export const SrtTab: React.FC<SrtTabProps> = ({
   };
 
   return (
-    <KeyboardAwareScrollView
+    <ScrollView
       style={styles.tabContent}
       contentContainerStyle={styles.scrollContent}
       showsVerticalScrollIndicator={false}
-      bottomOffset={20}
     >
       <View style={styles.buttonRow}>
         <Button3D
@@ -111,7 +110,7 @@ export const SrtTab: React.FC<SrtTabProps> = ({
         title={t("subtitleModal.srt.load")}
         variant="primary"
       />
-    </KeyboardAwareScrollView>
+    </ScrollView>
   );
 };
 

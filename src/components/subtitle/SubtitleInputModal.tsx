@@ -7,6 +7,11 @@ import {
   TouchableOpacity,
   Animated,
 } from "react-native";
+import { useKeyboardHandler } from "react-native-keyboard-controller";
+import Reanimated, {
+  useSharedValue,
+  useAnimatedStyle,
+} from "react-native-reanimated";
 import { alert, confirm } from "../common/CustomAlert";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "react-native-paper";
@@ -80,6 +85,23 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
   const [batchProgress, setBatchProgress] = useState<BatchProgress | null>(
     null
   );
+
+  // Keyboard handling
+  const keyboardHeight = useSharedValue(0);
+
+  useKeyboardHandler(
+    {
+      onMove: (event) => {
+        "worklet";
+        keyboardHeight.value = event.height;
+      },
+    },
+    []
+  );
+
+  const animatedBottomStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: -keyboardHeight.value }],
+  }));
 
   const onTranslationStateChangeRef = useRef(onTranslationStateChange);
   useEffect(() => {
@@ -291,99 +313,110 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
             onPress={handleClose}
           />
         </Animated.View>
-        <Animated.View
-          style={[
-            styles.bottomSheet,
-            {
-              paddingBottom: Math.max(insets.bottom, 20),
-              transform: [{ translateY: slideAnim }],
-            },
-          ]}
+        <Reanimated.View
+          style={[styles.keyboardAvoidingContainer, animatedBottomStyle]}
         >
-          <View style={styles.sheetHeader}>
-            <View style={styles.dragHandle} />
-            <Text style={styles.title}>{t("subtitleModal.title")}</Text>
-            <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
-              <MaterialCommunityIcons
-                name="close"
-                size={20}
-                color={colors.textSecondary}
-              />
-            </TouchableOpacity>
-          </View>
-          <View style={styles.tabBar}>
-            <TouchableOpacity
-              style={[
-                styles.tab,
-                activeTab === "translate" && styles.tabActive,
-              ]}
-              onPress={() => setActiveTab("translate")}
-            >
-              <MaterialCommunityIcons
-                name="translate"
-                size={18}
-                color={
-                  activeTab === "translate" ? colors.primary : colors.textMuted
-                }
-              />
-              <Text
-                style={[
-                  styles.tabText,
-                  activeTab === "translate" && styles.tabTextActive,
-                ]}
+          <Animated.View
+            style={[
+              styles.bottomSheet,
+              {
+                paddingBottom: Math.max(insets.bottom, 20),
+                transform: [{ translateY: slideAnim }],
+              },
+            ]}
+          >
+            <View style={styles.sheetHeader}>
+              <View style={styles.dragHandle} />
+              <Text style={styles.title}>{t("subtitleModal.title")}</Text>
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={handleClose}
               >
-                {t("subtitleModal.tabs.translate")}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.tab, activeTab === "srt" && styles.tabActive]}
-              onPress={() => setActiveTab("srt")}
-            >
-              <MaterialCommunityIcons
-                name="file-document-outline"
-                size={18}
-                color={activeTab === "srt" ? colors.primary : colors.textMuted}
-              />
-              <Text
+                <MaterialCommunityIcons
+                  name="close"
+                  size={20}
+                  color={colors.textSecondary}
+                />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.tabBar}>
+              <TouchableOpacity
                 style={[
-                  styles.tabText,
-                  activeTab === "srt" && styles.tabTextActive,
+                  styles.tab,
+                  activeTab === "translate" && styles.tabActive,
                 ]}
+                onPress={() => setActiveTab("translate")}
               >
-                {t("subtitleModal.tabs.srt")}
-              </Text>
-            </TouchableOpacity>
-          </View>
-          {activeTab === "srt" ? (
-            <SrtTab
-              srtContent={srtContent}
-              setSrtContent={setSrtContent}
-              onLoadSubtitles={onLoadSubtitles}
-            />
-          ) : (
-            <TranslateTab
-              videoUrl={videoUrl}
-              videoDuration={videoDuration}
-              batchSettings={batchSettings}
-              isTranslating={isTranslating}
-              translateStatus={translateStatus}
-              keyStatus={keyStatus}
-              batchProgress={batchProgress}
-              onClose={handleClose}
-              onSelectTranslation={(srt) => {
-                setSrtContent(srt);
-                onApplySubtitles?.(srt);
-              }}
-              onBatchSettingsChange={onBatchSettingsChange}
-              onTranslationDeleted={() => {
-                setSrtContent("");
-                onClearSubtitles?.();
-              }}
-              onReloadRef={reloadTranslationsRef}
-              visible={visible}
-            />
-          )}
-        </Animated.View>
+                <MaterialCommunityIcons
+                  name="translate"
+                  size={18}
+                  color={
+                    activeTab === "translate"
+                      ? colors.primary
+                      : colors.textMuted
+                  }
+                />
+                <Text
+                  style={[
+                    styles.tabText,
+                    activeTab === "translate" && styles.tabTextActive,
+                  ]}
+                >
+                  {t("subtitleModal.tabs.translate")}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.tab, activeTab === "srt" && styles.tabActive]}
+                onPress={() => setActiveTab("srt")}
+              >
+                <MaterialCommunityIcons
+                  name="file-document-outline"
+                  size={18}
+                  color={
+                    activeTab === "srt" ? colors.primary : colors.textMuted
+                  }
+                />
+                <Text
+                  style={[
+                    styles.tabText,
+                    activeTab === "srt" && styles.tabTextActive,
+                  ]}
+                >
+                  {t("subtitleModal.tabs.srt")}
+                </Text>
+              </TouchableOpacity>
+            </View>
+            {activeTab === "srt" ? (
+              <SrtTab
+                srtContent={srtContent}
+                setSrtContent={setSrtContent}
+                onLoadSubtitles={onLoadSubtitles}
+              />
+            ) : (
+              <TranslateTab
+                videoUrl={videoUrl}
+                videoDuration={videoDuration}
+                batchSettings={batchSettings}
+                isTranslating={isTranslating}
+                translateStatus={translateStatus}
+                keyStatus={keyStatus}
+                batchProgress={batchProgress}
+                onClose={handleClose}
+                onSelectTranslation={(srt) => {
+                  setSrtContent(srt);
+                  onApplySubtitles?.(srt);
+                }}
+                onBatchSettingsChange={onBatchSettingsChange}
+                onTranslationDeleted={() => {
+                  setSrtContent("");
+                  onClearSubtitles?.();
+                }}
+                onReloadRef={reloadTranslationsRef}
+                visible={visible}
+              />
+            )}
+          </Animated.View>
+        </Reanimated.View>
       </View>
     </Modal>
   );
@@ -394,6 +427,9 @@ const themedStyles = createThemedStyles((colors) => ({
   modalBackdrop: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: colors.overlay,
+  },
+  keyboardAvoidingContainer: {
+    width: "100%" as const,
   },
   bottomSheet: {
     borderTopLeftRadius: 20,
