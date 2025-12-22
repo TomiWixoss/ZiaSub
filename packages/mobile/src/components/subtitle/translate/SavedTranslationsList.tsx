@@ -195,11 +195,14 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
                 activeOpacity={0.7}
               >
                 <View style={styles.translationHeaderLeft}>
-                  <MaterialCommunityIcons
-                    name={isExpanded ? "chevron-down" : "chevron-right"}
-                    size={20}
-                    color={colors.textMuted}
-                  />
+                  {/* Hide chevron for partial items - user should use Resume button below */}
+                  {!item.isPartial && (
+                    <MaterialCommunityIcons
+                      name={isExpanded ? "chevron-down" : "chevron-right"}
+                      size={20}
+                      color={colors.textMuted}
+                    />
+                  )}
                   <MaterialCommunityIcons
                     name={
                       item.isPartial
