@@ -508,6 +508,9 @@ export default {
     addedToWaitingQueue:
       "Added to queue. Video will be translated when current one finishes.",
     waitingForVideoData: "Loading video info, please try again in a moment.",
+    waitingInQueue: "Waiting in queue...",
+    waitingPosition: "Waiting (position #{{position}})",
+    cancelWaiting: "Cancel",
   },
 
   // Subtitle Modal

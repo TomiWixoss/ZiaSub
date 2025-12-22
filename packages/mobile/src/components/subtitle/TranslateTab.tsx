@@ -39,6 +39,8 @@ interface TranslateTabProps {
   videoDuration?: number;
   batchSettings?: BatchSettings;
   isTranslating: boolean;
+  isWaitingInQueue?: boolean;
+  queuePosition?: number | null;
   translateStatus: string;
   keyStatus: string | null;
   batchProgress: BatchProgress | null;
@@ -48,6 +50,7 @@ interface TranslateTabProps {
   onTranslationDeleted?: () => void;
   onReloadRef?: React.MutableRefObject<(() => void) | null>;
   visible?: boolean;
+  onCancelQueue?: () => void;
 }
 
 export const TranslateTab: React.FC<TranslateTabProps> = ({
@@ -55,6 +58,8 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
   videoDuration,
   batchSettings,
   isTranslating,
+  isWaitingInQueue = false,
+  queuePosition = null,
   translateStatus,
   keyStatus,
   batchProgress,
@@ -64,6 +69,7 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
   onTranslationDeleted,
   onReloadRef,
   visible,
+  onCancelQueue,
 }) => {
   const { t } = useTranslation();
   const { colors } = useTheme();
@@ -682,7 +688,30 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
         />
       </ScrollView>
       <View style={styles.translateButtonContainer}>
-        {isTranslating ? (
+        {isWaitingInQueue ? (
+          <View style={themedStyles.waitingContainer}>
+            <View style={themedStyles.waitingContent}>
+              <MaterialCommunityIcons
+                name="clock-outline"
+                size={20}
+                color={colors.warning}
+              />
+              <Text style={themedStyles.waitingText}>
+                {queuePosition
+                  ? t("queue.waitingPosition", { position: queuePosition })
+                  : t("queue.waitingInQueue")}
+              </Text>
+            </View>
+            {onCancelQueue && (
+              <Button3D
+                onPress={onCancelQueue}
+                title={t("queue.cancelWaiting")}
+                variant="destructive"
+                size="small"
+              />
+            )}
+          </View>
+        ) : isTranslating ? (
           <Button3D
             onPress={() => {
               if (videoUrl) {
@@ -740,5 +769,24 @@ const translateTabThemedStyles = createThemedStyles((colors) => ({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
+  },
+  waitingContainer: {
+    backgroundColor: "rgba(255,183,77,0.15)",
+    borderRadius: 12,
+    padding: 12,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: colors.warning,
+  },
+  waitingContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  waitingText: {
+    color: colors.warning,
+    fontSize: 14,
+    fontWeight: "500",
+    flex: 1,
   },
 }));

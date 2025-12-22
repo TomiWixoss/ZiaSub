@@ -507,6 +507,9 @@ export default {
       "Đã thêm vào hàng đợi. Video sẽ được dịch khi video hiện tại hoàn thành.",
     waitingForVideoData:
       "Đang tải thông tin video, vui lòng thử lại sau giây lát.",
+    waitingInQueue: "Đang chờ trong hàng đợi...",
+    waitingPosition: "Đang chờ (vị trí #{{position}})",
+    cancelWaiting: "Hủy chờ",
   },
 
   // Subtitle Modal

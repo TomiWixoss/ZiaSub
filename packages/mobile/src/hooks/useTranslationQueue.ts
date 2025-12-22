@@ -24,6 +24,8 @@ export const useTranslationQueue = ({
 }: UseTranslationQueueOptions) => {
   const [queueCount, setQueueCount] = useState(0);
   const [isTranslating, setIsTranslating] = useState(false);
+  const [isWaitingInQueue, setIsWaitingInQueue] = useState(false);
+  const [queuePosition, setQueuePosition] = useState<number | null>(null);
   const [translationProgress, setTranslationProgress] = useState<{
     completed: number;
     total: number;
@@ -31,6 +33,43 @@ export const useTranslationQueue = ({
 
   // Track the video URL that is currently being translated for THIS video
   const currentTranslatingUrlRef = useRef<string | null>(null);
+
+  // Check if current video is waiting in queue
+  const checkQueueStatus = useCallback(() => {
+    if (!currentUrlRef.current) {
+      setIsWaitingInQueue(false);
+      setQueuePosition(null);
+      return;
+    }
+
+    const queueStatus = queueManager.getVideoQueueStatus(currentUrlRef.current);
+
+    if (queueStatus.inQueue && queueStatus.status === "translating") {
+      // Video is in translating queue - check if it's actually being translated
+      const currentJob = translationManager.getCurrentJob();
+      const currentVideoId = extractVideoId(currentUrlRef.current);
+      const jobVideoId = currentJob
+        ? extractVideoId(currentJob.videoUrl)
+        : null;
+
+      if (
+        currentJob &&
+        jobVideoId === currentVideoId &&
+        currentJob.status === "processing"
+      ) {
+        // This video is actively being translated
+        setIsWaitingInQueue(false);
+        setQueuePosition(null);
+      } else {
+        // This video is waiting in queue
+        setIsWaitingInQueue(true);
+        setQueuePosition(queueStatus.position || null);
+      }
+    } else {
+      setIsWaitingInQueue(false);
+      setQueuePosition(null);
+    }
+  }, [currentUrlRef]);
 
   // Sync translated video IDs to WebView
   const syncTranslatedVideosToWebView = useCallback(async () => {
@@ -89,9 +128,10 @@ export const useTranslationQueue = ({
       const counts = queueManager.getCounts();
       setQueueCount(counts.pending + counts.translating);
       syncQueuedVideosToWebView();
+      checkQueueStatus();
     });
     return () => unsubscribe();
-  }, [syncQueuedVideosToWebView]);
+  }, [syncQueuedVideosToWebView, checkQueueStatus]);
 
   // Subscribe to translation manager for auto-apply
   useEffect(() => {
@@ -135,6 +175,7 @@ export const useTranslationQueue = ({
           setIsTranslating(false);
           setTranslationProgress(null);
           currentTranslatingUrlRef.current = null;
+          checkQueueStatus();
         }
       } else {
         // Different video is being translated - ensure current video shows correct state
@@ -146,10 +187,16 @@ export const useTranslationQueue = ({
           setIsTranslating(false);
           setTranslationProgress(null);
         }
+        checkQueueStatus();
       }
     });
     return () => unsubscribe();
-  }, [currentUrlRef, onTranslationComplete, syncTranslatedVideosToWebView]);
+  }, [
+    currentUrlRef,
+    onTranslationComplete,
+    syncTranslatedVideosToWebView,
+    checkQueueStatus,
+  ]);
 
   // Reset state when URL changes
   useEffect(() => {
@@ -175,11 +222,14 @@ export const useTranslationQueue = ({
       setIsTranslating(false);
       setTranslationProgress(null);
     }
-  }, [currentUrlRef.current]);
+    checkQueueStatus();
+  }, [currentUrlRef.current, checkQueueStatus]);
 
   return {
     queueCount,
     isTranslating,
+    isWaitingInQueue,
+    queuePosition,
     translationProgress,
     syncAllToWebView,
     syncTranslatedVideosToWebView,

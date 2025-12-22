@@ -13,6 +13,8 @@ interface FloatingButtonProps {
   isVideoPage: boolean;
   hasSubtitles?: boolean;
   isTranslating?: boolean;
+  isWaitingInQueue?: boolean;
+  queuePosition?: number | null;
   translationProgress?: { completed: number; total: number } | null;
   queueCount?: number;
   isInQueue?: boolean;
@@ -269,6 +271,94 @@ const TranslatingFab: React.FC<{
   );
 };
 
+const WaitingFab: React.FC<{
+  onPress: () => void;
+  position: number | null;
+}> = ({ onPress, position }) => {
+  const { colors, isDark } = useTheme();
+  const pulseAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 1500,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: false,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 0,
+          duration: 1500,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: false,
+        }),
+      ])
+    );
+    pulse.start();
+    return () => pulse.stop();
+  }, []);
+  const borderOpacity = pulseAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.4, 0.8],
+  });
+  const glowScale = pulseAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 1.1],
+  });
+  const glowOpacity = pulseAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.2, 0.4],
+  });
+  return (
+    <Pressable onPress={onPress}>
+      <View style={styles.translatingContainer}>
+        <Animated.View
+          style={[
+            styles.glowEffect,
+            {
+              backgroundColor: colors.warning,
+              opacity: glowOpacity,
+              transform: [{ scale: glowScale }],
+            },
+          ]}
+        />
+        <Animated.View
+          style={[
+            styles.translatingFab,
+            { borderColor: colors.warning, opacity: borderOpacity },
+          ]}
+        >
+          <View
+            style={[
+              styles.translatingFabInner,
+              {
+                backgroundColor: isDark
+                  ? colors.surfaceElevated
+                  : colors.surface,
+              },
+            ]}
+          >
+            <MaterialCommunityIcons
+              name="clock-outline"
+              size={26}
+              color={colors.warning}
+            />
+          </View>
+        </Animated.View>
+        {position && (
+          <View
+            style={[styles.progressBadge, { backgroundColor: colors.warning }]}
+          >
+            <Animated.Text style={[styles.progressText, { color: "#FFFFFF" }]}>
+              #{position}
+            </Animated.Text>
+          </View>
+        )}
+      </View>
+    </Pressable>
+  );
+};
+
 const FloatingButton: React.FC<FloatingButtonProps> = (props) => {
   const { colors } = useTheme();
   const {
@@ -280,6 +370,8 @@ const FloatingButton: React.FC<FloatingButtonProps> = (props) => {
     isVideoPage,
     hasSubtitles = false,
     isTranslating = false,
+    isWaitingInQueue = false,
+    queuePosition = null,
     translationProgress = null,
     queueCount = 0,
     isInQueue = false,
@@ -369,7 +461,9 @@ const FloatingButton: React.FC<FloatingButtonProps> = (props) => {
       >
         <ChatFab onPress={onChatPress} isLoading={isChatLoading} />
         {isVideoPage &&
-          (isTranslating ? (
+          (isWaitingInQueue ? (
+            <WaitingFab onPress={onPress} position={queuePosition} />
+          ) : isTranslating ? (
             <TranslatingFab onPress={onPress} progress={translationProgress} />
           ) : (
             <Fab3D

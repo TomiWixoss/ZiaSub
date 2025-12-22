@@ -85,6 +85,8 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
   const [batchProgress, setBatchProgress] = useState<BatchProgress | null>(
     null
   );
+  const [isWaitingInQueue, setIsWaitingInQueue] = useState(false);
+  const [queuePosition, setQueuePosition] = useState<number | null>(null);
 
   // Keyboard handling
   const keyboardHeight = useSharedValue(0);
@@ -112,6 +114,61 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
   useEffect(() => {
     onApplySubtitlesRef.current = onApplySubtitles;
   }, [onApplySubtitles]);
+
+  // Check queue status for current video
+  const checkQueueStatus = useCallback(() => {
+    if (!videoUrl) {
+      setIsWaitingInQueue(false);
+      setQueuePosition(null);
+      return;
+    }
+
+    const queueStatus = queueManager.getVideoQueueStatus(videoUrl);
+
+    if (queueStatus.inQueue && queueStatus.status === "translating") {
+      // Video is in translating queue - check if it's actually being translated
+      const currentJob = translationManager.getCurrentJob();
+      const currentVideoId = extractVideoId(videoUrl);
+      const jobVideoId = currentJob
+        ? extractVideoId(currentJob.videoUrl)
+        : null;
+
+      if (
+        currentJob &&
+        jobVideoId === currentVideoId &&
+        currentJob.status === "processing"
+      ) {
+        // This video is actively being translated
+        setIsWaitingInQueue(false);
+        setQueuePosition(null);
+      } else {
+        // This video is waiting in queue
+        setIsWaitingInQueue(true);
+        setQueuePosition(queueStatus.position || null);
+      }
+    } else {
+      setIsWaitingInQueue(false);
+      setQueuePosition(null);
+    }
+  }, [videoUrl]);
+
+  // Subscribe to queue changes
+  useEffect(() => {
+    const unsubscribe = queueManager.subscribe(() => {
+      checkQueueStatus();
+    });
+    checkQueueStatus();
+    return () => unsubscribe();
+  }, [checkQueueStatus]);
+
+  // Handle cancel waiting in queue
+  const handleCancelQueue = useCallback(() => {
+    if (videoUrl) {
+      queueManager.removeFromQueue(videoUrl);
+      setIsWaitingInQueue(false);
+      setQueuePosition(null);
+    }
+  }, [videoUrl]);
 
   const reloadTranslationsRef = useRef<(() => void) | null>(null);
 
@@ -398,6 +455,8 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
                 videoDuration={videoDuration}
                 batchSettings={batchSettings}
                 isTranslating={isTranslating}
+                isWaitingInQueue={isWaitingInQueue}
+                queuePosition={queuePosition}
                 translateStatus={translateStatus}
                 keyStatus={keyStatus}
                 batchProgress={batchProgress}
@@ -413,6 +472,7 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
                 }}
                 onReloadRef={reloadTranslationsRef}
                 visible={visible}
+                onCancelQueue={handleCancelQueue}
               />
             )}
           </Animated.View>
