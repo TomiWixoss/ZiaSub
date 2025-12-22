@@ -19,6 +19,7 @@ class TranslationManager {
   private abortController: AbortController | null = null;
   private isAborted: boolean = false;
   private skipBackgroundControl: boolean = false; // true khi gọi từ queue
+  private skipNotification: boolean = false; // true khi gọi từ queue
 
   private constructor() {}
 
@@ -80,6 +81,7 @@ class TranslationManager {
     presubConfig?: GeminiConfig,
     options?: {
       skipBackgroundControl?: boolean; // true khi gọi từ queue - queue tự quản lý background
+      skipNotification?: boolean; // true khi gọi từ queue - queue tự gửi notification
     }
   ): Promise<string> {
     if (this.isTranslatingUrl(videoUrl)) {
@@ -96,6 +98,7 @@ class TranslationManager {
     // Start background service để giữ app chạy khi ở background
     // Skip nếu được gọi từ queue (queue tự quản lý background)
     this.skipBackgroundControl = options?.skipBackgroundControl ?? false;
+    this.skipNotification = options?.skipNotification ?? false;
     if (!this.skipBackgroundControl) {
       await backgroundService.onTranslationStart(config.name);
     }
@@ -209,12 +212,15 @@ class TranslationManager {
               this.notify();
 
               // Gửi notification khi dịch xong từng phần
-              notificationService.notifyBatchComplete(
-                config.name,
-                batchIndex + 1,
-                totalBatches,
-                "direct"
-              );
+              // Skip nếu được gọi từ queue (queue tự gửi notification)
+              if (!this.skipNotification) {
+                notificationService.notifyBatchComplete(
+                  config.name,
+                  batchIndex + 1,
+                  totalBatches,
+                  "direct"
+                );
+              }
             }
           },
         }
@@ -245,7 +251,10 @@ class TranslationManager {
         this.notify();
 
         // Gửi notification khi dịch xong
-        notificationService.notifyTranslationComplete(config.name, "direct");
+        // Skip nếu được gọi từ queue (queue tự gửi notification)
+        if (!this.skipNotification) {
+          notificationService.notifyTranslationComplete(config.name, "direct");
+        }
       }
 
       return result;
@@ -298,11 +307,14 @@ class TranslationManager {
           this.notify();
 
           // Gửi notification khi lỗi
-          notificationService.notifyTranslationError(
-            config.name,
-            error.message,
-            "direct"
-          );
+          // Skip nếu được gọi từ queue (queue tự gửi notification)
+          if (!this.skipNotification) {
+            notificationService.notifyTranslationError(
+              config.name,
+              error.message,
+              "direct"
+            );
+          }
         }
       }
       // If aborted, job status was already updated in abortTranslation()

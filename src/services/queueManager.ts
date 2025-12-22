@@ -541,7 +541,7 @@ class QueueManager {
         undefined,
         resumeData,
         undefined,
-        { skipBackgroundControl: true } // Queue tự quản lý background service
+        { skipBackgroundControl: true, skipNotification: true } // Queue tự quản lý background và notification
       );
     } catch (e: any) {
       // Error handled in subscription
