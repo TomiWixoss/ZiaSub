@@ -181,12 +181,25 @@ export default {
     // Notification
     notification: {
       title: "Notifications",
-      enabled: "Notify when translation completes",
-      enabledHint:
-        "Get notified when app is in background and translation finishes",
+      enabled: "Enable notifications",
+      enabledHint: "Get notified when app is in background",
       noPermission: "Notification permission not granted",
       grantPermission: "Grant permission",
       permissionGranted: "✓ Notification permission granted",
+      // Source
+      sourceTitle: "Notification sources",
+      fromQueue: "From queue",
+      fromQueueHint: "Notify when translating videos from queue",
+      fromDirect: "From direct translation",
+      fromDirectHint: "Notify when translating from Auto translate tab",
+      // Type
+      typeTitle: "Notification types",
+      onComplete: "When complete",
+      onCompleteHint: "Notify when entire video translation finishes",
+      onBatchComplete: "When batch complete",
+      onBatchCompleteHint: "Notify each time a batch finishes (may spam)",
+      onError: "When error",
+      onErrorHint: "Notify when translation fails",
     },
 
     // Reset All Settings

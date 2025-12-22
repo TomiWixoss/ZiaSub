@@ -5,6 +5,10 @@ import * as Notifications from "expo-notifications";
 import { Platform, AppState, AppStateStatus } from "react-native";
 import { storageService } from "./storageService";
 import { DEFAULT_NOTIFICATION_SETTINGS } from "@constants/defaults";
+import type { NotificationSettings } from "@src/types";
+
+// Nguồn gửi notification
+export type NotificationSource = "queue" | "direct";
 
 // Cấu hình cách hiển thị notification khi app đang mở
 Notifications.setNotificationHandler({
@@ -20,11 +24,13 @@ Notifications.setNotificationHandler({
 class NotificationService {
   private static instance: NotificationService;
   private hasPermission: boolean = false;
-  private appState: AppStateStatus = "active";
+  private appState: AppStateStatus = AppState.currentState;
+  private listenerSubscription: ReturnType<
+    typeof AppState.addEventListener
+  > | null = null;
 
   private constructor() {
-    // Theo dõi trạng thái app
-    AppState.addEventListener("change", (state) => {
+    this.listenerSubscription = AppState.addEventListener("change", (state) => {
       this.appState = state;
     });
   }
@@ -36,9 +42,6 @@ class NotificationService {
     return NotificationService.instance;
   }
 
-  /**
-   * Khởi tạo và xin quyền notification
-   */
   async initialize(): Promise<boolean> {
     try {
       const { status: existingStatus } =
@@ -53,7 +56,6 @@ class NotificationService {
 
       this.hasPermission = finalStatus === "granted";
 
-      // Cấu hình channel cho Android
       if (Platform.OS === "android") {
         await Notifications.setNotificationChannelAsync("translation", {
           name: "Dịch phụ đề",
@@ -71,38 +73,46 @@ class NotificationService {
     }
   }
 
-  /**
-   * Kiểm tra xem có nên gửi notification không
-   * Chỉ gửi khi app đang chạy nền và setting được bật
-   */
-  private shouldSendNotification(): boolean {
-    // Kiểm tra setting
-    const settings = storageService.isInitialized()
-      ? storageService.getSettings()
-      : null;
-    const notificationEnabled =
-      settings?.notification?.enabled ?? DEFAULT_NOTIFICATION_SETTINGS.enabled;
-
-    if (!notificationEnabled) {
-      return false;
+  private getSettings(): NotificationSettings {
+    if (storageService.isInitialized()) {
+      return (
+        storageService.getSettings()?.notification ??
+        DEFAULT_NOTIFICATION_SETTINGS
+      );
     }
-
-    // Kiểm tra quyền
-    if (!this.hasPermission) {
-      return false;
-    }
-
-    // Chỉ gửi khi app đang ở background hoặc inactive
-    return this.appState !== "active";
+    return DEFAULT_NOTIFICATION_SETTINGS;
   }
 
-  /**
-   * Gửi thông báo khi dịch xong một video
-   */
-  async notifyTranslationComplete(videoTitle: string): Promise<void> {
-    if (!this.shouldSendNotification()) {
-      return;
-    }
+  private shouldSendNotification(
+    source: NotificationSource,
+    type: "complete" | "batchComplete" | "error"
+  ): boolean {
+    const settings = this.getSettings();
+
+    // Kiểm tra bật/tắt chung
+    if (!settings.enabled) return false;
+
+    // Kiểm tra quyền
+    if (!this.hasPermission) return false;
+
+    // Kiểm tra nguồn
+    if (source === "queue" && !settings.fromQueue) return false;
+    if (source === "direct" && !settings.fromDirect) return false;
+
+    // Kiểm tra loại thông báo
+    if (type === "complete" && !settings.onComplete) return false;
+    if (type === "batchComplete" && !settings.onBatchComplete) return false;
+    if (type === "error" && !settings.onError) return false;
+
+    // Chỉ gửi khi app ở background
+    return AppState.currentState !== "active";
+  }
+
+  async notifyTranslationComplete(
+    videoTitle: string,
+    source: NotificationSource = "direct"
+  ): Promise<void> {
+    if (!this.shouldSendNotification(source, "complete")) return;
 
     try {
       await Notifications.scheduleNotificationAsync({
@@ -110,48 +120,62 @@ class NotificationService {
           title: "Dịch xong! ✅",
           body: videoTitle,
           sound: "default",
-          priority: Notifications.AndroidNotificationPriority.HIGH,
         },
-        trigger: null, // Gửi ngay lập tức
+        trigger:
+          Platform.OS === "android" ? { channelId: "translation" } : null,
       });
     } catch (error) {
       console.error("[NotificationService] Send notification error:", error);
     }
   }
 
-  /**
-   * Gửi thông báo khi dịch lỗi
-   */
+  async notifyBatchComplete(
+    configName: string,
+    currentBatch: number,
+    totalBatches: number,
+    source: NotificationSource = "direct"
+  ): Promise<void> {
+    if (!this.shouldSendNotification(source, "batchComplete")) return;
+
+    try {
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: `Dịch xong phần ${currentBatch}/${totalBatches} ✅`,
+          body: configName,
+          sound: "default",
+        },
+        trigger:
+          Platform.OS === "android" ? { channelId: "translation" } : null,
+      });
+    } catch (error) {
+      console.error("[NotificationService] Send notification error:", error);
+    }
+  }
+
   async notifyTranslationError(
     videoTitle: string,
-    error?: string
+    errorMsg?: string,
+    source: NotificationSource = "direct"
   ): Promise<void> {
-    if (!this.shouldSendNotification()) {
-      return;
-    }
+    if (!this.shouldSendNotification(source, "error")) return;
 
     try {
       await Notifications.scheduleNotificationAsync({
         content: {
           title: "Dịch lỗi ❌",
-          body: error ? `${videoTitle}: ${error}` : videoTitle,
+          body: errorMsg ? `${videoTitle}: ${errorMsg}` : videoTitle,
           sound: "default",
-          priority: Notifications.AndroidNotificationPriority.HIGH,
         },
-        trigger: null,
+        trigger:
+          Platform.OS === "android" ? { channelId: "translation" } : null,
       });
     } catch (error) {
       console.error("[NotificationService] Send notification error:", error);
     }
   }
 
-  /**
-   * Gửi thông báo khi dịch xong tất cả video trong queue
-   */
   async notifyQueueComplete(completedCount: number): Promise<void> {
-    if (!this.shouldSendNotification()) {
-      return;
-    }
+    if (!this.shouldSendNotification("queue", "complete")) return;
 
     try {
       await Notifications.scheduleNotificationAsync({
@@ -159,38 +183,29 @@ class NotificationService {
           title: "Dịch xong tất cả! 🎉",
           body: `Đã dịch xong ${completedCount} video`,
           sound: "default",
-          priority: Notifications.AndroidNotificationPriority.HIGH,
         },
-        trigger: null,
+        trigger:
+          Platform.OS === "android" ? { channelId: "translation" } : null,
       });
     } catch (error) {
       console.error("[NotificationService] Send notification error:", error);
     }
   }
 
-  /**
-   * Kiểm tra quyền notification
-   */
   async checkPermission(): Promise<boolean> {
     const { status } = await Notifications.getPermissionsAsync();
     this.hasPermission = status === "granted";
     return this.hasPermission;
   }
 
-  /**
-   * Xin quyền notification
-   */
   async requestPermission(): Promise<boolean> {
     const { status } = await Notifications.requestPermissionsAsync();
     this.hasPermission = status === "granted";
     return this.hasPermission;
   }
 
-  /**
-   * Kiểm tra app có đang ở background không
-   */
   isAppInBackground(): boolean {
-    return this.appState !== "active";
+    return AppState.currentState !== "active";
   }
 }
 

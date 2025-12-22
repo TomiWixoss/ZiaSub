@@ -68,6 +68,11 @@ export const DEFAULT_API_KEYS_SETTINGS: ApiKeysSettings = {
 // ============================================
 export const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettings = {
   enabled: true, // Mặc định bật thông báo
+  fromQueue: true, // Thông báo từ Queue
+  fromDirect: true, // Thông báo từ dịch trực tiếp
+  onComplete: true, // Thông báo khi dịch xong
+  onBatchComplete: false, // Mặc định tắt thông báo từng phần (tránh spam)
+  onError: true, // Thông báo khi lỗi
 };
 
 // ============================================

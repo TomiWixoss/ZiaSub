@@ -232,7 +232,14 @@ export interface FloatingUISettings {
 // NOTIFICATION SETTINGS
 // ============================================
 export interface NotificationSettings {
-  enabled: boolean; // Bật/tắt thông báo khi dịch xong
+  enabled: boolean; // Bật/tắt thông báo chung
+  // Nguồn thông báo
+  fromQueue: boolean; // Thông báo từ Queue
+  fromDirect: boolean; // Thông báo từ dịch trực tiếp (TranslationManager)
+  // Loại thông báo
+  onComplete: boolean; // Thông báo khi dịch xong
+  onBatchComplete: boolean; // Thông báo khi dịch xong từng phần
+  onError: boolean; // Thông báo khi lỗi
 }
 
 // ============================================

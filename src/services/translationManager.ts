@@ -7,6 +7,7 @@ import type {
 } from "@src/types";
 import { saveTranslation, savePartialTranslation } from "@utils/storage";
 import { translateVideoWithGemini } from "./geminiService";
+import { notificationService } from "./notificationService";
 
 type TranslationListener = (job: TranslationJob) => void;
 
@@ -187,6 +188,13 @@ class TranslationManager {
                 batchStatuses: [...currentBatchStatuses],
               };
               this.notify();
+
+              // Gửi notification khi dịch xong từng phần
+              notificationService.notifyBatchComplete(
+                config.name,
+                batchIndex + 1,
+                totalBatches
+              );
             }
           },
         }
@@ -215,6 +223,9 @@ class TranslationManager {
           completedBatchRanges: [],
         };
         this.notify();
+
+        // Gửi notification khi dịch xong
+        notificationService.notifyTranslationComplete(config.name);
       }
 
       return result;
@@ -265,6 +276,12 @@ class TranslationManager {
             completedBatchRanges: completedRanges,
           };
           this.notify();
+
+          // Gửi notification khi lỗi
+          notificationService.notifyTranslationError(
+            config.name,
+            error.message
+          );
         }
       }
       // If aborted, job status was already updated in abortTranslation()
@@ -492,6 +509,9 @@ class TranslationManager {
           completedAt: Date.now(),
         };
         this.notify();
+
+        // Gửi notification khi dịch xong batch
+        notificationService.notifyTranslationComplete(config.name);
       }
 
       return updatedSrt;
@@ -504,6 +524,9 @@ class TranslationManager {
           completedAt: Date.now(),
         };
         this.notify();
+
+        // Gửi notification khi lỗi
+        notificationService.notifyTranslationError(config.name, error.message);
       }
       throw error;
     } finally {

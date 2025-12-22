@@ -14,6 +14,15 @@ interface NotificationSectionProps {
   onNotificationChange: (settings: NotificationSettings) => void;
 }
 
+interface ToggleRowProps {
+  icon: string;
+  label: string;
+  hint?: string;
+  value: boolean;
+  onValueChange: (value: boolean) => void;
+  disabled?: boolean;
+}
+
 const NotificationSection: React.FC<NotificationSectionProps> = ({
   notificationSettings,
   onNotificationChange,
@@ -37,50 +46,60 @@ const NotificationSection: React.FC<NotificationSectionProps> = ({
   const handleRequestPermission = async () => {
     const granted = await notificationService.requestPermission();
     setHasPermission(granted);
-
-    // Nếu không được cấp quyền, mở settings
     if (!granted && Platform.OS === "android") {
       Linking.openSettings();
     }
   };
 
-  const handleToggle = (value: boolean) => {
-    onNotificationChange({ ...notificationSettings, enabled: value });
+  const updateSetting = (key: keyof NotificationSettings, value: boolean) => {
+    onNotificationChange({ ...notificationSettings, [key]: value });
   };
+
+  const ToggleRow: React.FC<ToggleRowProps> = ({
+    icon,
+    label,
+    hint,
+    value,
+    onValueChange,
+    disabled,
+  }) => (
+    <View style={[themedStyles.toggleRow, disabled && styles.disabled]}>
+      <View style={styles.toggleInfo}>
+        <MaterialCommunityIcons
+          name={icon as any}
+          size={20}
+          color={value && !disabled ? colors.success : colors.textMuted}
+        />
+        <View style={styles.textContainer}>
+          <Text style={themedStyles.settingLabel}>{label}</Text>
+          {hint && <Text style={themedStyles.settingHint}>{hint}</Text>}
+        </View>
+      </View>
+      <Switch
+        value={value}
+        onValueChange={onValueChange}
+        disabled={disabled}
+        trackColor={{ false: colors.border, true: colors.success }}
+        thumbColor={value ? "#FFFFFF" : colors.surfaceElevated}
+      />
+    </View>
+  );
+
+  const isEnabled = notificationSettings.enabled;
 
   return (
     <View style={styles.container}>
-      {/* Toggle bật/tắt */}
-      <View style={themedStyles.toggleRow}>
-        <View style={styles.toggleInfo}>
-          <MaterialCommunityIcons
-            name="bell-outline"
-            size={20}
-            color={
-              notificationSettings.enabled ? colors.success : colors.textMuted
-            }
-          />
-          <View style={styles.textContainer}>
-            <Text style={themedStyles.settingLabel}>
-              {t("settings.notification.enabled")}
-            </Text>
-            <Text style={themedStyles.settingHint}>
-              {t("settings.notification.enabledHint")}
-            </Text>
-          </View>
-        </View>
-        <Switch
-          value={notificationSettings.enabled}
-          onValueChange={handleToggle}
-          trackColor={{ false: colors.border, true: colors.success }}
-          thumbColor={
-            notificationSettings.enabled ? "#FFFFFF" : colors.surfaceElevated
-          }
-        />
-      </View>
+      {/* Toggle bật/tắt chung */}
+      <ToggleRow
+        icon="bell-outline"
+        label={t("settings.notification.enabled")}
+        hint={t("settings.notification.enabledHint")}
+        value={notificationSettings.enabled}
+        onValueChange={(v) => updateSetting("enabled", v)}
+      />
 
       {/* Trạng thái quyền */}
-      {notificationSettings.enabled && hasPermission === false && (
+      {isEnabled && hasPermission === false && (
         <View style={themedStyles.permissionWarning}>
           <Text style={themedStyles.warningText}>
             {t("settings.notification.noPermission")}
@@ -95,10 +114,62 @@ const NotificationSection: React.FC<NotificationSectionProps> = ({
         </View>
       )}
 
-      {notificationSettings.enabled && hasPermission === true && (
-        <Text style={themedStyles.permissionGranted}>
-          {t("settings.notification.permissionGranted")}
-        </Text>
+      {isEnabled && hasPermission === true && (
+        <>
+          <Text style={themedStyles.permissionGranted}>
+            {t("settings.notification.permissionGranted")}
+          </Text>
+
+          {/* Nguồn thông báo */}
+          <Text style={themedStyles.sectionTitle}>
+            {t("settings.notification.sourceTitle")}
+          </Text>
+
+          <ToggleRow
+            icon="playlist-play"
+            label={t("settings.notification.fromQueue")}
+            hint={t("settings.notification.fromQueueHint")}
+            value={notificationSettings.fromQueue}
+            onValueChange={(v) => updateSetting("fromQueue", v)}
+          />
+
+          <ToggleRow
+            icon="translate"
+            label={t("settings.notification.fromDirect")}
+            hint={t("settings.notification.fromDirectHint")}
+            value={notificationSettings.fromDirect}
+            onValueChange={(v) => updateSetting("fromDirect", v)}
+          />
+
+          {/* Loại thông báo */}
+          <Text style={themedStyles.sectionTitle}>
+            {t("settings.notification.typeTitle")}
+          </Text>
+
+          <ToggleRow
+            icon="check-circle-outline"
+            label={t("settings.notification.onComplete")}
+            hint={t("settings.notification.onCompleteHint")}
+            value={notificationSettings.onComplete}
+            onValueChange={(v) => updateSetting("onComplete", v)}
+          />
+
+          <ToggleRow
+            icon="progress-check"
+            label={t("settings.notification.onBatchComplete")}
+            hint={t("settings.notification.onBatchCompleteHint")}
+            value={notificationSettings.onBatchComplete}
+            onValueChange={(v) => updateSetting("onBatchComplete", v)}
+          />
+
+          <ToggleRow
+            icon="alert-circle-outline"
+            label={t("settings.notification.onError")}
+            hint={t("settings.notification.onErrorHint")}
+            value={notificationSettings.onError}
+            onValueChange={(v) => updateSetting("onError", v)}
+          />
+        </>
       )}
     </View>
   );
@@ -118,6 +189,9 @@ const styles = StyleSheet.create({
   textContainer: {
     flex: 1,
   },
+  disabled: {
+    opacity: 0.5,
+  },
 });
 
 const notificationThemedStyles = createThemedStyles((colors) => ({
@@ -128,7 +202,7 @@ const notificationThemedStyles = createThemedStyles((colors) => ({
     backgroundColor: colors.surfaceLight,
     borderRadius: 12,
     padding: 14,
-    marginBottom: 16,
+    marginBottom: 12,
     borderWidth: 1,
     borderColor: colors.border,
   },
@@ -136,18 +210,27 @@ const notificationThemedStyles = createThemedStyles((colors) => ({
     color: colors.text,
     fontSize: 14,
     fontWeight: "500",
-    marginBottom: 4,
+    marginBottom: 2,
   },
   settingHint: {
     color: colors.textMuted,
     fontSize: 12,
     flexShrink: 1,
   },
+  sectionTitle: {
+    color: colors.textMuted,
+    fontSize: 13,
+    fontWeight: "600",
+    marginTop: 8,
+    marginBottom: 12,
+    textTransform: "uppercase",
+  },
   permissionWarning: {
     backgroundColor: `${colors.warning}20`,
     padding: 12,
     borderRadius: 8,
     gap: 8,
+    marginBottom: 12,
   },
   warningText: {
     fontSize: 13,
@@ -156,6 +239,7 @@ const notificationThemedStyles = createThemedStyles((colors) => ({
   permissionGranted: {
     fontSize: 12,
     color: colors.success,
+    marginBottom: 16,
   },
 }));
 

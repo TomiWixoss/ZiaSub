@@ -423,7 +423,7 @@ class QueueManager {
           safeUnsubscribe();
 
           // Send notification when translation completes
-          notificationService.notifyTranslationComplete(videoTitle);
+          notificationService.notifyTranslationComplete(videoTitle, "queue");
 
           // Only continue to next item if auto-process is enabled (user clicked "Translate All")
           if (this.autoProcessEnabled) {
@@ -486,7 +486,8 @@ class QueueManager {
             // Send error notification
             notificationService.notifyTranslationError(
               videoTitle,
-              job.error || undefined
+              job.error || undefined,
+              "queue"
             );
           }
           this.isProcessing = false;

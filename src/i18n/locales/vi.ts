@@ -181,11 +181,25 @@ export default {
     // Notification
     notification: {
       title: "Thông báo",
-      enabled: "Thông báo khi dịch xong",
-      enabledHint: "Nhận thông báo khi app chạy nền và dịch xong video",
+      enabled: "Bật thông báo",
+      enabledHint: "Nhận thông báo khi app chạy nền",
       noPermission: "Chưa cấp quyền thông báo",
       grantPermission: "Cấp quyền",
       permissionGranted: "✓ Đã cấp quyền thông báo",
+      // Nguồn
+      sourceTitle: "Nguồn thông báo",
+      fromQueue: "Từ hàng đợi",
+      fromQueueHint: "Thông báo khi dịch video trong hàng đợi",
+      fromDirect: "Từ dịch trực tiếp",
+      fromDirectHint: "Thông báo khi dịch từ tab Dịch tự động",
+      // Loại
+      typeTitle: "Loại thông báo",
+      onComplete: "Khi dịch xong",
+      onCompleteHint: "Thông báo khi dịch xong toàn bộ video",
+      onBatchComplete: "Khi xong từng phần",
+      onBatchCompleteHint: "Thông báo mỗi khi dịch xong 1 phần (có thể spam)",
+      onError: "Khi có lỗi",
+      onErrorHint: "Thông báo khi dịch bị lỗi",
     },
 
     // Reset All Settings
