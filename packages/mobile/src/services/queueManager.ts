@@ -33,6 +33,8 @@ class QueueManager {
   private translationManagerUnsubscribe: (() => void) | null = null; // Track subscription
   private currentProcessingItemId: string | null = null; // Track which item is being processed
   private userPausedItems: Set<string> = new Set(); // Track items paused by user (won't auto-resume)
+  private queueStartCompletedCount: number = 0; // Track completed count when queue started
+  private directTranslationVideoUrl: string | null = null; // Track video being translated directly (not from queue)
 
   private constructor() {}
 
@@ -87,8 +89,7 @@ class QueueManager {
   // NOTE: This is only for logging/debugging - actual queue continuation is handled in processItem's subscription
   private subscribeToTranslationManager(): void {
     this.translationManagerUnsubscribe = translationManager.subscribe((job) => {
-      // When a job completes or errors, just log for debugging
-      // Don't call processNextInQueue here - it's handled in processItem's subscription
+      // When a job completes or errors, check if it was a direct translation
       if (job.status === "completed" || job.status === "error") {
         const isQueueItem = this.items.some(
           (item) =>
@@ -96,10 +97,27 @@ class QueueManager {
         );
 
         if (!isQueueItem) {
-          // Direct translation finished - do NOT auto-continue queue items
-          console.log(
-            "[QueueManager] Direct translation finished, NOT auto-continuing queue"
-          );
+          // Direct translation finished
+          console.log("[QueueManager] Direct translation finished");
+
+          // Clear direct translation tracking
+          if (this.directTranslationVideoUrl === job.videoUrl) {
+            this.directTranslationVideoUrl = null;
+
+            // If there are pending items in queue that were waiting, start processing them
+            const waitingItems = this.items.filter(
+              (i) =>
+                i.status === "translating" && !this.userPausedItems.has(i.id)
+            );
+            if (waitingItems.length > 0 && this.autoProcessEnabled) {
+              console.log(
+                "[QueueManager] Direct translation done, continuing queue with",
+                waitingItems.length,
+                "items"
+              );
+              setTimeout(() => this.processNextInQueue(), 1000);
+            }
+          }
         }
         // Note: Queue item completion is handled by processItem's subscription
       }
@@ -447,10 +465,17 @@ class QueueManager {
             );
             if (remainingItems.length === 0) {
               // All done - send queue complete notification and stop background service
-              const completedCount = this.items.filter(
+              // Calculate how many videos were completed since queue started
+              const currentCompletedCount = this.items.filter(
                 (i) => i.status === "completed"
               ).length;
-              notificationService.notifyQueueComplete(completedCount);
+              const completedInThisSession =
+                currentCompletedCount - this.queueStartCompletedCount;
+              notificationService.notifyQueueComplete(
+                completedInThisSession > 0
+                  ? completedInThisSession
+                  : currentCompletedCount
+              );
               backgroundService.onTranslationComplete();
             }
             this.processNextInQueue();
@@ -700,24 +725,12 @@ class QueueManager {
   }
 
   // Start auto processing - mark ALL pending/error as translating and process sequentially
-  // Returns: { success: boolean, reason?: string }
-  async startAutoProcess(): Promise<{ success: boolean; reason?: string }> {
-    // Check if translationManager is busy
-    if (translationManager.isTranslating()) {
-      console.log(
-        "[QueueManager] translationManager is busy, cannot start auto-process"
-      );
-      return { success: false, reason: "busy" };
-    }
-
-    // Check if already processing
-    if (this.isProcessing) {
-      console.log(
-        "[QueueManager] Already processing, cannot start auto-process"
-      );
-      return { success: false, reason: "busy" };
-    }
-
+  // Returns: { success: boolean, reason?: string, queued?: boolean }
+  async startAutoProcess(): Promise<{
+    success: boolean;
+    reason?: string;
+    queued?: boolean;
+  }> {
     // Clear all user paused items - user is starting fresh auto-process
     this.userPausedItems.clear();
 
@@ -731,6 +744,11 @@ class QueueManager {
     // Enable auto-process mode
     this.autoProcessEnabled = true;
 
+    // Record current completed count for notification later
+    this.queueStartCompletedCount = this.items.filter(
+      (i) => i.status === "completed"
+    ).length;
+
     // Mark ALL pending/error items as "translating" (in queue) with sequential startedAt
     // First item in display order gets smallest startedAt
     const baseTime = Date.now();
@@ -742,16 +760,45 @@ class QueueManager {
       });
     }
 
-    // If not already processing, start with the first one
-    if (!this.isProcessing) {
-      // Get first item by startedAt order (smallest = first in display)
-      const translatingItems = this.items
-        .filter((i) => i.status === "translating")
-        .sort((a, b) => (a.startedAt || 0) - (b.startedAt || 0));
+    // Check if translationManager is busy with a direct translation (not from queue)
+    if (translationManager.isTranslating()) {
+      const currentJob = translationManager.getCurrentJob();
+      if (currentJob) {
+        const isQueueItem = this.items.some(
+          (item) =>
+            item.videoUrl === currentJob.videoUrl &&
+            item.status === "translating"
+        );
 
-      if (translatingItems[0]) {
-        await this.processItem(translatingItems[0]);
+        if (!isQueueItem) {
+          // Direct translation in progress - track it and wait
+          this.directTranslationVideoUrl = currentJob.videoUrl;
+          console.log(
+            "[QueueManager] Direct translation in progress, queue items will start when it finishes"
+          );
+          return { success: true, queued: true };
+        }
       }
+
+      // Already processing a queue item
+      console.log("[QueueManager] Already processing, items added to queue");
+      return { success: true, queued: true };
+    }
+
+    // Check if already processing
+    if (this.isProcessing) {
+      console.log("[QueueManager] Already processing, items added to queue");
+      return { success: true, queued: true };
+    }
+
+    // If not already processing, start with the first one
+    // Get first item by startedAt order (smallest = first in display)
+    const translatingItems = this.items
+      .filter((i) => i.status === "translating")
+      .sort((a, b) => (a.startedAt || 0) - (b.startedAt || 0));
+
+    if (translatingItems[0]) {
+      await this.processItem(translatingItems[0]);
     }
 
     return { success: true };
@@ -790,6 +837,11 @@ class QueueManager {
     const videoId = this.extractVideoId(videoUrl);
     const item = this.items.find((i) => i.videoId === videoId);
     if (item) {
+      // Don't change status of completed items - they stay completed
+      // This prevents duplicate translations when translating from direct tab
+      if (item.status === "completed") {
+        return;
+      }
       await this.updateItem(item.id, {
         status: "translating",
         progress: progress || undefined,
@@ -1144,6 +1196,101 @@ class QueueManager {
   // Check if auto-process is currently enabled
   isAutoProcessing(): boolean {
     return this.autoProcessEnabled;
+  }
+
+  // Add or update video in queue when translating directly
+  // This syncs the queue state with direct translation
+  async syncDirectTranslation(
+    videoUrl: string,
+    title?: string,
+    duration?: number,
+    configName?: string
+  ): Promise<QueueItem> {
+    const videoId = this.extractVideoId(videoUrl);
+    let item = this.items.find((i) => i.videoId === videoId);
+
+    if (item) {
+      // Video exists in queue - update status based on current state
+      if (item.status === "completed") {
+        // Don't change completed status, just return
+        return item;
+      }
+      if (item.status === "translating") {
+        // Already in translating queue, just update config if provided
+        if (configName) {
+          await this.updateItem(item.id, {
+            configName,
+          });
+        }
+        return this.items.find((i) => i.id === item!.id)!;
+      }
+      // Update pending/error to translating
+      await this.updateItem(item.id, {
+        status: "translating",
+        startedAt: item.startedAt || Date.now(),
+        configName: configName || item.configName,
+        error: undefined,
+      });
+      return this.items.find((i) => i.id === item!.id)!;
+    } else {
+      // Add new item to queue
+      const newItem: QueueItem = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        videoUrl,
+        videoId,
+        title: title || `Video ${videoId}`,
+        thumbnail: `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`,
+        duration,
+        status: "translating",
+        addedAt: Date.now(),
+        startedAt: Date.now(),
+        configName,
+      };
+
+      this.items.unshift(newItem);
+      await this.save();
+      this.notify();
+      return newItem;
+    }
+  }
+
+  // Get queue status for a video (for UI display)
+  getVideoQueueStatus(videoUrl: string): {
+    inQueue: boolean;
+    status?: QueueStatus;
+    position?: number;
+    isDirectTranslating?: boolean;
+  } {
+    const videoId = this.extractVideoId(videoUrl);
+    const item = this.items.find((i) => i.videoId === videoId);
+
+    if (!item) {
+      // Check if this video is being translated directly
+      if (this.directTranslationVideoUrl === videoUrl) {
+        return { inQueue: false, isDirectTranslating: true };
+      }
+      return { inQueue: false };
+    }
+
+    // Calculate position in queue for translating items
+    let position: number | undefined;
+    if (item.status === "translating") {
+      const translatingItems = this.items
+        .filter((i) => i.status === "translating")
+        .sort((a, b) => (a.startedAt || 0) - (b.startedAt || 0));
+      position = translatingItems.findIndex((i) => i.id === item.id) + 1;
+    }
+
+    return {
+      inQueue: true,
+      status: item.status,
+      position,
+    };
+  }
+
+  // Get total count of videos in translating queue (for notification display)
+  getTranslatingQueueCount(): number {
+    return this.items.filter((i) => i.status === "translating").length;
   }
 }
 

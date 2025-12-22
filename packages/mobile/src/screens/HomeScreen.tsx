@@ -279,16 +279,25 @@ const HomeScreen = () => {
   const handleAddToQueue = useCallback(async () => {
     if (!currentUrl) return;
 
+    // Check if we have required data (title and duration)
+    if (!videoTitle || !videoDuration) {
+      alert(
+        t("common.notice"),
+        t("queue.waitingForVideoData") ||
+          "Đang tải thông tin video, vui lòng thử lại sau giây lát"
+      );
+      return;
+    }
+
     const alreadyTranslated = await hasTranslation(currentUrl);
     if (alreadyTranslated) {
       alert(t("common.notice"), t("queue.alreadyTranslated"));
       return;
     }
 
-    const title = videoTitle || "Video YouTube";
     const result = await queueManager.addToQueue(
       currentUrl,
-      title,
+      videoTitle,
       videoDuration
     );
 

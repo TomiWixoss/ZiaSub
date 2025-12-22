@@ -87,6 +87,13 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
+    // Fix Windows MAX_PATH 260 character limit issue
+    externalNativeBuild {
+        cmake {
+            buildStagingDirectory = file("C:/.cxx")
+        }
+    }
+
     namespace 'com.tomisakae.ziasub'
     defaultConfig {
         applicationId 'com.tomisakae.ziasub'

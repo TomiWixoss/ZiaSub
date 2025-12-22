@@ -212,12 +212,27 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
         t("common.notice"),
         t("subtitleModal.translate.alreadyTranslating")
       );
+
     // Check if another video is being translated
-    if (translationManager.isTranslating())
+    // Instead of blocking, we can add to queue if queue is active
+    if (translationManager.isTranslating()) {
+      const { queueManager } = await import("@services/queueManager");
+      if (queueManager.isAutoProcessing()) {
+        // Queue is active - sync this video to queue
+        await queueManager.syncDirectTranslation(
+          videoUrl,
+          undefined,
+          videoDuration,
+          config.name
+        );
+        alert(t("common.notice"), t("queue.addedToWaitingQueue"));
+        return;
+      }
       return alert(
         t("common.notice"),
         t("subtitleModal.translate.anotherTranslating")
       );
+    }
 
     let rangeStart: number | undefined;
     let rangeEnd: number | undefined;

@@ -34,7 +34,7 @@ import QueuePagination from "./QueuePagination";
 import { createQueueStyles } from "./queueStyles";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
-const FLOATING_BUTTON_HEIGHT = 80;
+const FLOATING_BUTTON_HEIGHT = 0; // Removed extra padding, safe area is enough
 
 interface TranslationQueueModalProps {
   visible: boolean;
@@ -222,11 +222,9 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
       t("queue.dialogs.translateAllConfirm"),
       async () => {
         const result = await queueManager.startAutoProcess();
-        if (!result.success && result.reason === "busy") {
-          alert(
-            t("common.notice"),
-            t("subtitleModal.translate.anotherTranslating")
-          );
+        if (result.queued) {
+          // Items added to queue, will start when current translation finishes
+          alert(t("common.notice"), t("queue.addedToWaitingQueue"));
         }
       },
       t("common.start")
@@ -290,9 +288,7 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
   const statusBarHeight =
     Platform.OS === "android" ? StatusBar.currentHeight || 0 : 0;
   const topPadding = Math.max(insets.top, statusBarHeight, 24);
-  const bottomPadding = isPortrait
-    ? Math.max(insets.bottom, 20) + FLOATING_BUTTON_HEIGHT
-    : Math.max(insets.bottom, 20);
+  const bottomPadding = insets.bottom || 8; // Minimal padding, just safe area
 
   return (
     <Modal
@@ -386,19 +382,31 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
           <FlatList
             data={items}
             keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <QueueItemCard
-                item={item}
-                hasApiKey={hasApiKey}
-                onSelect={handleSelectVideo}
-                onStart={handleStartTranslation}
-                onResume={handleResumeTranslation}
-                onRequeue={handleRequeue}
-                onRemove={handleRemove}
-                onStop={handleStopTranslation}
-                onAbort={handleAbortTranslation}
-              />
-            )}
+            renderItem={({ item, index }) => {
+              // Calculate queue position for translating items
+              let queuePosition: number | undefined;
+              let totalInQueue: number | undefined;
+              if (activeTab === "translating") {
+                // Items are already sorted by startedAt in getItemsByStatus
+                queuePosition = index + 1 + (page - 1) * 10; // Account for pagination
+                totalInQueue = counts.translating;
+              }
+              return (
+                <QueueItemCard
+                  item={item}
+                  hasApiKey={hasApiKey}
+                  queuePosition={queuePosition}
+                  totalInQueue={totalInQueue}
+                  onSelect={handleSelectVideo}
+                  onStart={handleStartTranslation}
+                  onResume={handleResumeTranslation}
+                  onRequeue={handleRequeue}
+                  onRemove={handleRemove}
+                  onStop={handleStopTranslation}
+                  onAbort={handleAbortTranslation}
+                />
+              );
+            }}
             ListEmptyComponent={<QueueEmpty activeTab={activeTab} />}
             contentContainerStyle={
               items.length === 0 ? styles.emptyList : styles.list

@@ -505,6 +505,8 @@ export default {
     currentlyTranslating: "Video này đang được dịch.",
     addedToWaitingQueue:
       "Đã thêm vào hàng đợi. Video sẽ được dịch khi video hiện tại hoàn thành.",
+    waitingForVideoData:
+      "Đang tải thông tin video, vui lòng thử lại sau giây lát.",
   },
 
   // Subtitle Modal

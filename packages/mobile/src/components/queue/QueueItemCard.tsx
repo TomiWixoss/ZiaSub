@@ -10,6 +10,8 @@ import type { QueueItem } from "@src/types";
 interface QueueItemCardProps {
   item: QueueItem;
   hasApiKey: boolean;
+  queuePosition?: number; // Position in translating queue (1-based)
+  totalInQueue?: number; // Total items in translating queue
   onSelect: (item: QueueItem) => void;
   onStart: (item: QueueItem) => void;
   onResume?: (item: QueueItem) => void;
@@ -38,6 +40,8 @@ const formatDate = (timestamp?: number) => {
 const QueueItemCard: React.FC<QueueItemCardProps> = ({
   item,
   hasApiKey,
+  queuePosition,
+  totalInQueue,
   onSelect,
   onStart,
   onResume,
@@ -174,7 +178,11 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
             )}
             {isWaitingInQueue && (
               <Text style={[styles.statusText, { color: colors.primary }]}>
-                {t("queue.status.waiting")}
+                {queuePosition && totalInQueue
+                  ? `${t(
+                      "queue.status.waiting"
+                    )} (${queuePosition}/${totalInQueue})`
+                  : t("queue.status.waiting")}
               </Text>
             )}
             {item.status === "completed" && (

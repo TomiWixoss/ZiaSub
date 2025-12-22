@@ -158,8 +158,8 @@ const PresetPromptPicker: React.FC<PresetPromptPickerProps> = ({
               },
             ]}
           >
+            <View style={styles.dragHandle} />
             <View style={styles.sheetHeader}>
-              <View style={styles.dragHandle} />
               <Text style={styles.title}>
                 {t("settings.geminiConfig.selectPreset")}
               </Text>
@@ -169,7 +169,7 @@ const PresetPromptPicker: React.FC<PresetPromptPickerProps> = ({
               >
                 <MaterialCommunityIcons
                   name="close"
-                  size={20}
+                  size={24}
                   color={colors.textSecondary}
                 />
               </TouchableOpacity>
@@ -291,7 +291,7 @@ const PresetPromptPicker: React.FC<PresetPromptPickerProps> = ({
 };
 
 const themedStyles = createThemedStyles((colors) => ({
-  // Picker Button
+  // Picker Button - style giống ConfigPicker
   pickerButton: {
     flexDirection: "row" as const,
     alignItems: "center" as const,
@@ -330,51 +330,52 @@ const themedStyles = createThemedStyles((colors) => ({
     color: colors.text,
   },
 
-  // Modal
+  // Modal - style giống TranslationQueueModal
   modalOverlay: {
     flex: 1,
     justifyContent: "flex-end" as const,
   },
   modalBackdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: colors.overlay,
+    backgroundColor: "rgba(0,0,0,0.4)",
   },
   bottomSheet: {
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 16,
     paddingTop: 12,
     width: "100%" as const,
     height: SHEET_HEIGHT,
-    backgroundColor: colors.background,
-    borderTopWidth: 1,
-    borderColor: colors.border,
+    backgroundColor: colors.surface,
   },
   sheetHeader: {
+    flexDirection: "row" as const,
     alignItems: "center" as const,
-    marginBottom: 16,
-    position: "relative" as const,
+    justifyContent: "space-between" as const,
+    paddingVertical: 12,
+    marginTop: 8,
   },
   dragHandle: {
     width: 36,
     height: 4,
     borderRadius: 2,
-    marginBottom: 16,
-    backgroundColor: colors.borderLight,
+    backgroundColor: colors.border,
+    alignSelf: "center" as const,
   },
   title: {
     color: colors.text,
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: "700" as const,
   },
   closeButton: {
-    position: "absolute" as const,
-    right: 0,
-    top: 12,
-    padding: 8,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: "center" as const,
+    alignItems: "center" as const,
   },
 
-  // Preset List
+  // Preset List - style giống QueueItemCard
   presetList: {
     flex: 1,
   },
@@ -384,23 +385,23 @@ const themedStyles = createThemedStyles((colors) => ({
   presetItem: {
     flexDirection: "row" as const,
     alignItems: "center" as const,
-    padding: 14,
-    borderRadius: 14,
-    marginBottom: 10,
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 8,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
     gap: 12,
   },
   presetItemSelected: {
-    backgroundColor: colors.primary + "20",
+    backgroundColor: colors.primary + "15",
     borderColor: colors.primary,
-    borderWidth: 2,
+    borderWidth: 1.5,
   },
   presetIcon: {
-    width: 46,
-    height: 46,
-    borderRadius: 12,
+    width: 42,
+    height: 42,
+    borderRadius: 10,
     alignItems: "center" as const,
     justifyContent: "center" as const,
     backgroundColor: colors.surfaceElevated,
@@ -412,10 +413,10 @@ const themedStyles = createThemedStyles((colors) => ({
     flex: 1,
   },
   presetName: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "600" as const,
     color: colors.text,
-    marginBottom: 3,
+    marginBottom: 2,
   },
   presetNameSelected: {
     color: colors.primary,
@@ -430,8 +431,8 @@ const themedStyles = createThemedStyles((colors) => ({
   divider: {
     flexDirection: "row" as const,
     alignItems: "center" as const,
-    marginVertical: 12,
-    gap: 12,
+    marginVertical: 10,
+    gap: 10,
   },
   dividerLine: {
     flex: 1,
@@ -439,9 +440,11 @@ const themedStyles = createThemedStyles((colors) => ({
     backgroundColor: colors.border,
   },
   dividerText: {
-    fontSize: 12,
+    fontSize: 11,
     color: colors.textMuted,
     fontWeight: "500" as const,
+    textTransform: "uppercase" as const,
+    letterSpacing: 0.5,
   },
 }));
 

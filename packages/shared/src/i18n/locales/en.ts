@@ -507,6 +507,7 @@ export default {
     currentlyTranslating: "This video is being translated.",
     addedToWaitingQueue:
       "Added to queue. Video will be translated when current one finishes.",
+    waitingForVideoData: "Loading video info, please try again in a moment.",
   },
 
   // Subtitle Modal
