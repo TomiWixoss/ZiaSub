@@ -470,7 +470,10 @@ class StorageService {
    */
   async clearAllData(): Promise<void> {
     const allKeys = await AsyncStorage.getAllKeys();
-    const appKeys = allKeys.filter((k) => k.startsWith("@ziasub_"));
+    // Include @ziasub_ keys and @translation_queue
+    const appKeys = allKeys.filter(
+      (k) => k.startsWith("@ziasub_") || k === "@translation_queue"
+    );
     await AsyncStorage.multiRemove(appKeys);
 
     // Reset cache
@@ -483,6 +486,10 @@ class StorageService {
 
     // Re-ensure defaults
     await this.ensureDefaultConfigs();
+
+    // Reset queueManager in-memory state
+    const { queueManager } = await import("./queueManager");
+    await queueManager.reset();
   }
 }
 

@@ -1308,6 +1308,20 @@ class QueueManager {
   getTranslatingQueueCount(): number {
     return this.items.filter((i) => i.status === "translating").length;
   }
+
+  // Reset queue (called when clearing all app data)
+  async reset(): Promise<void> {
+    this.items = [];
+    this.isProcessing = false;
+    this.autoProcessEnabled = false;
+    this.userStoppedItemId = null;
+    this.currentProcessingItemId = null;
+    this.userPausedItems.clear();
+    this.queueStartCompletedCount = 0;
+    this.directTranslationVideoUrl = null;
+    await this.save();
+    this.notify();
+  }
 }
 
 export const queueManager = QueueManager.getInstance();
