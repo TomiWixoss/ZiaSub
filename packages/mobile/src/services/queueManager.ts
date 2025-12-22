@@ -235,6 +235,9 @@ class QueueManager {
         error: undefined,
       });
 
+      // Enable auto-process so this item will be picked up when current finishes
+      this.autoProcessEnabled = true;
+
       return { success: true, queued: true };
     }
 
