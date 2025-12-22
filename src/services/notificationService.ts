@@ -117,7 +117,7 @@ class NotificationService {
     try {
       await Notifications.scheduleNotificationAsync({
         content: {
-          title: "Dịch xong! ✅",
+          title: "Dịch xong!",
           body: videoTitle,
           sound: "default",
         },
@@ -140,7 +140,7 @@ class NotificationService {
     try {
       await Notifications.scheduleNotificationAsync({
         content: {
-          title: `Dịch xong phần ${currentBatch}/${totalBatches} ✅`,
+          title: `Dịch xong phần ${currentBatch}/${totalBatches}`,
           body: configName,
           sound: "default",
         },
@@ -162,7 +162,7 @@ class NotificationService {
     try {
       await Notifications.scheduleNotificationAsync({
         content: {
-          title: "Dịch lỗi ❌",
+          title: "Dịch lỗi",
           body: errorMsg ? `${videoTitle}: ${errorMsg}` : videoTitle,
           sound: "default",
         },
@@ -180,7 +180,7 @@ class NotificationService {
     try {
       await Notifications.scheduleNotificationAsync({
         content: {
-          title: "Dịch xong tất cả! 🎉",
+          title: "Dịch xong tất cả!",
           body: `Đã dịch xong ${completedCount} video`,
           sound: "default",
         },

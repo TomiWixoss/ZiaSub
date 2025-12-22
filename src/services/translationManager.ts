@@ -193,7 +193,8 @@ class TranslationManager {
               notificationService.notifyBatchComplete(
                 config.name,
                 batchIndex + 1,
-                totalBatches
+                totalBatches,
+                "direct"
               );
             }
           },
@@ -225,7 +226,7 @@ class TranslationManager {
         this.notify();
 
         // Gửi notification khi dịch xong
-        notificationService.notifyTranslationComplete(config.name);
+        notificationService.notifyTranslationComplete(config.name, "direct");
       }
 
       return result;
@@ -280,7 +281,8 @@ class TranslationManager {
           // Gửi notification khi lỗi
           notificationService.notifyTranslationError(
             config.name,
-            error.message
+            error.message,
+            "direct"
           );
         }
       }
@@ -511,7 +513,7 @@ class TranslationManager {
         this.notify();
 
         // Gửi notification khi dịch xong batch
-        notificationService.notifyTranslationComplete(config.name);
+        notificationService.notifyTranslationComplete(config.name, "direct");
       }
 
       return updatedSrt;
@@ -526,7 +528,11 @@ class TranslationManager {
         this.notify();
 
         // Gửi notification khi lỗi
-        notificationService.notifyTranslationError(config.name, error.message);
+        notificationService.notifyTranslationError(
+          config.name,
+          error.message,
+          "direct"
+        );
       }
       throw error;
     } finally {
