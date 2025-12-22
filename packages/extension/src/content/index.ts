@@ -1,16 +1,13 @@
 // Content script - Subtitle overlay on YouTube videos
-import type {
-  MessageType,
-  MessageResponse,
-  SubtitleData,
-} from "../types/messages";
+import type { SubtitleItem } from "@ziasub/shared";
+import type { MessageType, MessageResponse } from "../types/messages";
 
 class SubtitleOverlay {
-  private subtitles: SubtitleData[] = [];
+  private subtitles: SubtitleItem[] = [];
   private overlay: HTMLDivElement | null = null;
   private subtitleEl: HTMLDivElement | null = null;
   private video: HTMLVideoElement | null = null;
-  private currentSubtitle: SubtitleData | null = null;
+  private currentSubtitle: SubtitleItem | null = null;
   private animationFrame: number | null = null;
 
   constructor() {
@@ -23,6 +20,8 @@ class SubtitleOverlay {
 
     // Watch for video element
     this.observeVideo();
+
+    console.log("[ZiaSub] Content script initialized");
   }
 
   private handleMessage(
@@ -81,6 +80,7 @@ class SubtitleOverlay {
       this.video = video;
       this.createOverlay();
       this.startSync();
+      console.log("[ZiaSub] Video found and attached");
     }
   }
 
@@ -114,7 +114,7 @@ class SubtitleOverlay {
     }
   }
 
-  private setSubtitles(subtitles: SubtitleData[]) {
+  private setSubtitles(subtitles: SubtitleItem[]) {
     this.subtitles = subtitles.sort((a, b) => a.startTime - b.startTime);
 
     // Ensure overlay exists
@@ -170,7 +170,7 @@ class SubtitleOverlay {
     }
   }
 
-  private findSubtitle(time: number): SubtitleData | null {
+  private findSubtitle(time: number): SubtitleItem | null {
     // Binary search for efficiency
     let left = 0;
     let right = this.subtitles.length - 1;

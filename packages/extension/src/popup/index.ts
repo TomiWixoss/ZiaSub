@@ -1,42 +1,93 @@
 // Popup UI - Import SRT and send to content script
-import { parseSRT, SubtitleItem } from "../utils/srtParser";
+// Using shared package for SRT parsing
+import { parseSRT, type SubtitleItem } from "@ziasub/shared";
 import type { MessageType, MessageResponse } from "../types/messages";
 
-const fileInput = document.getElementById("srtFile") as HTMLInputElement;
-const fileLabel = document.getElementById("fileLabel") as HTMLLabelElement;
-const fileName = document.getElementById("fileName") as HTMLDivElement;
+// DOM Elements
+const tabs = document.querySelectorAll<HTMLButtonElement>(".tab");
+const tabContents = document.querySelectorAll<HTMLDivElement>(".tab-content");
+const fileBtn = document.getElementById("fileBtn") as HTMLButtonElement;
+const pasteBtn = document.getElementById("pasteBtn") as HTMLButtonElement;
+const fileInput = document.getElementById("fileInput") as HTMLInputElement;
+const srtInput = document.getElementById("srtInput") as HTMLTextAreaElement;
+const clearInputBtn = document.getElementById(
+  "clearInputBtn"
+) as HTMLButtonElement;
+const subtitleInfo = document.getElementById("subtitleInfo") as HTMLDivElement;
 const subtitleCount = document.getElementById(
   "subtitleCount"
-) as HTMLDivElement;
+) as HTMLSpanElement;
 const applyBtn = document.getElementById("applyBtn") as HTMLButtonElement;
 const clearBtn = document.getElementById("clearBtn") as HTMLButtonElement;
-const status = document.getElementById("status") as HTMLDivElement;
+const toast = document.getElementById("toast") as HTMLDivElement;
+const toastMessage = document.getElementById("toastMessage") as HTMLSpanElement;
 
 let parsedSubtitles: SubtitleItem[] = [];
+let toastTimeout: number | null = null;
 
-function showStatus(message: string, type: "success" | "error" | "info") {
-  status.textContent = message;
-  status.className = `status ${type}`;
-  status.style.display = "block";
+// Tab switching
+tabs.forEach((tab) => {
+  tab.addEventListener("click", () => {
+    const tabId = tab.dataset.tab;
 
-  if (type === "success") {
-    setTimeout(() => {
-      status.style.display = "none";
-    }, 3000);
+    tabs.forEach((t) => t.classList.remove("active"));
+    tabContents.forEach((c) => c.classList.remove("active"));
+
+    tab.classList.add("active");
+    document.getElementById(`${tabId}-tab`)?.classList.add("active");
+  });
+});
+
+// Toast notification
+function showToast(
+  message: string,
+  type: "success" | "error" | "info" = "info"
+) {
+  if (toastTimeout) {
+    clearTimeout(toastTimeout);
+  }
+
+  toastMessage.textContent = message;
+  toast.className = `toast ${type}`;
+  toast.classList.remove("hidden");
+
+  toastTimeout = window.setTimeout(() => {
+    toast.classList.add("hidden");
+  }, 3000);
+}
+
+// Update UI based on SRT content
+function updateUI() {
+  const content = srtInput.value.trim();
+
+  if (content) {
+    clearInputBtn.classList.remove("hidden");
+    parsedSubtitles = parseSRT(content);
+
+    if (parsedSubtitles.length > 0) {
+      subtitleInfo.classList.remove("hidden");
+      subtitleCount.textContent = `${parsedSubtitles.length} phụ đề`;
+      applyBtn.disabled = false;
+    } else {
+      subtitleInfo.classList.add("hidden");
+      applyBtn.disabled = true;
+    }
+  } else {
+    clearInputBtn.classList.add("hidden");
+    subtitleInfo.classList.add("hidden");
+    applyBtn.disabled = true;
+    parsedSubtitles = [];
   }
 }
 
-function hideStatus() {
-  status.style.display = "none";
-}
-
+// Send message to content script
 async function sendToContentScript(
   message: MessageType
 ): Promise<MessageResponse> {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
   if (!tab?.id) {
-    throw new Error("Không tìm thấy tab YouTube");
+    throw new Error("Không tìm thấy tab");
   }
 
   if (!tab.url?.includes("youtube.com")) {
@@ -66,70 +117,118 @@ async function sendToContentScript(
   }
 }
 
+// File picker
+fileBtn.addEventListener("click", () => {
+  fileInput.click();
+});
+
 fileInput.addEventListener("change", async (e) => {
   const file = (e.target as HTMLInputElement).files?.[0];
-
   if (!file) return;
 
-  hideStatus();
-
   try {
-    const text = await file.text();
-    parsedSubtitles = parseSRT(text);
+    const content = await file.text();
+    srtInput.value = content;
+    updateUI();
 
-    if (parsedSubtitles.length === 0) {
-      showStatus("File SRT không hợp lệ hoặc rỗng", "error");
-      fileLabel.classList.remove("has-file");
-      applyBtn.disabled = true;
-      return;
+    if (parsedSubtitles.length > 0) {
+      showToast(`Đã tải ${file.name}`, "success");
+    } else {
+      showToast("File không chứa phụ đề hợp lệ", "error");
     }
-
-    fileName.textContent = file.name;
-    subtitleCount.textContent = `${parsedSubtitles.length} phụ đề`;
-    fileLabel.classList.add("has-file");
-    applyBtn.disabled = false;
   } catch (err) {
-    showStatus("Lỗi đọc file: " + (err as Error).message, "error");
-    parsedSubtitles = [];
-    applyBtn.disabled = true;
+    showToast("Không thể đọc file", "error");
+  }
+
+  // Reset input
+  fileInput.value = "";
+});
+
+// Paste from clipboard
+pasteBtn.addEventListener("click", async () => {
+  try {
+    const content = await navigator.clipboard.readText();
+    if (content) {
+      srtInput.value = content;
+      updateUI();
+
+      if (parsedSubtitles.length > 0) {
+        showToast("Đã dán phụ đề", "success");
+      } else {
+        showToast("Nội dung không phải định dạng SRT", "error");
+      }
+    } else {
+      showToast("Clipboard trống", "info");
+    }
+  } catch {
+    showToast("Không thể truy cập clipboard", "error");
   }
 });
 
+// Clear input
+clearInputBtn.addEventListener("click", () => {
+  srtInput.value = "";
+  updateUI();
+});
+
+// Text input change
+srtInput.addEventListener("input", updateUI);
+
+// Apply subtitles
 applyBtn.addEventListener("click", async () => {
   if (parsedSubtitles.length === 0) return;
 
   try {
     applyBtn.disabled = true;
-    applyBtn.textContent = "Đang áp dụng...";
 
     await sendToContentScript({
       type: "SET_SUBTITLES",
       subtitles: parsedSubtitles,
     });
 
-    showStatus(`Đã áp dụng ${parsedSubtitles.length} phụ đề`, "success");
+    showToast(`Đã áp dụng ${parsedSubtitles.length} phụ đề`, "success");
   } catch (err) {
-    showStatus((err as Error).message, "error");
+    showToast((err as Error).message, "error");
   } finally {
     applyBtn.disabled = false;
-    applyBtn.textContent = "Áp dụng phụ đề";
   }
 });
 
+// Clear subtitles
 clearBtn.addEventListener("click", async () => {
   try {
     await sendToContentScript({ type: "CLEAR_SUBTITLES" });
 
-    // Reset UI
-    parsedSubtitles = [];
-    fileInput.value = "";
-    fileName.textContent = "";
-    subtitleCount.textContent = "";
-    fileLabel.classList.remove("has-file");
-    applyBtn.disabled = true;
-
-    showStatus("Đã xóa phụ đề", "info");
+    srtInput.value = "";
+    updateUI();
+    showToast("Đã xóa phụ đề", "info");
   } catch (err) {
-    showStatus((err as Error).message, "error");
+    showToast((err as Error).message, "error");
   }
+});
+
+// Check clipboard on load for SRT content
+async function checkClipboardForSRT() {
+  try {
+    const content = await navigator.clipboard.readText();
+    if (content && isSRTFormat(content) && !srtInput.value) {
+      srtInput.value = content;
+      updateUI();
+      showToast("Đã phát hiện SRT trong clipboard", "info");
+    }
+  } catch {
+    // Clipboard access denied, ignore
+  }
+}
+
+function isSRTFormat(text: string): boolean {
+  if (!text || text.length < 10) return false;
+  const srtPattern =
+    /^\d+\s*\n\d{2}:\d{2}:\d{2}[,.:]\d{3}\s*-->\s*\d{2}:\d{2}:\d{2}[,.:]\d{3}/m;
+  return srtPattern.test(text.trim());
+}
+
+// Initialize
+document.addEventListener("DOMContentLoaded", () => {
+  checkClipboardForSRT();
 });
