@@ -191,11 +191,17 @@ export const DataSection: React.FC = () => {
   const confirmClearData = async () => {
     try {
       await storageService.clearAllData();
-      await loadDataInfo();
       showAlert(
         t("common.success"),
         t("settings.data.clearSuccess"),
-        [{ text: t("common.ok") }],
+        [
+          {
+            text: t("common.ok"),
+            onPress: async () => {
+              await Updates.reloadAsync();
+            },
+          },
+        ],
         "success"
       );
     } catch (error) {

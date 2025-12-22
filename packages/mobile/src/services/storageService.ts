@@ -108,6 +108,21 @@ class StorageService {
     return this.initialized;
   }
 
+  /**
+   * Force reinitialize - reload all data from AsyncStorage into cache
+   * Call this after restore or clear operations
+   */
+  async reinitialize(): Promise<void> {
+    this.initialized = false;
+    this.cache = {
+      settings: null,
+      geminiConfigs: null,
+      chatSessions: null,
+      translationIndex: new Set(),
+    };
+    await this.initialize();
+  }
+
   private mergeWithDefaults(settings: Partial<AppSettings>): AppSettings {
     return {
       subtitle: { ...DEFAULT_APP_SETTINGS.subtitle, ...settings.subtitle },
@@ -438,24 +453,39 @@ class StorageService {
   }): Promise<void> {
     // Import settings
     if (data.settings) {
-      await this.setSettings(this.mergeWithDefaults(data.settings));
+      const merged = this.mergeWithDefaults(data.settings);
+      this.cache.settings = merged;
+      await AsyncStorage.setItem(KEYS.SETTINGS, JSON.stringify(merged));
     }
 
     // Import configs
     if (data.geminiConfigs) {
-      await this.setGeminiConfigs(data.geminiConfigs);
+      this.cache.geminiConfigs = data.geminiConfigs;
+      await AsyncStorage.setItem(
+        KEYS.GEMINI_CONFIGS,
+        JSON.stringify(data.geminiConfigs)
+      );
     }
 
     // Import chat sessions
     if (data.chatSessions) {
-      await this.setChatSessions(data.chatSessions);
+      this.cache.chatSessions = data.chatSessions;
+      await AsyncStorage.setItem(
+        KEYS.CHAT_SESSIONS,
+        JSON.stringify(data.chatSessions)
+      );
     }
 
     // Import translations
     if (data.translations) {
       for (const [videoId, translation] of Object.entries(data.translations)) {
-        await this.setTranslation(videoId, translation);
+        await AsyncStorage.setItem(
+          KEYS.TRANSLATION_PREFIX + videoId,
+          JSON.stringify(translation)
+        );
+        this.cache.translationIndex.add(videoId);
       }
+      await this.saveTranslationIndex();
     }
 
     // Import SRT files
@@ -482,14 +512,13 @@ class StorageService {
         "@translation_queue",
         JSON.stringify(data.translationQueue)
       );
-      // Reload queueManager with imported data
-      const { queueManager } = await import("./queueManager");
-      await queueManager.reset();
-      // Re-initialize to load the imported data
-      // Need to clear initialized flag first
-      (queueManager as any).initialized = false;
-      await queueManager.initialize();
     }
+
+    // Reset queueManager to reload with new data
+    const { queueManager } = await import("./queueManager");
+    await queueManager.reset();
+    (queueManager as any).initialized = false;
+    await queueManager.initialize();
   }
 
   /**
