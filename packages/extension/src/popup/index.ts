@@ -43,7 +43,27 @@ async function sendToContentScript(
     throw new Error("Vui lòng mở video YouTube trước");
   }
 
-  return chrome.tabs.sendMessage(tab.id, message);
+  try {
+    return await chrome.tabs.sendMessage(tab.id, message);
+  } catch {
+    // Content script not loaded, inject it
+    console.log("[ZiaSub] Injecting content script...");
+
+    await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      files: ["dist/content/index.js"],
+    });
+
+    await chrome.scripting.insertCSS({
+      target: { tabId: tab.id },
+      files: ["content.css"],
+    });
+
+    // Wait for script to initialize
+    await new Promise((r) => setTimeout(r, 100));
+
+    return chrome.tabs.sendMessage(tab.id, message);
+  }
 }
 
 fileInput.addEventListener("change", async (e) => {

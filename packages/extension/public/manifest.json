@@ -3,7 +3,7 @@
   "name": "ZiaSub",
   "version": "0.0.1",
   "description": "Dịch phụ đề YouTube tự động bằng Gemini AI",
-  "permissions": ["storage", "activeTab"],
+  "permissions": ["storage", "activeTab", "scripting"],
   "host_permissions": ["*://*.youtube.com/*"],
   "action": {
     "default_popup": "popup.html",

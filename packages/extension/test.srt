@@ -1,0 +1,367 @@
+1
+00:00:00,000 --> 00:00:04,500
+Chỉ hai tuần trước, tôi đã giới thiệu OpenCode, phần mềm mã nguồn mở và theo tôi,
+
+2
+00:00:04,500 --> 00:00:09,000
+là tác nhân mã hóa AI tốt nhất hiện có, hoạt động trực tiếp ngay trong terminal của bạn.
+
+3
+00:00:09,000 --> 00:00:13,500
+Nó là sự thay thế hoàn hảo cho Cloud Code và Gemini CLI.
+
+4
+00:00:13,500 --> 00:00:17,800
+Trong video đó, tôi đã nói về sự cải tiến vượt bậc của OpenCode
+
+5
+00:00:17,800 --> 00:00:21,500
+và có nhắc đến việc ứng dụng cho máy tính để bàn (desktop app) sắp ra mắt.
+
+6
+00:00:21,500 --> 00:00:24,800
+Chà, có vẻ như thời điểm đó đã đến,
+
+7
+00:00:24,800 --> 00:00:28,500
+vì ứng dụng OpenCode Desktop cuối cùng đã có sẵn bản Beta.
+
+8
+00:00:28,500 --> 00:00:30,800
+Và thực sự, nó khá tuyệt vời.
+
+9
+00:00:30,800 --> 00:00:34,500
+Phiên bản desktop này vẫn là tác nhân mã hóa AI mã nguồn mở
+
+10
+00:00:34,500 --> 00:00:38,200
+giúp lập trình viên viết, giải thích và tái cấu trúc code bằng các mô hình ngôn ngữ,
+
+11
+00:00:38,200 --> 00:00:41,500
+nhưng giờ đây có giao diện đồ họa đầy đủ và nhiều tính năng khác.
+
+12
+00:00:41,500 --> 00:00:45,000
+Nó có sẵn trên macOS, Windows và Linux,
+
+13
+00:00:45,000 --> 00:00:49,500
+nó bổ trợ cho terminal và trải nghiệm IDE với các tiện ích mở rộng khác nhau
+
+14
+00:00:49,500 --> 00:00:53,000
+và giao diện người dùng phong phú giúp tương tác với AI tốt hơn.
+
+15
+00:00:53,000 --> 00:00:56,800
+Cho những ai chưa biết OpenCode là gì, đó là một tác nhân AI
+
+16
+00:00:56,800 --> 00:01:00,500
+ban đầu được xây dựng cho terminal, hoàn toàn mã nguồn mở
+
+17
+00:01:00,500 --> 00:01:02,800
+và cho phép bạn sử dụng các mô hình miễn phí.
+
+18
+00:01:02,800 --> 00:01:06,500
+Nó thực sự đi kèm với bộ tính năng tốt hơn hầu hết các AI CLI ngoài kia.
+
+19
+00:01:06,500 --> 00:01:10,000
+Bạn có sẵn hỗ trợ LSP, giao diện TUI sạch đẹp,
+
+20
+00:01:10,000 --> 00:01:14,500
+nhiều lệnh hơn và kiến trúc tốt hơn giúp việc thao tác trong terminal
+
+21
+00:01:14,500 --> 00:01:17,500
+trở nên hiện đại, nhanh chóng và mạnh mẽ.
+
+22
+00:01:17,500 --> 00:01:21,500
+Để bắt đầu với ứng dụng desktop mới này, tôi sẽ để link OpenCode ở mô tả bên dưới.
+
+23
+00:01:21,500 --> 00:01:25,000
+Nó sẽ đưa bạn đến trang chủ, nơi bạn có thể cài đặt CLI
+
+24
+00:01:25,000 --> 00:01:28,500
+hoặc tải ứng dụng desktop mới bằng cách nhấn vào "Download Now".
+
+25
+00:01:28,500 --> 00:01:32,500
+Tôi đang dùng Windows nên tôi sẽ tiến hành cài đặt cho hệ điều hành Windows của mình.
+
+26
+00:01:32,500 --> 00:01:36,000
+Sau khi cài đặt, đây là giao diện của OpenCode desktop.
+
+27
+00:01:36,000 --> 00:01:39,500
+Lưu ý rằng hiện tại nó đang ở dạng Beta, nên hãy lường trước một số lỗi,
+
+28
+00:01:39,500 --> 00:01:43,000
+vì họ sẽ tinh chỉnh nó trong vài tuần tới.
+
+29
+00:01:43,000 --> 00:01:47,000
+Sau khi chọn thư mục làm việc, bạn có thể chọn chế độ Build (Xây dựng) hoặc Plan (Lập kế hoạch),
+
+30
+00:01:47,000 --> 00:01:51,500
+tương tự như các tác nhân AI khác, nơi bạn lên kế hoạch kiến trúc và để AI xây dựng nó.
+
+31
+00:01:51,500 --> 00:01:55,000
+Bạn cũng có thể sử dụng nhiều mô hình khác nhau.
+
+32
+00:01:55,000 --> 00:01:58,500
+Có 3 mô hình miễn phí tích hợp sẵn trong OpenCode.
+
+33
+00:01:58,500 --> 00:02:03,000
+Bạn có quyền truy cập GPT-4o-mini, Grok Code Fast, cũng như Big Pickle.
+
+34
+00:02:03,000 --> 00:02:07,000
+Bạn cũng có khả năng kết nối các nhà cung cấp khác, bao gồm cả local (cục bộ),
+
+35
+00:02:07,000 --> 00:02:11,000
+để truy cập các mô hình hiện đại nhất thông qua API key của riêng bạn.
+
+36
+00:02:11,000 --> 00:02:15,500
+Sau khi chọn nhà cung cấp, bạn có thể bắt đầu bằng việc lập kế hoạch cho bất cứ thứ gì.
+
+37
+00:02:15,500 --> 00:02:19,500
+Giao diện người dùng này cho phép bạn làm việc với code tốt hơn nhiều.
+
+38
+00:02:19,500 --> 00:02:23,500
+Trước khi bắt đầu, hãy nhớ đăng ký nhận bản tin World of AI newsletter nhé.
+
+39
+00:02:23,500 --> 00:02:28,000
+Tôi liên tục đăng các bản tin hàng tuần hoàn toàn miễn phí về không gian AI.
+
+40
+00:02:28,000 --> 00:02:32,000
+Ví dụ, tôi có thể yêu cầu OpenCode lên kế hoạch tạo một ứng dụng
+
+41
+00:02:32,000 --> 00:02:35,500
+cho phép tôi dùng AI với bảng tính (spreadsheet) của mình.
+
+42
+00:02:35,500 --> 00:02:40,000
+Bạn có thể thấy nó suy luận bằng cách dùng Gemini 3.0 Pro,
+
+43
+00:02:40,000 --> 00:02:43,500
+và nó hiển thị quá trình suy luận ngay trên giao diện ứng dụng.
+
+44
+00:02:43,500 --> 00:02:47,000
+Nó sẽ truy cập thư mục và lên kế hoạch các bước.
+
+45
+00:02:47,000 --> 00:02:51,000
+Như bạn thấy, nó đang tạo ra một kế hoạch chi tiết.
+
+46
+00:02:51,000 --> 00:02:55,000
+Bạn thậm chí có thể sử dụng terminal trực tiếp bên trong ứng dụng OpenCode.
+
+47
+00:02:55,000 --> 00:02:58,500
+Sau khi duyệt kế hoạch, nó tạo ra nhiều phiên làm việc (sessions).
+
+48
+00:02:58,500 --> 00:03:03,000
+Ngay bây giờ, nó đang tiến hành xây dựng kế hoạch mà tôi đã yêu cầu.
+
+49
+00:03:03,000 --> 00:03:07,500
+Nó sử dụng shell để tạo thư mục dự án và hiển thị mọi thứ cần thiết.
+
+50
+00:03:07,500 --> 00:03:12,000
+Trong phiên làm việc, nó cũng hiển thị trực quan các thay đổi (diffs)
+
+51
+00:03:12,000 --> 00:03:15,000
+đang được chỉnh sửa trực tiếp trong chế độ xem trước.
+
+52
+00:03:15,000 --> 00:03:19,000
+Bạn cũng có thể chạy song song nhiều tác nhân OpenCode AI
+
+53
+00:03:19,000 --> 00:03:22,000
+để thực hiện nhiều tác vụ cùng lúc, điều này rất tuyệt.
+
+54
+00:03:22,000 --> 00:03:26,000
+Có vẻ như nó đã hoàn thành việc tạo ứng dụng của chúng ta.
+
+55
+00:03:26,000 --> 00:03:30,000
+Bạn có thể xem code và các file mà nó đã thay đổi.
+
+56
+00:03:30,000 --> 00:03:33,500
+Và đây rồi, đây là ứng dụng bảng tính AI của chúng ta,
+
+57
+00:03:33,500 --> 00:03:37,500
+nơi nó có trí thông minh dữ liệu hiển thị trực tiếp trong bảng tính.
+
+58
+00:03:37,500 --> 00:03:41,500
+Trong trường hợp này, tôi có thể tải lên bất kỳ bộ dữ liệu nào.
+
+59
+00:03:41,500 --> 00:03:45,000
+Tôi sẽ dùng dữ liệu demo và tải lên cho AI để nó tạo tóm tắt.
+
+60
+00:03:45,000 --> 00:03:49,500
+Có một chatbot được tạo ra dựa trên kế hoạch ban đầu.
+
+61
+00:03:49,500 --> 00:03:54,000
+Ngoài ra còn có lưới dữ liệu hiển thị dữ liệu mẫu của các cột và hàng.
+
+62
+00:03:54,000 --> 00:03:57,500
+Bạn thậm chí có thể trò chuyện với bảng tính của mình.
+
+63
+00:03:57,500 --> 00:04:02,000
+Tôi đã hỏi về tổng doanh thu đã chốt, thắng và thua theo khu vực và sản phẩm.
+
+64
+00:04:02,000 --> 00:04:05,500
+Và tác nhân AI phân tích đường ống dữ liệu sẽ trả lời chính xác,
+
+65
+00:04:05,500 --> 00:04:08,000
+thậm chí xuất ra biểu đồ.
+
+66
+00:04:08,000 --> 00:04:12,500
+Đây là chất lượng đầu ra bạn nhận được từ một câu lệnh đơn giản gửi đến OpenCode.
+
+67
+00:04:12,500 --> 00:04:16,500
+Ngoài ra, bạn có thể quản lý các thay đổi phiên làm việc trực tiếp trong ứng dụng.
+
+68
+00:04:16,500 --> 00:04:21,000
+Nếu tôi khởi chạy tính năng mới, tôi có thể xem lại toàn bộ các thay đổi diff.
+
+69
+00:04:21,000 --> 00:04:25,500
+Điều tôi thực sự thích ở OpenCode là nó có hỗ trợ LSP (Language Server Protocol).
+
+70
+00:04:25,500 --> 00:04:28,500
+Thực sự, đó là một yếu tố thay đổi cuộc chơi.
+
+71
+00:04:28,500 --> 00:04:33,000
+Trong bản demo này, nó đã được kiểm tra khả năng chịu tải với công cụ đổi tên refactor.
+
+72
+00:04:33,000 --> 00:04:37,500
+Nó xử lý chính xác 379 bản cập nhật chỉ trong 22 giây.
+
+73
+00:04:37,500 --> 00:04:42,000
+Cùng một người chạy thử nghiệm này với Claude Code để so sánh,
+
+74
+00:04:42,000 --> 00:04:45,500
+và nó lâu đến mức người đó đã bỏ cuộc khi chờ phản hồi.
+
+75
+00:04:45,500 --> 00:04:50,000
+Nhưng với OpenCode, nhờ hỗ trợ LSP, nó xử lý công việc cực nhanh và hiệu quả.
+
+76
+00:04:50,000 --> 00:04:54,500
+Tôi đã nói về điều này trước đây, nhưng OpenCode hiện đã bao gồm Mgrep.
+
+77
+00:04:54,500 --> 00:04:58,000
+Đây là một tính năng thay đổi hoàn toàn cuộc chơi.
+
+78
+00:04:58,000 --> 00:05:03,000
+Mgrep giúp OpenCode nhanh hơn gấp 4 lần trong khi sử dụng ít token hơn gấp 3 lần.
+
+79
+00:05:03,000 --> 00:05:07,500
+Bạn có thể cài đặt nó bằng lệnh npm install. Khi được kích hoạt, nó có thể tìm kiếm ngữ nghĩa mọi thứ,
+
+80
+00:05:07,500 --> 00:05:11,500
+dù là code, hình ảnh, PDF và nhiều hơn nữa.
+
+81
+00:05:11,500 --> 00:05:16,000
+Điều này có nghĩa là ít lãng phí token hơn, kết quả nhanh hơn và hiệu quả hơn nhiều.
+
+82
+00:05:16,000 --> 00:05:20,500
+Hãy xem bản demo so sánh OpenCode có và không có Mgrep.
+
+83
+00:05:20,500 --> 00:05:25,000
+Rõ ràng Mgrep cải thiện quy trình làm việc đáng kể: nhanh hơn, rẻ hơn và không giảm chất lượng.
+
+84
+00:05:25,000 --> 00:05:29,000
+Sau khi cài đặt, nó có thể truy cập toàn cục thông qua ứng dụng desktop.
+
+85
+00:05:29,000 --> 00:05:33,000
+Nếu bạn thích video này, hãy cân nhắc donate qua Super Thanks
+
+86
+00:05:33,000 --> 00:05:36,500
+hoặc tham gia Discord riêng tư của chúng tôi để truy cập các công cụ AI miễn phí.
+
+87
+00:05:36,500 --> 00:05:40,500
+Đó là tất cả cho video hôm nay về OpenCode Desktop.
+
+88
+00:05:40,500 --> 00:05:44,000
+Đây là thứ bạn có thể bắt đầu sử dụng hoàn toàn miễn phí.
+
+89
+00:05:44,000 --> 00:05:48,000
+Hãy tận dụng nó khi còn miễn phí, vì họ có thể chuyển sang trả phí trong tương lai.
+
+90
+00:05:48,000 --> 00:05:52,500
+Nó còn hơi nhiều lỗi, nhưng có thể giúp bạn tạo mẫu và xây dựng ứng dụng rất nhanh.
+
+91
+00:05:52,500 --> 00:05:56,000
+Cảm ơn các bạn đã xem, tôi sẽ để link bên dưới.
+
+92
+00:05:56,000 --> 00:06:00,000
+Hãy nhớ đăng ký kênh và bật thông báo. Chúc các bạn một ngày tuyệt vời!
