@@ -895,6 +895,9 @@ class QueueManager {
     const item = this.items.find((i) => i.videoId === videoId);
     if (!item) return;
 
+    // Add to userPausedItems to prevent auto-resume
+    this.userPausedItems.add(item.id);
+
     if (partialData) {
       // Has partial data - keep as translating (paused state)
       await this.updateItem(item.id, {
