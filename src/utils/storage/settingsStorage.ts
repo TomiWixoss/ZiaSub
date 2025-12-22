@@ -1,32 +1,33 @@
 /**
- * Settings Storage - App settings persistence using cache + file system
- * Uses write-through cache: immediate cache update, background file persistence
+ * Settings Storage - App settings persistence using AsyncStorage
  */
-import { cacheService } from "@services/cacheService";
-import { fileStorage } from "@services/fileStorageService";
+import { storageService } from "@services/storageService";
 import type {
   AppSettings,
   SubtitleSettings,
   BatchSettings,
   TTSSettings,
+  FloatingUISettings,
+  NotificationSettings,
 } from "@src/types";
 import {
   DEFAULT_APP_SETTINGS,
   DEFAULT_SUBTITLE_SETTINGS,
   DEFAULT_BATCH_SETTINGS,
   DEFAULT_TTS_SETTINGS,
+  DEFAULT_FLOATING_UI_SETTINGS,
+  DEFAULT_NOTIFICATION_SETTINGS,
 } from "@constants/defaults";
 
 // ============================================
 // APP SETTINGS
 // ============================================
 export const saveAppSettings = async (settings: AppSettings): Promise<void> => {
-  cacheService.setSettings(settings);
+  await storageService.setSettings(settings);
 };
 
 export const getAppSettings = async (): Promise<AppSettings> => {
-  await cacheService.waitForInit();
-  return cacheService.getSettings();
+  return storageService.getSettings();
 };
 
 // ============================================
@@ -35,14 +36,13 @@ export const getAppSettings = async (): Promise<AppSettings> => {
 export const saveSubtitleSettings = async (
   settings: SubtitleSettings
 ): Promise<void> => {
-  const appSettings = cacheService.getSettings();
+  const appSettings = storageService.getSettings();
   appSettings.subtitle = settings;
-  cacheService.setSettings(appSettings);
+  await storageService.setSettings(appSettings);
 };
 
 export const getSubtitleSettings = async (): Promise<SubtitleSettings> => {
-  await cacheService.waitForInit();
-  const appSettings = cacheService.getSettings();
+  const appSettings = storageService.getSettings();
   return appSettings.subtitle || DEFAULT_SUBTITLE_SETTINGS;
 };
 
@@ -52,14 +52,13 @@ export const getSubtitleSettings = async (): Promise<SubtitleSettings> => {
 export const saveBatchSettings = async (
   settings: BatchSettings
 ): Promise<void> => {
-  const appSettings = cacheService.getSettings();
+  const appSettings = storageService.getSettings();
   appSettings.batch = settings;
-  cacheService.setSettings(appSettings);
+  await storageService.setSettings(appSettings);
 };
 
 export const getBatchSettings = async (): Promise<BatchSettings> => {
-  await cacheService.waitForInit();
-  const appSettings = cacheService.getSettings();
+  const appSettings = storageService.getSettings();
   return appSettings.batch || DEFAULT_BATCH_SETTINGS;
 };
 
@@ -67,91 +66,74 @@ export const getBatchSettings = async (): Promise<BatchSettings> => {
 // API KEYS
 // ============================================
 export const saveApiKeys = async (keys: string[]): Promise<void> => {
-  // If cache is initialized, use cache (normal flow)
-  if (cacheService.isInitialized()) {
-    cacheService.setApiKeys(keys);
-    return;
-  }
-
-  // During onboarding, cache is not initialized yet
-  // Save directly to file so it will be loaded when cache initializes
-  try {
-    // Load existing settings or use defaults
-    const existingSettings = await fileStorage.loadData<AppSettings>(
-      "settings.json",
-      { ...DEFAULT_APP_SETTINGS }
-    );
-    existingSettings.apiKeys = { keys };
-    await fileStorage.saveData("settings.json", existingSettings);
-  } catch (error) {
-    console.error("Error saving API keys during onboarding:", error);
-  }
+  await storageService.setApiKeys(keys);
 };
 
 export const getApiKeys = async (): Promise<string[]> => {
-  // If cache is initialized, use cache
-  if (cacheService.isInitialized()) {
-    return cacheService.getApiKeys();
-  }
-
-  // During onboarding, read directly from file
-  try {
-    const settings = await fileStorage.loadData<AppSettings | null>(
-      "settings.json",
-      null
-    );
-    return settings?.apiKeys?.keys || [];
-  } catch {
-    return [];
-  }
+  return storageService.getApiKeys();
 };
 
 // ============================================
 // TTS SETTINGS
 // ============================================
 export const saveTTSSettings = async (settings: TTSSettings): Promise<void> => {
-  const appSettings = cacheService.getSettings();
+  const appSettings = storageService.getSettings();
   appSettings.tts = settings;
-  cacheService.setSettings(appSettings);
+  await storageService.setSettings(appSettings);
 };
 
 export const getTTSSettings = async (): Promise<TTSSettings> => {
-  await cacheService.waitForInit();
-  const appSettings = cacheService.getSettings();
+  const appSettings = storageService.getSettings();
   return appSettings.tts || DEFAULT_TTS_SETTINGS;
 };
 
 // ============================================
-// ONBOARDING (uses AsyncStorage since it's needed before storage is configured)
+// FLOATING UI SETTINGS
 // ============================================
-import AsyncStorage from "@react-native-async-storage/async-storage";
+export const saveFloatingUISettings = async (
+  settings: FloatingUISettings
+): Promise<void> => {
+  const appSettings = storageService.getSettings();
+  appSettings.floatingUI = settings;
+  await storageService.setSettings(appSettings);
+};
 
-const ONBOARDING_COMPLETED_KEY = "@onboarding_completed";
+export const getFloatingUISettings = async (): Promise<FloatingUISettings> => {
+  const appSettings = storageService.getSettings();
+  return appSettings.floatingUI || DEFAULT_FLOATING_UI_SETTINGS;
+};
 
+// ============================================
+// NOTIFICATION SETTINGS
+// ============================================
+export const saveNotificationSettings = async (
+  settings: NotificationSettings
+): Promise<void> => {
+  const appSettings = storageService.getSettings();
+  appSettings.notification = settings;
+  await storageService.setSettings(appSettings);
+};
+
+export const getNotificationSettings =
+  async (): Promise<NotificationSettings> => {
+    const appSettings = storageService.getSettings();
+    return appSettings.notification || DEFAULT_NOTIFICATION_SETTINGS;
+  };
+
+// ============================================
+// ONBOARDING
+// ============================================
 export const setOnboardingCompleted = async (
   completed: boolean
 ): Promise<void> => {
-  try {
-    await AsyncStorage.setItem(
-      ONBOARDING_COMPLETED_KEY,
-      JSON.stringify(completed)
-    );
-  } catch (error) {
-    console.error("Error saving onboarding status:", error);
-  }
+  await storageService.setOnboardingCompleted(completed);
 };
 
 export const getOnboardingCompleted = async (): Promise<boolean> => {
-  try {
-    const data = await AsyncStorage.getItem(ONBOARDING_COMPLETED_KEY);
-    return data ? JSON.parse(data) : false;
-  } catch (error) {
-    console.error("Error getting onboarding status:", error);
-    return false;
-  }
+  return await storageService.getOnboardingCompleted();
 };
 
 // Legacy export for compatibility
 export const clearSettingsCache = (): void => {
-  // No-op, cache is managed by cacheService
+  // No-op
 };

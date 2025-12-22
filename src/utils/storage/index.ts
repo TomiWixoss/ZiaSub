@@ -2,11 +2,11 @@
  * Storage module - Re-exports all storage functions
  */
 
-// File Storage Service
-export { fileStorage, STORAGE_FILES } from "@services/fileStorageService";
+// Storage Service (primary)
+export { storageService, STORAGE_KEYS } from "@services/storageService";
 
-// Cache Service
-export { cacheService } from "@services/cacheService";
+// Backup Service
+export { backupService } from "@services/backupService";
 
 // Settings
 export {
@@ -20,6 +20,10 @@ export {
   getApiKeys,
   saveTTSSettings,
   getTTSSettings,
+  saveFloatingUISettings,
+  getFloatingUISettings,
+  saveNotificationSettings,
+  getNotificationSettings,
   setOnboardingCompleted,
   getOnboardingCompleted,
   clearSettingsCache,
@@ -91,6 +95,8 @@ export type {
   ChatSession,
   ChatHistory,
   StoredChatMessage,
+  FloatingUISettings,
+  NotificationSettings,
 } from "@src/types";
 
 // Re-export defaults
@@ -102,4 +108,6 @@ export {
   DEFAULT_APP_SETTINGS,
   DEFAULT_SYSTEM_PROMPT,
   DEFAULT_CHAT_CONFIG_ID,
+  DEFAULT_FLOATING_UI_SETTINGS,
+  DEFAULT_NOTIFICATION_SETTINGS,
 } from "@constants/defaults";

@@ -58,11 +58,8 @@ const ApiKeysSection: React.FC<ApiKeysSectionProps> = ({
         return;
       }
       const newKeys = [...apiKeys, key];
-      // Only call onApiKeysChange - it handles both state update, keyManager init, and cache save
+      // Only call onApiKeysChange - it handles both state update, keyManager init, and storage save
       onApiKeysChange(newKeys);
-      // Force flush to persist immediately
-      const { cacheService } = await import("@services/cacheService");
-      await cacheService.forceFlush();
       alert(t("common.success"), t("settings.apiKeys.added"));
     } catch (error) {
       alert(t("common.error"), t("settings.apiKeys.clipboardError"));
@@ -77,11 +74,8 @@ const ApiKeysSection: React.FC<ApiKeysSectionProps> = ({
       t("settings.apiKeys.deleteConfirm"),
       async () => {
         const newKeys = apiKeys.filter((_, i) => i !== index);
-        // Only call onApiKeysChange - it handles both state update, keyManager init, and cache save
+        // Only call onApiKeysChange - it handles both state update, keyManager init, and storage save
         onApiKeysChange(newKeys);
-        // Force flush to persist immediately
-        const { cacheService } = await import("@services/cacheService");
-        await cacheService.forceFlush();
       }
     );
   };

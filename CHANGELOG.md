@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.0.5] - 2024-12-22
+
+### 🔄 Refactor Storage System
+
+- **Chuyển sang AsyncStorage làm primary storage**
+
+  - Thay thế file-based storage bằng AsyncStorage (bộ nhớ app)
+  - Tăng giới hạn AsyncStorage lên 200MB trên Android
+  - Tạo `storageService.ts` - quản lý tất cả data trong AsyncStorage
+  - Tạo `backupService.ts` - xử lý backup/restore ra file system
+  - Xóa `cacheService.ts` và `fileStorageService.ts` không còn cần thiết
+
+- **Backup/Restore System**
+
+  - Onboarding: chọn thư mục backup, có thể restore từ backup cũ
+  - Settings: backup thủ công, restore, auto backup khi thoát app
+  - Hỗ trợ cả local storage và SAF (Storage Access Framework) trên Android
+  - Migration tự động từ file storage cũ sang AsyncStorage mới
+
+- **Cải thiện hiệu suất**
+  - Giảm I/O liên tục - chỉ backup định kỳ hoặc thủ công
+  - Tăng tốc độ đọc/ghi data
+  - Đơn giản hóa logic storage
+
 ## [0.0.4] - 2024-12-21
 
 ### ✨ Tính năng mới

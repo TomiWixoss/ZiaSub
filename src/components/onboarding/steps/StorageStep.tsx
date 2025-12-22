@@ -11,7 +11,8 @@ import { useTranslation } from "react-i18next";
 import { useTheme } from "@src/contexts";
 import Button3D from "@components/common/Button3D";
 import { Ionicons } from "@expo/vector-icons";
-import { fileStorage } from "@services/fileStorageService";
+import { backupService } from "@services/backupService";
+import { storageService } from "@services/storageService";
 import * as FileSystem from "expo-file-system/legacy";
 import { showAlert } from "@components/common/CustomAlert";
 
@@ -23,8 +24,8 @@ interface StepProps {
   isLast: boolean;
 }
 
-interface DataInfo {
-  hasData: boolean;
+interface BackupInfo {
+  hasBackup: boolean;
   createdAt?: number;
   chatCount?: number;
   translationCount?: number;
@@ -34,37 +35,36 @@ export const StorageStep: React.FC<StepProps> = ({ onNext, onPrevious }) => {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
-  const [dataInfo, setDataInfo] = useState<DataInfo | null>(null);
+  const [backupInfo, setBackupInfo] = useState<BackupInfo | null>(null);
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(false);
 
   useEffect(() => {
     // Set default path on mount
-    const defaultPath = fileStorage.getDefaultStoragePath();
+    const defaultPath = backupService.getDefaultBackupPath();
     setSelectedPath(defaultPath);
-    checkExistingData(defaultPath);
+    checkBackupData(defaultPath);
   }, []);
 
-  const checkExistingData = async (path: string) => {
+  const checkBackupData = async (path: string) => {
     setChecking(true);
     try {
-      const info = await fileStorage.getDataInfo(path);
-      setDataInfo(info);
+      const info = await backupService.getBackupInfo(path);
+      setBackupInfo(info);
     } catch {
-      setDataInfo({ hasData: false });
+      setBackupInfo({ hasBackup: false });
     }
     setChecking(false);
   };
 
   const handleUseDefault = async () => {
-    const defaultPath = fileStorage.getDefaultStoragePath();
+    const defaultPath = backupService.getDefaultBackupPath();
     setSelectedPath(defaultPath);
-    await checkExistingData(defaultPath);
+    await checkBackupData(defaultPath);
   };
 
   const handlePickFolder = async () => {
     try {
-      // Use SAF to pick a directory on Android
       if (Platform.OS === "android") {
         const permissions =
           await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
@@ -72,10 +72,9 @@ export const StorageStep: React.FC<StepProps> = ({ onNext, onPrevious }) => {
         if (permissions.granted) {
           const uri = permissions.directoryUri;
           setSelectedPath(uri);
-          await checkExistingData(uri);
+          await checkBackupData(uri);
         }
       } else {
-        // iOS - use default path only
         showAlert(t("common.notice"), t("onboarding.storage.iosDefaultOnly"), [
           { text: t("common.ok") },
         ]);
@@ -93,16 +92,17 @@ export const StorageStep: React.FC<StepProps> = ({ onNext, onPrevious }) => {
 
     setLoading(true);
     try {
-      if (dataInfo?.hasData && !restore && hasRealData()) {
-        // Clear existing data only if there's real data
-        await fileStorage.setStoragePath(selectedPath);
-        await fileStorage.clearAllData();
-      } else {
-        // Use existing data or create new
-        await fileStorage.setStoragePath(selectedPath);
+      // Setup backup path
+      await backupService.setupBackupPath(selectedPath);
+
+      // If restore requested and backup exists
+      if (restore && backupInfo?.hasBackup) {
+        await backupService.restoreBackup(selectedPath);
       }
+
       onNext();
     } catch (error) {
+      console.error("Error setting up storage:", error);
       showAlert(t("common.error"), t("onboarding.storage.errorSetup"), [
         { text: t("common.ok") },
       ]);
@@ -110,28 +110,19 @@ export const StorageStep: React.FC<StepProps> = ({ onNext, onPrevious }) => {
     setLoading(false);
   };
 
-  // Check if there's actual data (not just marker file)
-  const hasRealData = () => {
-    return (
-      dataInfo?.hasData &&
-      ((dataInfo.chatCount && dataInfo.chatCount > 0) ||
-        (dataInfo.translationCount && dataInfo.translationCount > 0))
-    );
-  };
-
   const handleDataChoice = () => {
-    // If no real data (only marker or empty), just proceed
-    if (!hasRealData()) {
-      handleConfirm();
+    // If no backup, just proceed
+    if (!backupInfo?.hasBackup) {
+      handleConfirm(false);
       return;
     }
 
-    // Has real data - show restore/clear dialog
+    // Has backup - show restore dialog
     showAlert(
       t("onboarding.storage.existingDataTitle"),
       t("onboarding.storage.existingDataMessage", {
-        chats: dataInfo?.chatCount || 0,
-        translations: dataInfo?.translationCount || 0,
+        chats: backupInfo?.chatCount || 0,
+        translations: backupInfo?.translationCount || 0,
       }),
       [
         {
@@ -139,13 +130,9 @@ export const StorageStep: React.FC<StepProps> = ({ onNext, onPrevious }) => {
           onPress: () => handleConfirm(true),
         },
         {
-          text: t("onboarding.storage.clearAndNew"),
-          style: "destructive",
-          onPress: () => handleConfirm(false),
-        },
-        {
-          text: t("common.cancel"),
+          text: t("onboarding.storage.skipRestore"),
           style: "cancel",
+          onPress: () => handleConfirm(false),
         },
       ],
       "info"
@@ -166,7 +153,7 @@ export const StorageStep: React.FC<StepProps> = ({ onNext, onPrevious }) => {
             { backgroundColor: colors.surfaceLight },
           ]}
         >
-          <Ionicons name="folder-open" size={64} color={colors.primary} />
+          <Ionicons name="cloud-upload" size={64} color={colors.primary} />
         </View>
 
         <Text style={[styles.title, { color: colors.text }]}>
@@ -174,7 +161,7 @@ export const StorageStep: React.FC<StepProps> = ({ onNext, onPrevious }) => {
         </Text>
 
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-          {t("onboarding.storage.subtitle")}
+          {t("onboarding.storage.subtitleBackup")}
         </Text>
 
         {/* Selected Path Display */}
@@ -196,7 +183,7 @@ export const StorageStep: React.FC<StepProps> = ({ onNext, onPrevious }) => {
           </Text>
         </View>
 
-        {/* Data Info */}
+        {/* Backup Info */}
         {checking ? (
           <View style={styles.infoContainer}>
             <ActivityIndicator size="small" color={colors.primary} />
@@ -204,7 +191,7 @@ export const StorageStep: React.FC<StepProps> = ({ onNext, onPrevious }) => {
               {t("onboarding.storage.checking")}
             </Text>
           </View>
-        ) : hasRealData() ? (
+        ) : backupInfo?.hasBackup ? (
           <View
             style={[
               styles.dataInfoContainer,
@@ -218,15 +205,15 @@ export const StorageStep: React.FC<StepProps> = ({ onNext, onPrevious }) => {
             />
             <View style={styles.dataInfoContent}>
               <Text style={[styles.dataInfoTitle, { color: colors.text }]}>
-                {t("onboarding.storage.dataFound")}
+                {t("onboarding.storage.backupFound")}
               </Text>
               <Text
                 style={[styles.dataInfoDetail, { color: colors.textSecondary }]}
               >
-                {t("onboarding.storage.dataDetail", {
-                  chats: dataInfo?.chatCount || 0,
-                  translations: dataInfo?.translationCount || 0,
-                  date: formatDate(dataInfo?.createdAt),
+                {t("onboarding.storage.backupDetail", {
+                  chats: backupInfo?.chatCount || 0,
+                  translations: backupInfo?.translationCount || 0,
+                  date: formatDate(backupInfo?.createdAt),
                 })}
               </Text>
             </View>
@@ -239,7 +226,7 @@ export const StorageStep: React.FC<StepProps> = ({ onNext, onPrevious }) => {
               color={colors.textSecondary}
             />
             <Text style={[styles.infoText, { color: colors.textSecondary }]}>
-              {t("onboarding.storage.newStorage")}
+              {t("onboarding.storage.noBackup")}
             </Text>
           </View>
         )}

@@ -3,7 +3,7 @@
  */
 import * as Notifications from "expo-notifications";
 import { Platform, AppState, AppStateStatus } from "react-native";
-import { cacheService } from "./cacheService";
+import { storageService } from "./storageService";
 import { DEFAULT_NOTIFICATION_SETTINGS } from "@constants/defaults";
 
 // Cấu hình cách hiển thị notification khi app đang mở
@@ -77,8 +77,8 @@ class NotificationService {
    */
   private shouldSendNotification(): boolean {
     // Kiểm tra setting
-    const settings = cacheService.isInitialized()
-      ? cacheService.getSettings()
+    const settings = storageService.isInitialized()
+      ? storageService.getSettings()
       : null;
     const notificationEnabled =
       settings?.notification?.enabled ?? DEFAULT_NOTIFICATION_SETTINGS.enabled;

@@ -1,48 +1,24 @@
 /**
- * Chat Storage - Chat sessions persistence using cache + file system
- * Uses write-through cache: immediate cache update, background file persistence
+ * Chat Storage - Chat sessions persistence using AsyncStorage
  */
-import { cacheService } from "@services/cacheService";
-import { fileStorage } from "@services/fileStorageService";
+import { storageService } from "@services/storageService";
 import type { ChatSession, ChatHistory } from "@src/types";
 
-// Active session ID stored separately (not in main cache for simplicity)
-let activeChatSessionId: string | null = null;
-let activeSessionLoaded = false;
-
-const loadActiveSessionId = async (): Promise<string | null> => {
-  if (activeSessionLoaded) return activeChatSessionId;
-
-  try {
-    const data = await fileStorage.loadData<{ id: string | null }>(
-      "active_chat_session.json",
-      { id: null }
-    );
-    activeChatSessionId = data.id;
-    activeSessionLoaded = true;
-    return activeChatSessionId;
-  } catch {
-    activeSessionLoaded = true;
-    return null;
-  }
-};
-
 export const getChatSessions = async (): Promise<ChatSession[]> => {
-  await cacheService.waitForInit();
-  return cacheService.getChatSessions();
+  return storageService.getChatSessions();
 };
 
 export const saveChatSessions = async (
   sessions: ChatSession[]
 ): Promise<void> => {
-  cacheService.setChatSessions(sessions);
+  await storageService.setChatSessions(sessions);
 };
 
 export const createChatSession = async (
   name?: string,
   configId?: string
 ): Promise<ChatSession> => {
-  const sessions = cacheService.getChatSessions();
+  const sessions = storageService.getChatSessions();
   const sessionName = name || "Chat mới";
   const newSession: ChatSession = {
     id: Date.now().toString(),
@@ -55,7 +31,7 @@ export const createChatSession = async (
   };
 
   const updatedSessions = [newSession, ...sessions];
-  cacheService.setChatSessions(updatedSessions);
+  await storageService.setChatSessions(updatedSessions);
   await setActiveChatSessionId(newSession.id);
   return newSession;
 };
@@ -63,18 +39,18 @@ export const createChatSession = async (
 export const updateChatSession = async (
   session: ChatSession
 ): Promise<void> => {
-  const sessions = cacheService.getChatSessions();
+  const sessions = storageService.getChatSessions();
   const index = sessions.findIndex((s) => s.id === session.id);
   if (index !== -1) {
     sessions[index] = { ...session, updatedAt: Date.now() };
-    cacheService.setChatSessions([...sessions]);
+    await storageService.setChatSessions([...sessions]);
   }
 };
 
 export const deleteChatSession = async (sessionId: string): Promise<void> => {
-  const sessions = cacheService.getChatSessions();
+  const sessions = storageService.getChatSessions();
   const filtered = sessions.filter((s) => s.id !== sessionId);
-  cacheService.setChatSessions(filtered);
+  await storageService.setChatSessions(filtered);
 
   const activeId = await getActiveChatSessionId();
   if (activeId === sessionId && filtered.length > 0) {
@@ -83,25 +59,16 @@ export const deleteChatSession = async (sessionId: string): Promise<void> => {
 };
 
 export const getActiveChatSessionId = async (): Promise<string | null> => {
-  return await loadActiveSessionId();
+  return await storageService.getActiveChatSessionId();
 };
 
 export const setActiveChatSessionId = async (id: string): Promise<void> => {
-  activeChatSessionId = id;
-  activeSessionLoaded = true;
-
-  // Save in background
-  try {
-    await fileStorage.saveData("active_chat_session.json", { id });
-  } catch (error) {
-    console.error("Error setting active chat session:", error);
-  }
+  await storageService.setActiveChatSessionId(id);
 };
 
 export const getActiveChatSession = async (): Promise<ChatSession | null> => {
-  await cacheService.waitForInit();
-  const sessions = cacheService.getChatSessions();
-  const activeId = await loadActiveSessionId();
+  const sessions = storageService.getChatSessions();
+  const activeId = await storageService.getActiveChatSessionId();
 
   if (activeId) {
     const session = sessions.find((s) => s.id === activeId);

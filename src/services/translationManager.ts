@@ -239,8 +239,6 @@ class TranslationManager {
                 presetId: config.presetId,
               }
             );
-            const { cacheService } = await import("./cacheService");
-            await cacheService.forceFlush();
             console.log(
               "[TranslationManager] Saved partial on error:",
               completedRanges.length,
@@ -327,9 +325,6 @@ class TranslationManager {
             presetId,
           }
         );
-        // Force flush to persist immediately
-        const { cacheService } = await import("./cacheService");
-        await cacheService.forceFlush();
         console.log(
           "[TranslationManager] Saved partial translation immediately:",
           completedRanges.length,

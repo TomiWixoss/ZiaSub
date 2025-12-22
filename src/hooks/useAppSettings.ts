@@ -1,6 +1,6 @@
 /**
  * Hook for managing app settings
- * Uses cache service for immediate updates
+ * Uses storage service for persistence
  */
 import { useState, useEffect, useCallback } from "react";
 import type {
@@ -10,7 +10,7 @@ import type {
   FloatingUISettings,
   NotificationSettings,
 } from "@src/types";
-import { cacheService } from "@services/cacheService";
+import { storageService } from "@services/storageService";
 import {
   DEFAULT_SUBTITLE_SETTINGS,
   DEFAULT_BATCH_SETTINGS,
@@ -38,12 +38,11 @@ export const useAppSettings = () => {
   const [apiKeys, setApiKeys] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load all settings from cache on mount
+  // Load all settings from storage on mount
   useEffect(() => {
     const loadSettings = () => {
       try {
-        // Cache is already initialized by App.tsx, just read from it
-        const settings = cacheService.getSettings();
+        const settings = storageService.getSettings();
 
         setSubtitleSettings(settings.subtitle || DEFAULT_SUBTITLE_SETTINGS);
         setBatchSettings(settings.batch || DEFAULT_BATCH_SETTINGS);
@@ -73,60 +72,38 @@ export const useAppSettings = () => {
       }
     };
 
-    // Wait for cache to be ready
-    if (cacheService.isInitialized()) {
+    if (storageService.isInitialized()) {
       loadSettings();
-    } else {
-      cacheService.waitForInit().then(loadSettings);
     }
-
-    // Subscribe to settings changes
-    const unsubscribe = cacheService.subscribe("settings", (newSettings) => {
-      setSubtitleSettings(newSettings.subtitle || DEFAULT_SUBTITLE_SETTINGS);
-      setBatchSettings(newSettings.batch || DEFAULT_BATCH_SETTINGS);
-      setTTSSettings(newSettings.tts || DEFAULT_TTS_SETTINGS);
-      setFloatingUISettings(
-        newSettings.floatingUI || DEFAULT_FLOATING_UI_SETTINGS
-      );
-      setNotificationSettings(
-        newSettings.notification || DEFAULT_NOTIFICATION_SETTINGS
-      );
-    });
-
-    const unsubscribeKeys = cacheService.subscribe("apiKeys", (newKeys) => {
-      setApiKeys(newKeys);
-    });
-
-    return () => {
-      unsubscribe();
-      unsubscribeKeys();
-    };
   }, []);
 
   const updateSubtitleSettings = useCallback(
-    (newSettings: SubtitleSettings) => {
+    async (newSettings: SubtitleSettings) => {
       setSubtitleSettings(newSettings);
-      const settings = cacheService.getSettings();
+      const settings = storageService.getSettings();
       settings.subtitle = newSettings;
-      cacheService.setSettings(settings);
+      await storageService.setSettings(settings);
     },
     []
   );
 
-  const updateBatchSettings = useCallback((newSettings: BatchSettings) => {
-    setBatchSettings(newSettings);
-    const settings = cacheService.getSettings();
-    settings.batch = newSettings;
-    cacheService.setSettings(settings);
-  }, []);
+  const updateBatchSettings = useCallback(
+    async (newSettings: BatchSettings) => {
+      setBatchSettings(newSettings);
+      const settings = storageService.getSettings();
+      settings.batch = newSettings;
+      await storageService.setSettings(settings);
+    },
+    []
+  );
 
-  const updateTTSSettings = useCallback((newSettings: TTSSettings) => {
+  const updateTTSSettings = useCallback(async (newSettings: TTSSettings) => {
     setTTSSettings(newSettings);
     ttsService.setSettings(newSettings);
 
-    const settings = cacheService.getSettings();
+    const settings = storageService.getSettings();
     settings.tts = newSettings;
-    cacheService.setSettings(settings);
+    await storageService.setSettings(settings);
 
     if (!newSettings.enabled) {
       ttsService.stop();
@@ -136,27 +113,25 @@ export const useAppSettings = () => {
   const updateApiKeys = useCallback(async (newKeys: string[]) => {
     setApiKeys(newKeys);
     keyManager.initialize(newKeys);
-    cacheService.setApiKeys(newKeys);
-    // Force flush immediately to prevent data loss
-    await cacheService.forceFlush();
+    await storageService.setApiKeys(newKeys);
   }, []);
 
   const updateFloatingUISettings = useCallback(
-    (newSettings: FloatingUISettings) => {
+    async (newSettings: FloatingUISettings) => {
       setFloatingUISettings(newSettings);
-      const settings = cacheService.getSettings();
+      const settings = storageService.getSettings();
       settings.floatingUI = newSettings;
-      cacheService.setSettings(settings);
+      await storageService.setSettings(settings);
     },
     []
   );
 
   const updateNotificationSettings = useCallback(
-    (newSettings: NotificationSettings) => {
+    async (newSettings: NotificationSettings) => {
       setNotificationSettings(newSettings);
-      const settings = cacheService.getSettings();
+      const settings = storageService.getSettings();
       settings.notification = newSettings;
-      cacheService.setSettings(settings);
+      await storageService.setSettings(settings);
     },
     []
   );

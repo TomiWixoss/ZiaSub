@@ -1,12 +1,8 @@
 /**
- * SRT Storage - Manual subtitle persistence using cache + file system
- * Uses write-through cache: immediate cache update, background file persistence
+ * SRT Storage - Manual subtitle persistence using AsyncStorage
  */
-import { cacheService } from "@services/cacheService";
-import { fileStorage, STORAGE_FILES } from "@services/fileStorageService";
+import { storageService } from "@services/storageService";
 import { extractVideoId } from "@utils/videoUtils";
-
-const SRT_DIR = STORAGE_FILES.srt;
 
 // Helper to get video ID from URL
 const getVideoIdFromUrl = (url: string): string => {
@@ -25,34 +21,15 @@ export const saveSRT = async (
   srtContent: string
 ): Promise<void> => {
   const videoId = getVideoIdFromUrl(url);
-  cacheService.setSrt(videoId, srtContent);
+  await storageService.setSrt(videoId, srtContent);
 };
 
 export const getSRT = async (url: string): Promise<string | null> => {
-  await cacheService.waitForInit();
   const videoId = getVideoIdFromUrl(url);
-
-  // Check cache first
-  let content = cacheService.getSrt(videoId);
-  if (content) return content;
-
-  // Load from file (legacy format with .json extension)
-  try {
-    const data = await fileStorage.loadSubData<{ content: string } | null>(
-      SRT_DIR,
-      `${videoId}.srt.json`,
-      null
-    );
-    if (data?.content) {
-      cacheService.setSrt(videoId, data.content);
-      return data.content;
-    }
-  } catch {}
-
-  return null;
+  return await storageService.getSrt(videoId);
 };
 
 export const removeSRT = async (url: string): Promise<void> => {
   const videoId = getVideoIdFromUrl(url);
-  cacheService.deleteSrt(videoId);
+  await storageService.deleteSrt(videoId);
 };

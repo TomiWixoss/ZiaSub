@@ -1,17 +1,13 @@
 /**
- * Translation Storage - Gemini translations persistence using cache + file system
- * Uses write-through cache: immediate cache update, background file persistence
+ * Translation Storage - Gemini translations persistence using AsyncStorage
  */
-import { cacheService } from "@services/cacheService";
-import { fileStorage, STORAGE_FILES } from "@services/fileStorageService";
+import { storageService } from "@services/storageService";
 import type {
   SavedTranslation,
   VideoTranslations,
   BatchSettings,
 } from "@src/types";
 import { extractVideoId } from "@utils/videoUtils";
-
-const TRANSLATIONS_DIR = STORAGE_FILES.translations;
 
 // Helper to get video ID from URL
 const getVideoIdFromUrl = (videoUrl: string): string => {
@@ -37,13 +33,10 @@ export const saveTranslation = async (
 ): Promise<SavedTranslation> => {
   const videoId = getVideoIdFromUrl(videoUrl);
 
-  // Get existing data from cache or load from file
-  let data = cacheService.getTranslation(videoId);
-  if (!data) {
-    data = await cacheService.loadTranslation(videoId, fileStorage);
-  }
+  // Get existing data
+  let data = await storageService.getTranslation(videoId);
 
-  // If still no data (new video or was deleted), create fresh
+  // If no data, create fresh
   if (!data || !data.translations) {
     data = {
       videoUrl,
@@ -57,13 +50,12 @@ export const saveTranslation = async (
     (t) => !(t.isPartial && t.configName === configName)
   );
 
-  // If existingTranslationId provided, update that translation instead of creating new
+  // If existingTranslationId provided, update that translation
   if (existingTranslationId) {
     const existingIndex = data.translations.findIndex(
       (t) => t.id === existingTranslationId
     );
     if (existingIndex >= 0) {
-      // Update existing translation
       data.translations[existingIndex] = {
         ...data.translations[existingIndex],
         srtContent,
@@ -73,7 +65,7 @@ export const saveTranslation = async (
         updatedAt: Date.now(),
       };
       data.activeTranslationId = existingTranslationId;
-      cacheService.setTranslation(videoId, data);
+      await storageService.setTranslation(videoId, data);
       return data.translations[existingIndex];
     }
   }
@@ -91,9 +83,7 @@ export const saveTranslation = async (
   data.translations.push(newTranslation);
   data.activeTranslationId = newTranslation.id;
 
-  // Update cache (will persist in background)
-  cacheService.setTranslation(videoId, data);
-
+  await storageService.setTranslation(videoId, data);
   return newTranslation;
 };
 
@@ -115,10 +105,7 @@ export const savePartialTranslation = async (
 ): Promise<SavedTranslation> => {
   const videoId = getVideoIdFromUrl(videoUrl);
 
-  let data = cacheService.getTranslation(videoId);
-  if (!data) {
-    data = await cacheService.loadTranslation(videoId, fileStorage);
-  }
+  let data = await storageService.getTranslation(videoId);
 
   if (!data) {
     data = {
@@ -167,10 +154,8 @@ export const savePartialTranslation = async (
     data.translations.push(partialTranslation);
   }
 
-  // Set as active so user can see partial result
   data.activeTranslationId = partialTranslation.id;
-
-  cacheService.setTranslation(videoId, data);
+  await storageService.setTranslation(videoId, data);
 
   return partialTranslation;
 };
@@ -192,20 +177,8 @@ export const getPartialTranslation = async (
 export const getVideoTranslations = async (
   videoUrl: string
 ): Promise<VideoTranslations | null> => {
-  await cacheService.waitForInit();
   const videoId = getVideoIdFromUrl(videoUrl);
-
-  // Check cache first
-  let data = cacheService.getTranslation(videoId);
-  if (data) {
-    // Return null if translations array is empty (deleted state)
-    if (data.translations.length === 0) return null;
-    return data;
-  }
-
-  // Load from file
-  data = await cacheService.loadTranslation(videoId, fileStorage);
-  return data;
+  return await storageService.getTranslation(videoId);
 };
 
 export const setActiveTranslation = async (
@@ -213,15 +186,11 @@ export const setActiveTranslation = async (
   translationId: string
 ): Promise<void> => {
   const videoId = getVideoIdFromUrl(videoUrl);
-
-  let data = cacheService.getTranslation(videoId);
-  if (!data) {
-    data = await cacheService.loadTranslation(videoId, fileStorage);
-  }
+  const data = await storageService.getTranslation(videoId);
 
   if (data) {
     data.activeTranslationId = translationId;
-    cacheService.setTranslation(videoId, data);
+    await storageService.setTranslation(videoId, data);
   }
 };
 
@@ -230,11 +199,7 @@ export const deleteTranslation = async (
   translationId: string
 ): Promise<void> => {
   const videoId = getVideoIdFromUrl(videoUrl);
-
-  let data = cacheService.getTranslation(videoId);
-  if (!data) {
-    data = await cacheService.loadTranslation(videoId, fileStorage);
-  }
+  const data = await storageService.getTranslation(videoId);
 
   if (data) {
     data.translations = data.translations.filter((t) => t.id !== translationId);
@@ -244,122 +209,71 @@ export const deleteTranslation = async (
     }
 
     if (data.translations.length === 0) {
-      // Delete the entire translation file and wait for flush
-      cacheService.deleteTranslation(videoId);
-      await cacheService.forceFlush();
+      await storageService.deleteTranslation(videoId);
     } else {
-      cacheService.setTranslation(videoId, data);
+      await storageService.setTranslation(videoId, data);
     }
   }
 };
 
 export const getAllTranslatedVideoUrls = async (): Promise<string[]> => {
-  await cacheService.waitForInit();
+  const videoIds = storageService.getTranslationVideoIds();
+  const urls: string[] = [];
 
-  try {
-    const files = await fileStorage.listSubFiles(TRANSLATIONS_DIR);
-    const urls: string[] = [];
-
-    for (const file of files) {
-      if (file.endsWith(".json")) {
-        const videoId = file.replace(".json", "");
-
-        // Check cache first
-        let data = cacheService.getTranslation(videoId);
-        if (!data) {
-          data = await cacheService.loadTranslation(videoId, fileStorage);
-        }
-
-        if (data?.videoUrl) {
-          urls.push(data.videoUrl);
-        }
-      }
+  for (const videoId of videoIds) {
+    const data = await storageService.getTranslation(videoId);
+    if (data?.videoUrl) {
+      urls.push(data.videoUrl);
     }
-
-    return urls;
-  } catch (error) {
-    console.error("Error getting all translated videos:", error);
-    return [];
   }
+
+  return urls;
 };
 
 // Get video URLs that have at least one full (non-partial) translation
 export const getFullyTranslatedVideoUrls = async (): Promise<string[]> => {
-  await cacheService.waitForInit();
+  const videoIds = storageService.getTranslationVideoIds();
+  const urls: string[] = [];
 
-  try {
-    const files = await fileStorage.listSubFiles(TRANSLATIONS_DIR);
-    const urls: string[] = [];
-
-    for (const file of files) {
-      if (file.endsWith(".json")) {
-        const videoId = file.replace(".json", "");
-
-        let data = cacheService.getTranslation(videoId);
-        if (!data) {
-          data = await cacheService.loadTranslation(videoId, fileStorage);
-        }
-
-        // Only include if has at least one full translation
-        if (data?.videoUrl && data.translations.some((t) => !t.isPartial)) {
-          urls.push(data.videoUrl);
-        }
-      }
+  for (const videoId of videoIds) {
+    const data = await storageService.getTranslation(videoId);
+    if (data?.videoUrl && data.translations.some((t) => !t.isPartial)) {
+      urls.push(data.videoUrl);
     }
-
-    return urls;
-  } catch (error) {
-    console.error("Error getting fully translated videos:", error);
-    return [];
   }
+
+  return urls;
 };
 
-// Get video URLs that only have partial translations (no full translation)
+// Get video URLs that only have partial translations
 export const getPartialOnlyVideoUrls = async (): Promise<string[]> => {
-  await cacheService.waitForInit();
+  const videoIds = storageService.getTranslationVideoIds();
+  const urls: string[] = [];
 
-  try {
-    const files = await fileStorage.listSubFiles(TRANSLATIONS_DIR);
-    const urls: string[] = [];
-
-    for (const file of files) {
-      if (file.endsWith(".json")) {
-        const videoId = file.replace(".json", "");
-
-        let data = cacheService.getTranslation(videoId);
-        if (!data) {
-          data = await cacheService.loadTranslation(videoId, fileStorage);
-        }
-
-        // Only include if has translations but ALL are partial
-        if (
-          data?.videoUrl &&
-          data.translations.length > 0 &&
-          data.translations.every((t) => t.isPartial)
-        ) {
-          urls.push(data.videoUrl);
-        }
-      }
+  for (const videoId of videoIds) {
+    const data = await storageService.getTranslation(videoId);
+    if (
+      data?.videoUrl &&
+      data.translations.length > 0 &&
+      data.translations.every((t) => t.isPartial)
+    ) {
+      urls.push(data.videoUrl);
     }
-
-    return urls;
-  } catch (error) {
-    console.error("Error getting partial only videos:", error);
-    return [];
   }
+
+  return urls;
 };
 
 export const hasTranslation = async (videoUrl: string): Promise<boolean> => {
-  await cacheService.waitForInit();
   const videoId = getVideoIdFromUrl(videoUrl);
 
-  // Fast check using index first
-  if (!cacheService.hasTranslationIndex(videoId)) {
+  // Fast check using index
+  if (!storageService.hasTranslationIndex(videoId)) {
     return false;
   }
 
-  // Index says it exists, verify with actual data
-  const data = await getVideoTranslations(videoUrl);
+  // Verify with actual data
+  const data = await storageService.getTranslation(videoId);
   return data !== null && data.translations.length > 0;
 };
 

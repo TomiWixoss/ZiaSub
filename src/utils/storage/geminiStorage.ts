@@ -1,8 +1,7 @@
 /**
- * Gemini Config Storage - AI configuration persistence using cache + file system
- * Uses write-through cache: immediate cache update, background file persistence
+ * Gemini Config Storage - AI configuration persistence using AsyncStorage
  */
-import { cacheService } from "@services/cacheService";
+import { storageService } from "@services/storageService";
 import type { GeminiConfig } from "@src/types";
 import {
   DEFAULT_SYSTEM_PROMPT,
@@ -17,7 +16,6 @@ export const createDefaultGeminiConfig = (): GeminiConfig => ({
   systemPrompt: DEFAULT_SYSTEM_PROMPT,
   mediaResolution: "MEDIA_RESOLUTION_HIGH",
   thinkingLevel: "HIGH",
-  // thinkingBudget not needed for Gemini 3 Flash (uses thinkingLevel)
 });
 
 export const createDefaultChatConfig = (): GeminiConfig => ({
@@ -27,26 +25,24 @@ export const createDefaultChatConfig = (): GeminiConfig => ({
   temperature: 1.0,
   systemPrompt: "",
   mediaResolution: "MEDIA_RESOLUTION_MEDIUM",
-  // Gemini Flash uses thinkingBudget (0-24576)
   thinkingBudget: 24576,
 });
 
 export const saveGeminiConfigs = async (
   configs: GeminiConfig[]
 ): Promise<void> => {
-  cacheService.setGeminiConfigs(configs);
+  await storageService.setGeminiConfigs(configs);
 };
 
 export const getGeminiConfigs = async (): Promise<GeminiConfig[]> => {
-  await cacheService.waitForInit();
-  let configs = cacheService.getGeminiConfigs();
+  let configs = storageService.getGeminiConfigs();
 
   // Ensure default chat config exists
   const hasChatConfig = configs.some((c) => c.id === DEFAULT_CHAT_CONFIG_ID);
   if (!hasChatConfig) {
     const chatConfig = createDefaultChatConfig();
     configs = [chatConfig, ...configs];
-    cacheService.setGeminiConfigs(configs);
+    await storageService.setGeminiConfigs(configs);
   }
 
   // Ensure at least one translation config exists
@@ -56,7 +52,7 @@ export const getGeminiConfigs = async (): Promise<GeminiConfig[]> => {
   if (!hasTranslationConfig) {
     const defaultConfig = createDefaultGeminiConfig();
     configs = [...configs, defaultConfig];
-    cacheService.setGeminiConfigs(configs);
+    await storageService.setGeminiConfigs(configs);
   }
 
   return configs;
@@ -66,21 +62,19 @@ export const getGeminiConfigs = async (): Promise<GeminiConfig[]> => {
 export const saveActiveTranslationConfigId = async (
   id: string
 ): Promise<void> => {
-  cacheService.setActiveTranslationConfigId(id);
+  await storageService.setActiveTranslationConfigId(id);
 };
 
 export const getActiveTranslationConfigId = async (): Promise<
   string | null
 > => {
-  await cacheService.waitForInit();
-  return cacheService.getActiveTranslationConfigId();
+  return await storageService.getActiveTranslationConfigId();
 };
 
 export const getActiveTranslationConfig =
   async (): Promise<GeminiConfig | null> => {
-    await cacheService.waitForInit();
-    const configs = cacheService.getGeminiConfigs();
-    const activeId = cacheService.getActiveTranslationConfigId();
+    const configs = storageService.getGeminiConfigs();
+    const activeId = await storageService.getActiveTranslationConfigId();
 
     if (activeId) {
       const config = configs.find((c) => c.id === activeId);
@@ -96,18 +90,16 @@ export const getActiveTranslationConfig =
 
 // Chat config
 export const saveActiveChatConfigId = async (id: string): Promise<void> => {
-  cacheService.setActiveChatConfigId(id);
+  await storageService.setActiveChatConfigId(id);
 };
 
 export const getActiveChatConfigId = async (): Promise<string | null> => {
-  await cacheService.waitForInit();
-  return cacheService.getActiveChatConfigId();
+  return await storageService.getActiveChatConfigId();
 };
 
 export const getActiveChatConfig = async (): Promise<GeminiConfig | null> => {
-  await cacheService.waitForInit();
-  const configs = cacheService.getGeminiConfigs();
-  const activeId = cacheService.getActiveChatConfigId();
+  const configs = storageService.getGeminiConfigs();
+  const activeId = await storageService.getActiveChatConfigId();
 
   if (activeId) {
     const config = configs.find((c) => c.id === activeId);

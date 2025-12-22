@@ -19,10 +19,9 @@ import { AlertProvider } from "@components/common/CustomAlert";
 import HomeScreen from "@screens/HomeScreen";
 import { OnboardingScreen } from "@components/onboarding";
 import { initI18n } from "@i18n/index";
-import { getOnboardingCompleted, setOnboardingCompleted } from "@utils/storage";
 import { UpdateModal } from "@components/common/UpdateModal";
-import { fileStorage } from "@services/fileStorageService";
-import { cacheService } from "@services/cacheService";
+import { storageService } from "@services/storageService";
+import { backupService } from "@services/backupService";
 import { keyManager } from "@services/keyManager";
 
 type InitState = "loading" | "onboarding" | "ready" | "error";
@@ -40,17 +39,26 @@ const AppContent = () => {
     checkForUpdate,
   } = useUpdate();
 
-  // Handle app state changes - flush cache when going to background
+  // Handle app state changes - auto backup when going to background
   useEffect(() => {
     const handleAppStateChange = async (nextAppState: AppStateStatus) => {
       if (
         appState.current.match(/active/) &&
         nextAppState.match(/inactive|background/)
       ) {
-        // App is going to background, flush pending writes immediately
-        console.log("[App] Going to background, flushing cache...");
-        await cacheService.forceFlush();
-        console.log("[App] Cache flushed");
+        // App is going to background, auto backup if enabled
+        console.log("[App] Going to background...");
+        try {
+          const autoBackupEnabled = await storageService.isAutoBackupEnabled();
+          const backupPath = await storageService.getBackupPath();
+          if (autoBackupEnabled && backupPath) {
+            console.log("[App] Auto backup enabled, creating backup...");
+            await backupService.createBackup();
+            console.log("[App] Auto backup completed");
+          }
+        } catch (error) {
+          console.error("[App] Auto backup error:", error);
+        }
       }
       appState.current = nextAppState;
     };
@@ -69,31 +77,24 @@ const AppContent = () => {
         setLoadingMessage("Đang tải ngôn ngữ...");
         await initI18n();
 
-        // Step 2: Check onboarding status
+        // Step 2: Initialize storage service
+        setLoadingMessage("Đang tải dữ liệu...");
+        await storageService.initialize();
+
+        // Step 3: Check onboarding status
         setLoadingMessage("Đang kiểm tra cài đặt...");
-        const onboardingCompleted = await getOnboardingCompleted();
+        const onboardingCompleted =
+          await storageService.getOnboardingCompleted();
 
-        // Step 3: Initialize file storage
-        setLoadingMessage("Đang kết nối lưu trữ...");
-        const storageReady = await fileStorage.initialize();
-
-        // If onboarding not completed or storage not ready, show onboarding
-        if (!onboardingCompleted || !storageReady) {
+        // If onboarding not completed, show onboarding
+        if (!onboardingCompleted) {
           setInitState("onboarding");
           return;
         }
 
-        // Step 4: Initialize cache with all data from files
-        setLoadingMessage("Đang tải dữ liệu...");
-        await cacheService.initialize(fileStorage);
-
-        // Step 5: Preload translations data
-        setLoadingMessage("Đang tải bản dịch...");
-        await cacheService.preloadTranslations(fileStorage);
-
-        // Step 6: Initialize keyManager with API keys from cache
+        // Step 4: Initialize keyManager with API keys
         setLoadingMessage("Đang khởi tạo API keys...");
-        const apiKeys = cacheService.getApiKeys();
+        const apiKeys = storageService.getApiKeys();
         if (apiKeys.length > 0) {
           keyManager.initialize(apiKeys);
         }
@@ -117,19 +118,15 @@ const AppContent = () => {
       setInitState("loading");
       setLoadingMessage("Đang hoàn tất cài đặt...");
 
-      await setOnboardingCompleted(true);
+      await storageService.setOnboardingCompleted(true);
 
-      // Initialize cache after onboarding
+      // Re-initialize storage to pick up any restored data
       setLoadingMessage("Đang tải dữ liệu...");
-      await cacheService.initialize(fileStorage);
-
-      // Preload translations
-      setLoadingMessage("Đang tải bản dịch...");
-      await cacheService.preloadTranslations(fileStorage);
+      await storageService.initialize();
 
       // Initialize keyManager
       setLoadingMessage("Đang khởi tạo API keys...");
-      const apiKeys = cacheService.getApiKeys();
+      const apiKeys = storageService.getApiKeys();
       if (apiKeys.length > 0) {
         keyManager.initialize(apiKeys);
       }

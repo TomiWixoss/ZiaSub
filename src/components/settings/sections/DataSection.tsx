@@ -4,18 +4,22 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
+  Platform,
 } from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@src/contexts";
-import { fileStorage } from "@services/fileStorageService";
-import { setOnboardingCompleted } from "@utils/storage";
+import { storageService } from "@services/storageService";
+import { backupService } from "@services/backupService";
 import { showAlert } from "@components/common/CustomAlert";
+import * as FileSystem from "expo-file-system/legacy";
 import * as Updates from "expo-updates";
 
 interface DataInfo {
-  storagePath: string | null;
+  backupPath: string | null;
+  lastBackupTime: number | null;
+  autoBackupEnabled: boolean;
   chatCount: number;
   translationCount: number;
 }
@@ -25,7 +29,8 @@ export const DataSection: React.FC = () => {
   const { colors } = useTheme();
   const [dataInfo, setDataInfo] = useState<DataInfo | null>(null);
   const [loading, setLoading] = useState(true);
-  const [clearing, setClearing] = useState(false);
+  const [backing, setBacking] = useState(false);
+  const [restoring, setRestoring] = useState(false);
 
   useEffect(() => {
     loadDataInfo();
@@ -34,25 +39,134 @@ export const DataSection: React.FC = () => {
   const loadDataInfo = async () => {
     setLoading(true);
     try {
-      const path = fileStorage.getStoragePath();
-      if (path) {
-        const info = await fileStorage.getDataInfo(path);
-        setDataInfo({
-          storagePath: path,
-          chatCount: info.chatCount || 0,
-          translationCount: info.translationCount || 0,
-        });
-      } else {
-        setDataInfo({
-          storagePath: null,
-          chatCount: 0,
-          translationCount: 0,
-        });
-      }
+      const [backupPath, lastBackupTime, autoBackupEnabled] = await Promise.all(
+        [
+          storageService.getBackupPath(),
+          storageService.getLastBackupTime(),
+          storageService.isAutoBackupEnabled(),
+        ]
+      );
+
+      const chatSessions = storageService.getChatSessions();
+      const translationIds = storageService.getTranslationVideoIds();
+
+      setDataInfo({
+        backupPath,
+        lastBackupTime,
+        autoBackupEnabled,
+        chatCount: chatSessions.length,
+        translationCount: translationIds.length,
+      });
     } catch {
       setDataInfo(null);
     }
     setLoading(false);
+  };
+
+  const handleChangeBackupPath = async () => {
+    try {
+      if (Platform.OS === "android") {
+        const permissions =
+          await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
+
+        if (permissions.granted) {
+          await backupService.setupBackupPath(permissions.directoryUri);
+          await loadDataInfo();
+          showAlert(
+            t("common.success"),
+            t("settings.data.pathChanged"),
+            [{ text: t("common.ok") }],
+            "success"
+          );
+        }
+      } else {
+        showAlert(t("common.notice"), t("onboarding.storage.iosDefaultOnly"), [
+          { text: t("common.ok") },
+        ]);
+      }
+    } catch (error) {
+      showAlert(
+        t("common.error"),
+        t("settings.data.pathChangeError"),
+        [{ text: t("common.ok") }],
+        "error"
+      );
+    }
+  };
+
+  const handleBackupNow = async () => {
+    setBacking(true);
+    try {
+      await backupService.createBackup();
+      await loadDataInfo();
+      showAlert(
+        t("common.success"),
+        t("settings.data.backupSuccess"),
+        [{ text: t("common.ok") }],
+        "success"
+      );
+    } catch (error) {
+      showAlert(
+        t("common.error"),
+        t("settings.data.backupError"),
+        [{ text: t("common.ok") }],
+        "error"
+      );
+    }
+    setBacking(false);
+  };
+
+  const handleRestore = async () => {
+    showAlert(
+      t("settings.data.restoreTitle"),
+      t("settings.data.restoreMessage"),
+      [
+        {
+          text: t("settings.data.restoreConfirm"),
+          onPress: confirmRestore,
+        },
+        {
+          text: t("common.cancel"),
+          style: "cancel",
+        },
+      ],
+      "warning"
+    );
+  };
+
+  const confirmRestore = async () => {
+    setRestoring(true);
+    try {
+      await backupService.restoreBackup();
+      await loadDataInfo();
+      showAlert(
+        t("common.success"),
+        t("settings.data.restoreSuccess"),
+        [
+          {
+            text: t("common.ok"),
+            onPress: async () => {
+              await Updates.reloadAsync();
+            },
+          },
+        ],
+        "success"
+      );
+    } catch (error) {
+      showAlert(
+        t("common.error"),
+        t("settings.data.restoreError"),
+        [{ text: t("common.ok") }],
+        "error"
+      );
+    }
+    setRestoring(false);
+  };
+
+  const handleToggleAutoBackup = async () => {
+    const newValue = !dataInfo?.autoBackupEnabled;
+    await storageService.setAutoBackupEnabled(newValue);
+    await loadDataInfo();
   };
 
   const handleClearAllData = () => {
@@ -75,9 +189,8 @@ export const DataSection: React.FC = () => {
   };
 
   const confirmClearData = async () => {
-    setClearing(true);
     try {
-      await fileStorage.clearAllData();
+      await storageService.clearAllData();
       await loadDataInfo();
       showAlert(
         t("common.success"),
@@ -93,10 +206,9 @@ export const DataSection: React.FC = () => {
         "error"
       );
     }
-    setClearing(false);
   };
 
-  const handleResetStorage = () => {
+  const handleResetApp = () => {
     showAlert(
       t("settings.data.resetTitle"),
       t("settings.data.resetMessage"),
@@ -104,7 +216,7 @@ export const DataSection: React.FC = () => {
         {
           text: t("settings.data.resetConfirm"),
           style: "destructive",
-          onPress: confirmResetStorage,
+          onPress: confirmResetApp,
         },
         {
           text: t("common.cancel"),
@@ -115,11 +227,10 @@ export const DataSection: React.FC = () => {
     );
   };
 
-  const confirmResetStorage = async () => {
+  const confirmResetApp = async () => {
     try {
-      await fileStorage.resetStorage();
-      await setOnboardingCompleted(false);
-      // Tự động reload app thay vì hỏi user
+      await storageService.clearAllData();
+      await storageService.setOnboardingCompleted(false);
       await Updates.reloadAsync();
     } catch (error) {
       showAlert(
@@ -129,6 +240,11 @@ export const DataSection: React.FC = () => {
         "error"
       );
     }
+  };
+
+  const formatDate = (timestamp: number | null) => {
+    if (!timestamp) return t("settings.data.never");
+    return new Date(timestamp).toLocaleString();
   };
 
   if (loading) {
@@ -141,28 +257,6 @@ export const DataSection: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* Storage Path Info */}
-      <View style={[styles.infoCard, { backgroundColor: colors.surfaceLight }]}>
-        <View style={styles.infoRow}>
-          <MaterialCommunityIcons
-            name="folder"
-            size={20}
-            color={colors.primary}
-          />
-          <View style={styles.infoContent}>
-            <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>
-              {t("settings.data.storagePath")}
-            </Text>
-            <Text
-              style={[styles.infoValue, { color: colors.text }]}
-              numberOfLines={2}
-            >
-              {dataInfo?.storagePath || t("settings.data.notConfigured")}
-            </Text>
-          </View>
-        </View>
-      </View>
-
       {/* Data Stats */}
       <View style={styles.statsRow}>
         <View
@@ -198,7 +292,163 @@ export const DataSection: React.FC = () => {
         </View>
       </View>
 
-      {/* Actions */}
+      {/* Backup Path Info */}
+      <View style={[styles.infoCard, { backgroundColor: colors.surfaceLight }]}>
+        <View style={styles.infoRow}>
+          <MaterialCommunityIcons
+            name="folder-sync"
+            size={20}
+            color={colors.primary}
+          />
+          <View style={styles.infoContent}>
+            <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>
+              {t("settings.data.backupPath")}
+            </Text>
+            <Text
+              style={[styles.infoValue, { color: colors.text }]}
+              numberOfLines={2}
+            >
+              {dataInfo?.backupPath || t("settings.data.notConfigured")}
+            </Text>
+          </View>
+          <TouchableOpacity onPress={handleChangeBackupPath}>
+            <MaterialCommunityIcons
+              name="pencil"
+              size={20}
+              color={colors.primary}
+            />
+          </TouchableOpacity>
+        </View>
+        <View style={[styles.divider, { backgroundColor: colors.border }]} />
+        <View style={styles.infoRow}>
+          <MaterialCommunityIcons
+            name="clock-outline"
+            size={20}
+            color={colors.textSecondary}
+          />
+          <View style={styles.infoContent}>
+            <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>
+              {t("settings.data.lastBackup")}
+            </Text>
+            <Text style={[styles.infoValue, { color: colors.text }]}>
+              {formatDate(dataInfo?.lastBackupTime || null)}
+            </Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Backup Actions */}
+      <View style={styles.actionsContainer}>
+        <TouchableOpacity
+          style={[
+            styles.actionButton,
+            {
+              backgroundColor: colors.primary + "15",
+              borderColor: colors.primary,
+            },
+          ]}
+          onPress={handleBackupNow}
+          disabled={backing || !dataInfo?.backupPath}
+        >
+          {backing ? (
+            <ActivityIndicator size="small" color={colors.primary} />
+          ) : (
+            <MaterialCommunityIcons
+              name="cloud-upload"
+              size={20}
+              color={colors.primary}
+            />
+          )}
+          <View style={styles.actionContent}>
+            <Text style={[styles.actionTitle, { color: colors.primary }]}>
+              {t("settings.data.backupNow")}
+            </Text>
+            <Text style={[styles.actionDesc, { color: colors.textSecondary }]}>
+              {t("settings.data.backupNowDesc")}
+            </Text>
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.actionButton,
+            {
+              backgroundColor: colors.surfaceLight,
+              borderColor: colors.border,
+            },
+          ]}
+          onPress={handleRestore}
+          disabled={restoring || !dataInfo?.backupPath}
+        >
+          {restoring ? (
+            <ActivityIndicator size="small" color={colors.text} />
+          ) : (
+            <MaterialCommunityIcons
+              name="cloud-download"
+              size={20}
+              color={colors.text}
+            />
+          )}
+          <View style={styles.actionContent}>
+            <Text style={[styles.actionTitle, { color: colors.text }]}>
+              {t("settings.data.restore")}
+            </Text>
+            <Text style={[styles.actionDesc, { color: colors.textSecondary }]}>
+              {t("settings.data.restoreDesc")}
+            </Text>
+          </View>
+        </TouchableOpacity>
+
+        {/* Auto Backup Toggle */}
+        <TouchableOpacity
+          style={[
+            styles.actionButton,
+            {
+              backgroundColor: colors.surfaceLight,
+              borderColor: colors.border,
+            },
+          ]}
+          onPress={handleToggleAutoBackup}
+        >
+          <MaterialCommunityIcons
+            name={dataInfo?.autoBackupEnabled ? "sync" : "sync-off"}
+            size={20}
+            color={
+              dataInfo?.autoBackupEnabled
+                ? colors.success
+                : colors.textSecondary
+            }
+          />
+          <View style={styles.actionContent}>
+            <Text style={[styles.actionTitle, { color: colors.text }]}>
+              {t("settings.data.autoBackup")}
+            </Text>
+            <Text style={[styles.actionDesc, { color: colors.textSecondary }]}>
+              {dataInfo?.autoBackupEnabled
+                ? t("settings.data.autoBackupOn")
+                : t("settings.data.autoBackupOff")}
+            </Text>
+          </View>
+          <MaterialCommunityIcons
+            name={
+              dataInfo?.autoBackupEnabled
+                ? "toggle-switch"
+                : "toggle-switch-off"
+            }
+            size={32}
+            color={
+              dataInfo?.autoBackupEnabled
+                ? colors.success
+                : colors.textSecondary
+            }
+          />
+        </TouchableOpacity>
+      </View>
+
+      {/* Danger Zone */}
+      <Text style={[styles.sectionTitle, { color: colors.error }]}>
+        {t("settings.data.dangerZone")}
+      </Text>
       <View style={styles.actionsContainer}>
         <TouchableOpacity
           style={[
@@ -209,17 +459,12 @@ export const DataSection: React.FC = () => {
             },
           ]}
           onPress={handleClearAllData}
-          disabled={clearing}
         >
-          {clearing ? (
-            <ActivityIndicator size="small" color={colors.error} />
-          ) : (
-            <MaterialCommunityIcons
-              name="delete-sweep"
-              size={20}
-              color={colors.error}
-            />
-          )}
+          <MaterialCommunityIcons
+            name="delete-sweep"
+            size={20}
+            color={colors.error}
+          />
           <View style={styles.actionContent}>
             <Text style={[styles.actionTitle, { color: colors.error }]}>
               {t("settings.data.clearAll")}
@@ -238,10 +483,10 @@ export const DataSection: React.FC = () => {
               borderColor: colors.border,
             },
           ]}
-          onPress={handleResetStorage}
+          onPress={handleResetApp}
         >
           <MaterialCommunityIcons
-            name="folder-refresh"
+            name="restart"
             size={20}
             color={colors.warning || colors.error}
           />
@@ -252,10 +497,10 @@ export const DataSection: React.FC = () => {
                 { color: colors.warning || colors.error },
               ]}
             >
-              {t("settings.data.resetStorage")}
+              {t("settings.data.resetApp")}
             </Text>
             <Text style={[styles.actionDesc, { color: colors.textSecondary }]}>
-              {t("settings.data.resetStorageDesc")}
+              {t("settings.data.resetAppDesc")}
             </Text>
           </View>
         </TouchableOpacity>
@@ -271,25 +516,6 @@ const styles = StyleSheet.create({
   loadingContainer: {
     padding: 24,
     alignItems: "center",
-  },
-  infoCard: {
-    padding: 16,
-    borderRadius: 12,
-  },
-  infoRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 12,
-  },
-  infoContent: {
-    flex: 1,
-  },
-  infoLabel: {
-    fontSize: 12,
-    marginBottom: 4,
-  },
-  infoValue: {
-    fontSize: 13,
   },
   statsRow: {
     flexDirection: "row",
@@ -309,6 +535,34 @@ const styles = StyleSheet.create({
   statLabel: {
     fontSize: 12,
     textAlign: "center",
+  },
+  infoCard: {
+    padding: 16,
+    borderRadius: 12,
+  },
+  infoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  infoContent: {
+    flex: 1,
+  },
+  infoLabel: {
+    fontSize: 12,
+    marginBottom: 4,
+  },
+  infoValue: {
+    fontSize: 13,
+  },
+  divider: {
+    height: 1,
+    marginVertical: 12,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    marginTop: 8,
   },
   actionsContainer: {
     gap: 12,
