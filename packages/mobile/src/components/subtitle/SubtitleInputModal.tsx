@@ -161,10 +161,14 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
     return () => unsubscribe();
   }, [checkQueueStatus]);
 
-  // Handle cancel waiting in queue
-  const handleCancelQueue = useCallback(() => {
+  // Handle cancel waiting in queue - move to pending instead of removing
+  const handleCancelQueue = useCallback(async () => {
     if (videoUrl) {
-      queueManager.removeFromQueue(videoUrl);
+      const queueItem = queueManager.isInQueue(videoUrl);
+      if (queueItem) {
+        // Use moveToPendingByUser to prevent auto-resume
+        await queueManager.moveToPendingByUser(queueItem.id);
+      }
       setIsWaitingInQueue(false);
       setQueuePosition(null);
     }

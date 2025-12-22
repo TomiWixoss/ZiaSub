@@ -665,6 +665,20 @@ class QueueManager {
     });
   }
 
+  // Move to pending and mark as user-paused (won't auto-resume)
+  async moveToPendingByUser(itemId: string): Promise<void> {
+    // Add to user paused items to prevent auto-resume
+    this.userPausedItems.add(itemId);
+
+    await this.updateItem(itemId, {
+      status: "pending",
+      error: undefined,
+      progress: undefined,
+      startedAt: undefined,
+      completedAt: undefined,
+    });
+  }
+
   // Remove from queue
   async removeFromQueue(itemId: string): Promise<void> {
     // Clear from user paused items
@@ -673,6 +687,20 @@ class QueueManager {
     this.items = this.items.filter((i) => i.id !== itemId);
     await this.save();
     this.notify();
+  }
+
+  // Remove from queue by video URL
+  async removeFromQueueByUrl(videoUrl: string): Promise<void> {
+    const videoId = this.extractVideoId(videoUrl);
+    const item = this.items.find((i) => i.videoId === videoId);
+    if (item) {
+      // Clear from user paused items
+      this.userPausedItems.delete(item.id);
+
+      this.items = this.items.filter((i) => i.id !== item.id);
+      await this.save();
+      this.notify();
+    }
   }
 
   // Get items by status with pagination
