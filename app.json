@@ -21,7 +21,7 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.tomis.youtubesrtplayer",
+      "package": "com.tomisakae.ziasub",
       "softwareKeyboardLayoutMode": "resize",
       "permissions": [
         "android.permission.REQUEST_INSTALL_PACKAGES",
