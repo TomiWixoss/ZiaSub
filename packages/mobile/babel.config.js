@@ -1,0 +1,26 @@
+module.exports = function (api) {
+  api.cache(true);
+  return {
+    presets: ["babel-preset-expo"],
+    plugins: [
+      [
+        "module-resolver",
+        {
+          root: ["./"],
+          alias: {
+            "@components": "./src/components",
+            "@screens": "./src/screens",
+            "@utils": "./src/utils",
+            "@constants": "./src/constants",
+            "@services": "./src/services",
+            "@hooks": "./src/hooks",
+            "@i18n": "./src/i18n",
+            "@src": "./src",
+            "@ziasub/shared": "../shared/src",
+          },
+        },
+      ],
+      "react-native-reanimated/plugin",
+    ],
+  };
+};

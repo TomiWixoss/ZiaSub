@@ -32,10 +32,15 @@ yarn-error.*
 
 # local env files
 .env*.local
+local.properties
 
 # typescript
 *.tsbuildinfo
 
-# generated native folders
-/ios
-/android
+# Build outputs
+packages/shared/dist/
+packages/extension/dist/
+
+# Lock files (use bun.lockb)
+package-lock.json
+yarn.lock

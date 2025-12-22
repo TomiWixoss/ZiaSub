@@ -1,0 +1,17 @@
+{
+  "name": "@ziasub/extension",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "dev": "bun run build --watch",
+    "build": "bun build src/background/index.ts src/content/index.ts src/popup/index.ts src/options/index.ts --outdir=dist",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@ziasub/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.287",
+    "typescript": "^5.9.3"
+  }
+}

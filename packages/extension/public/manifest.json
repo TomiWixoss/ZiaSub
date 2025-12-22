@@ -1,0 +1,6 @@
+{
+  "manifest_version": 3,
+  "name": "ZiaSub",
+  "version": "0.0.1",
+  "description": "Dịch phụ đề YouTube tự động bằng Gemini AI"
+}
