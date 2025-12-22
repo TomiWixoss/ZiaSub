@@ -515,6 +515,9 @@ export default {
     waitingInQueue: "Waiting in queue...",
     waitingPosition: "Waiting (position #{{position}})",
     cancelWaiting: "Cancel",
+    paused: "Paused",
+    pausedWithProgress: "Paused ({{completed}}/{{total}})",
+    resumeTranslation: "Resume",
   },
 
   // Subtitle Modal

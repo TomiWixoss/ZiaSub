@@ -14,7 +14,9 @@ interface FloatingButtonProps {
   hasSubtitles?: boolean;
   isTranslating?: boolean;
   isWaitingInQueue?: boolean;
+  isPausedInQueue?: boolean;
   queuePosition?: number | null;
+  pausedProgress?: { completed: number; total: number } | null;
   translationProgress?: { completed: number; total: number } | null;
   queueCount?: number;
   isInQueue?: boolean;
@@ -359,6 +361,57 @@ const WaitingFab: React.FC<{
   );
 };
 
+const PausedFab: React.FC<{
+  onPress: () => void;
+  progress: { completed: number; total: number } | null;
+}> = ({ onPress, progress }) => {
+  const { colors, isDark } = useTheme();
+  const progressText = progress
+    ? `${progress.completed}/${progress.total}`
+    : "";
+  return (
+    <Pressable onPress={onPress}>
+      <View style={styles.translatingContainer}>
+        <View
+          style={[
+            styles.translatingFab,
+            { borderColor: colors.textMuted, opacity: 0.8 },
+          ]}
+        >
+          <View
+            style={[
+              styles.translatingFabInner,
+              {
+                backgroundColor: isDark
+                  ? colors.surfaceElevated
+                  : colors.surface,
+              },
+            ]}
+          >
+            <MaterialCommunityIcons
+              name="pause"
+              size={26}
+              color={colors.textMuted}
+            />
+          </View>
+        </View>
+        {progress && progress.total > 1 && (
+          <View
+            style={[
+              styles.progressBadge,
+              { backgroundColor: colors.textMuted },
+            ]}
+          >
+            <Animated.Text style={[styles.progressText, { color: "#FFFFFF" }]}>
+              {progressText}
+            </Animated.Text>
+          </View>
+        )}
+      </View>
+    </Pressable>
+  );
+};
+
 const FloatingButton: React.FC<FloatingButtonProps> = (props) => {
   const { colors } = useTheme();
   const {
@@ -371,7 +424,9 @@ const FloatingButton: React.FC<FloatingButtonProps> = (props) => {
     hasSubtitles = false,
     isTranslating = false,
     isWaitingInQueue = false,
+    isPausedInQueue = false,
     queuePosition = null,
+    pausedProgress = null,
     translationProgress = null,
     queueCount = 0,
     isInQueue = false,
@@ -461,7 +516,9 @@ const FloatingButton: React.FC<FloatingButtonProps> = (props) => {
       >
         <ChatFab onPress={onChatPress} isLoading={isChatLoading} />
         {isVideoPage &&
-          (isWaitingInQueue ? (
+          (isPausedInQueue ? (
+            <PausedFab onPress={onPress} progress={pausedProgress} />
+          ) : isWaitingInQueue ? (
             <WaitingFab onPress={onPress} position={queuePosition} />
           ) : isTranslating ? (
             <TranslatingFab onPress={onPress} progress={translationProgress} />

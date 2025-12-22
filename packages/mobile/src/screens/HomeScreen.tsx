@@ -108,7 +108,9 @@ const HomeScreen = () => {
     queueCount,
     isTranslating,
     isWaitingInQueue,
+    isPausedInQueue,
     queuePosition,
+    pausedProgress,
     translationProgress,
     syncAllToWebView,
     syncTranslatedVideosToWebView,
@@ -504,7 +506,9 @@ const HomeScreen = () => {
         hasSubtitles={hasSubtitles}
         isTranslating={isTranslating}
         isWaitingInQueue={isWaitingInQueue}
+        isPausedInQueue={isPausedInQueue}
         queuePosition={queuePosition}
+        pausedProgress={pausedProgress}
         translationProgress={translationProgress}
         queueCount={queueCount}
         isInQueue={!!currentVideoInQueue}

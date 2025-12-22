@@ -40,7 +40,9 @@ interface TranslateTabProps {
   batchSettings?: BatchSettings;
   isTranslating: boolean;
   isWaitingInQueue?: boolean;
+  isPausedInQueue?: boolean;
   queuePosition?: number | null;
+  pausedProgress?: { completed: number; total: number } | null;
   translateStatus: string;
   keyStatus: string | null;
   batchProgress: BatchProgress | null;
@@ -59,7 +61,9 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
   batchSettings,
   isTranslating,
   isWaitingInQueue = false,
+  isPausedInQueue = false,
   queuePosition = null,
+  pausedProgress = null,
   translateStatus,
   keyStatus,
   batchProgress,
@@ -690,7 +694,31 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
         />
       </ScrollView>
       <View style={styles.translateButtonContainer}>
-        {isWaitingInQueue ? (
+        {isPausedInQueue ? (
+          <View style={themedStyles.pausedContainer}>
+            <View style={themedStyles.pausedContent}>
+              <MaterialCommunityIcons
+                name="pause-circle-outline"
+                size={20}
+                color={colors.textMuted}
+              />
+              <Text style={themedStyles.pausedText}>
+                {pausedProgress
+                  ? t("queue.pausedWithProgress", {
+                      completed: pausedProgress.completed,
+                      total: pausedProgress.total,
+                    })
+                  : t("queue.paused")}
+              </Text>
+            </View>
+            <Button3D
+              onPress={() => handleTranslate()}
+              title={t("queue.resumeTranslation")}
+              variant="primary"
+              size="small"
+            />
+          </View>
+        ) : isWaitingInQueue ? (
           <View style={themedStyles.waitingContainer}>
             <View style={themedStyles.waitingContent}>
               <MaterialCommunityIcons
@@ -787,6 +815,25 @@ const translateTabThemedStyles = createThemedStyles((colors) => ({
   },
   waitingText: {
     color: colors.warning,
+    fontSize: 14,
+    fontWeight: "500",
+    flex: 1,
+  },
+  pausedContainer: {
+    backgroundColor: colors.surfaceLight,
+    borderRadius: 12,
+    padding: 12,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  pausedContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  pausedText: {
+    color: colors.textMuted,
     fontSize: 14,
     fontWeight: "500",
     flex: 1,

@@ -25,7 +25,12 @@ export const useTranslationQueue = ({
   const [queueCount, setQueueCount] = useState(0);
   const [isTranslating, setIsTranslating] = useState(false);
   const [isWaitingInQueue, setIsWaitingInQueue] = useState(false);
+  const [isPausedInQueue, setIsPausedInQueue] = useState(false);
   const [queuePosition, setQueuePosition] = useState<number | null>(null);
+  const [pausedProgress, setPausedProgress] = useState<{
+    completed: number;
+    total: number;
+  } | null>(null);
   const [translationProgress, setTranslationProgress] = useState<{
     completed: number;
     total: number;
@@ -34,15 +39,39 @@ export const useTranslationQueue = ({
   // Track the video URL that is currently being translated for THIS video
   const currentTranslatingUrlRef = useRef<string | null>(null);
 
-  // Check if current video is waiting in queue
+  // Check if current video is waiting in queue or paused
   const checkQueueStatus = useCallback(() => {
     if (!currentUrlRef.current) {
       setIsWaitingInQueue(false);
+      setIsPausedInQueue(false);
       setQueuePosition(null);
+      setPausedProgress(null);
       return;
     }
 
     const queueStatus = queueManager.getVideoQueueStatus(currentUrlRef.current);
+
+    // Check if paused
+    if (queueStatus.inQueue && queueStatus.status === "paused") {
+      setIsPausedInQueue(true);
+      setIsWaitingInQueue(false);
+      setQueuePosition(null);
+      // Get paused progress from queue item
+      const queueItem = queueManager.isInQueue(currentUrlRef.current);
+      if (queueItem && queueItem.completedBatches && queueItem.totalBatches) {
+        setPausedProgress({
+          completed: queueItem.completedBatches,
+          total: queueItem.totalBatches,
+        });
+      } else {
+        setPausedProgress(null);
+      }
+      return;
+    }
+
+    // Reset paused state
+    setIsPausedInQueue(false);
+    setPausedProgress(null);
 
     if (queueStatus.inQueue && queueStatus.status === "translating") {
       // Video is in translating queue - check if it's actually being translated
@@ -229,7 +258,9 @@ export const useTranslationQueue = ({
     queueCount,
     isTranslating,
     isWaitingInQueue,
+    isPausedInQueue,
     queuePosition,
+    pausedProgress,
     translationProgress,
     syncAllToWebView,
     syncTranslatedVideosToWebView,

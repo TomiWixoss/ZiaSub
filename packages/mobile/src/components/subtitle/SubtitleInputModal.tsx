@@ -86,7 +86,12 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
     null
   );
   const [isWaitingInQueue, setIsWaitingInQueue] = useState(false);
+  const [isPausedInQueue, setIsPausedInQueue] = useState(false);
   const [queuePosition, setQueuePosition] = useState<number | null>(null);
+  const [pausedProgress, setPausedProgress] = useState<{
+    completed: number;
+    total: number;
+  } | null>(null);
 
   // Keyboard handling
   const keyboardHeight = useSharedValue(0);
@@ -119,11 +124,35 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
   const checkQueueStatus = useCallback(() => {
     if (!videoUrl) {
       setIsWaitingInQueue(false);
+      setIsPausedInQueue(false);
       setQueuePosition(null);
+      setPausedProgress(null);
       return;
     }
 
     const queueStatus = queueManager.getVideoQueueStatus(videoUrl);
+
+    // Check if paused
+    if (queueStatus.inQueue && queueStatus.status === "paused") {
+      setIsPausedInQueue(true);
+      setIsWaitingInQueue(false);
+      setQueuePosition(null);
+      // Get paused progress from queue item
+      const queueItem = queueManager.isInQueue(videoUrl);
+      if (queueItem && queueItem.completedBatches && queueItem.totalBatches) {
+        setPausedProgress({
+          completed: queueItem.completedBatches,
+          total: queueItem.totalBatches,
+        });
+      } else {
+        setPausedProgress(null);
+      }
+      return;
+    }
+
+    // Reset paused state
+    setIsPausedInQueue(false);
+    setPausedProgress(null);
 
     if (queueStatus.inQueue && queueStatus.status === "translating") {
       // Video is in translating queue - check if it's actually being translated
@@ -460,7 +489,9 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
                 batchSettings={batchSettings}
                 isTranslating={isTranslating}
                 isWaitingInQueue={isWaitingInQueue}
+                isPausedInQueue={isPausedInQueue}
                 queuePosition={queuePosition}
+                pausedProgress={pausedProgress}
                 translateStatus={translateStatus}
                 keyStatus={keyStatus}
                 batchProgress={batchProgress}
