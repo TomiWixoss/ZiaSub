@@ -380,6 +380,7 @@ class StorageService {
     activeTranslationConfigId: string | null;
     activeChatConfigId: string | null;
     activeChatSessionId: string | null;
+    translationQueue: any[];
   }> {
     const translations: Record<string, VideoTranslations> = {};
     const srtFiles: Record<string, string> = {};
@@ -399,6 +400,15 @@ class StorageService {
       if (content) srtFiles[videoId] = content;
     }
 
+    // Load translation queue
+    let translationQueue: any[] = [];
+    try {
+      const queueData = await AsyncStorage.getItem("@translation_queue");
+      if (queueData) {
+        translationQueue = JSON.parse(queueData);
+      }
+    } catch {}
+
     return {
       settings: this.getSettings(),
       geminiConfigs: this.getGeminiConfigs(),
@@ -408,6 +418,7 @@ class StorageService {
       activeTranslationConfigId: await this.getActiveTranslationConfigId(),
       activeChatConfigId: await this.getActiveChatConfigId(),
       activeChatSessionId: await this.getActiveChatSessionId(),
+      translationQueue,
     };
   }
 
@@ -423,6 +434,7 @@ class StorageService {
     activeTranslationConfigId?: string | null;
     activeChatConfigId?: string | null;
     activeChatSessionId?: string | null;
+    translationQueue?: any[];
   }): Promise<void> {
     // Import settings
     if (data.settings) {
@@ -462,6 +474,21 @@ class StorageService {
     }
     if (data.activeChatSessionId) {
       await this.setActiveChatSessionId(data.activeChatSessionId);
+    }
+
+    // Import translation queue
+    if (data.translationQueue && data.translationQueue.length > 0) {
+      await AsyncStorage.setItem(
+        "@translation_queue",
+        JSON.stringify(data.translationQueue)
+      );
+      // Reload queueManager with imported data
+      const { queueManager } = await import("./queueManager");
+      await queueManager.reset();
+      // Re-initialize to load the imported data
+      // Need to clear initialized flag first
+      (queueManager as any).initialized = false;
+      await queueManager.initialize();
     }
   }
 

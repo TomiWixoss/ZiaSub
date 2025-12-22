@@ -21,6 +21,7 @@ interface BackupData {
   activeTranslationConfigId: string | null;
   activeChatConfigId: string | null;
   activeChatSessionId: string | null;
+  translationQueue?: any[];
 }
 
 interface BackupInfo {
@@ -29,6 +30,7 @@ interface BackupInfo {
   version?: string;
   chatCount?: number;
   translationCount?: number;
+  queueCount?: number;
 }
 
 class BackupService {
@@ -82,6 +84,7 @@ class BackupService {
         version: data.version,
         chatCount: data.chatSessions?.length || 0,
         translationCount: Object.keys(data.translations || {}).length,
+        queueCount: data.translationQueue?.length || 0,
       };
     } catch {
       return { hasBackup: false };
@@ -110,6 +113,7 @@ class BackupService {
         version: data.version,
         chatCount: data.chatSessions?.length || 0,
         translationCount: Object.keys(data.translations || {}).length,
+        queueCount: data.translationQueue?.length || 0,
       };
     } catch {
       return { hasBackup: false };
@@ -251,6 +255,7 @@ class BackupService {
       activeTranslationConfigId: backupData.activeTranslationConfigId,
       activeChatConfigId: backupData.activeChatConfigId,
       activeChatSessionId: backupData.activeChatSessionId,
+      translationQueue: backupData.translationQueue,
     });
 
     console.log("[BackupService] Backup restored successfully");
