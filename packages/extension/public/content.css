@@ -1,0 +1,43 @@
+/* ZiaSub Subtitle Overlay */
+.ziasub-overlay {
+  position: absolute;
+  bottom: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  pointer-events: none;
+  max-width: 90%;
+  text-align: center;
+}
+
+.ziasub-subtitle {
+  display: inline-block;
+  padding: 8px 16px;
+  background: rgba(0, 0, 0, 0.8);
+  border-radius: 4px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 20px;
+  font-weight: 500;
+  color: #fff;
+  line-height: 1.4;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+/* Fullscreen adjustments */
+:fullscreen .ziasub-overlay,
+:-webkit-full-screen .ziasub-overlay {
+  bottom: 80px;
+}
+
+:fullscreen .ziasub-subtitle,
+:-webkit-full-screen .ziasub-subtitle {
+  font-size: 28px;
+  padding: 12px 24px;
+}
+
+/* Hide when video is paused (optional) */
+.ziasub-overlay.hidden {
+  display: none;
+}

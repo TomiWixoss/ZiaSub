@@ -4,8 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "bun run build --watch",
-    "build": "bun build src/background/index.ts src/content/index.ts src/popup/index.ts src/options/index.ts --outdir=dist",
-    "typecheck": "tsc --noEmit"
+    "build": "bun build src/background/index.ts --outdir=public/dist/background && bun build src/content/index.ts --outdir=public/dist/content && bun build src/popup/index.ts --outdir=public/dist/popup && bun build src/options/index.ts --outdir=public/dist/options",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf public/dist"
   },
   "dependencies": {
     "@ziasub/shared": "workspace:*"

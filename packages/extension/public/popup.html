@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ZiaSub</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        width: 320px;
+        min-height: 200px;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          sans-serif;
+        background: #1a1a2e;
+        color: #eee;
+        padding: 16px;
+      }
+      .header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 16px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid #333;
+      }
+      .header h1 {
+        font-size: 18px;
+        font-weight: 600;
+        color: #fff;
+      }
+      .logo {
+        width: 28px;
+        height: 28px;
+      }
+      .section {
+        margin-bottom: 16px;
+      }
+      .section-title {
+        font-size: 12px;
+        font-weight: 500;
+        color: #888;
+        text-transform: uppercase;
+        margin-bottom: 8px;
+      }
+      .file-input-wrapper {
+        position: relative;
+      }
+      .file-input {
+        display: none;
+      }
+      .file-label {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 12px;
+        background: #252542;
+        border: 2px dashed #444;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .file-label:hover {
+        border-color: #6366f1;
+        background: #2a2a4a;
+      }
+      .file-label.has-file {
+        border-style: solid;
+        border-color: #22c55e;
+        background: #1a3a2a;
+      }
+      .file-name {
+        font-size: 13px;
+        color: #aaa;
+        margin-top: 8px;
+        text-align: center;
+        word-break: break-all;
+      }
+      .btn {
+        width: 100%;
+        padding: 10px 16px;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .btn-primary {
+        background: #6366f1;
+        color: white;
+      }
+      .btn-primary:hover:not(:disabled) {
+        background: #5558e3;
+      }
+      .btn-primary:disabled {
+        background: #444;
+        cursor: not-allowed;
+      }
+      .btn-secondary {
+        background: #333;
+        color: #ccc;
+        margin-top: 8px;
+      }
+      .btn-secondary:hover {
+        background: #444;
+      }
+      .status {
+        padding: 10px;
+        border-radius: 6px;
+        font-size: 13px;
+        margin-top: 12px;
+      }
+      .status.success {
+        background: #1a3a2a;
+        color: #22c55e;
+      }
+      .status.error {
+        background: #3a1a1a;
+        color: #ef4444;
+      }
+      .status.info {
+        background: #1a2a3a;
+        color: #3b82f6;
+      }
+      .subtitle-count {
+        font-size: 12px;
+        color: #888;
+        margin-top: 4px;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <img src="icons/icon48.svg" alt="ZiaSub" class="logo" />
+      <h1>ZiaSub</h1>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Nhập phụ đề SRT</div>
+      <div class="file-input-wrapper">
+        <input type="file" id="srtFile" class="file-input" accept=".srt" />
+        <label for="srtFile" class="file-label" id="fileLabel">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="17 8 12 3 7 8" />
+            <line x1="12" y1="3" x2="12" y2="15" />
+          </svg>
+          <span>Chọn file SRT</span>
+        </label>
+        <div class="file-name" id="fileName"></div>
+        <div class="subtitle-count" id="subtitleCount"></div>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" id="applyBtn" disabled>
+      Áp dụng phụ đề
+    </button>
+    <button class="btn btn-secondary" id="clearBtn">Xóa phụ đề</button>
+
+    <div class="status" id="status" style="display: none"></div>
+
+    <script src="dist/popup/index.js" type="module"></script>
+  </body>
+</html>

@@ -1,4 +1,2 @@
-// Options page
-// TODO: Settings UI (API keys, preferences)
-
-export {};
+// Options page - placeholder for future settings
+console.log("[ZiaSub] Options page loaded");
