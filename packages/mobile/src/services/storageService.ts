@@ -514,10 +514,16 @@ class StorageService {
       );
     }
 
-    // Reset queueManager to reload with new data
+    // Reinitialize queueManager to load new data
     const { queueManager } = await import("./queueManager");
-    await queueManager.reset();
+    // Clear initialized flag and in-memory state, then reload from AsyncStorage
     (queueManager as any).initialized = false;
+    (queueManager as any).items = [];
+    (queueManager as any).isProcessing = false;
+    (queueManager as any).autoProcessEnabled = false;
+    (queueManager as any).userStoppedItemId = null;
+    (queueManager as any).currentProcessingItemId = null;
+    (queueManager as any).userPausedItems?.clear();
     await queueManager.initialize();
   }
 
