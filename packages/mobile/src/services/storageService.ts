@@ -493,9 +493,14 @@ class StorageService {
   }
 
   /**
-   * Clear all app data
+   * Clear all app data (preserves backup configuration)
    */
   async clearAllData(): Promise<void> {
+    // Preserve backup configuration before clearing
+    const backupPath = await this.getBackupPath();
+    const backupType = await this.getBackupType();
+    const autoBackupEnabled = await this.isAutoBackupEnabled();
+
     const allKeys = await AsyncStorage.getAllKeys();
     // Include @ziasub_ keys and @translation_queue
     const appKeys = allKeys.filter(
@@ -513,6 +518,13 @@ class StorageService {
 
     // Re-ensure defaults
     await this.ensureDefaultConfigs();
+
+    // Restore backup configuration
+    if (backupPath) {
+      await this.setBackupPath(backupPath);
+      await this.setBackupType(backupType);
+      await this.setAutoBackupEnabled(autoBackupEnabled);
+    }
 
     // Reset queueManager in-memory state
     const { queueManager } = await import("./queueManager");
