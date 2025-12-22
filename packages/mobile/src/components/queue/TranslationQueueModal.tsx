@@ -285,6 +285,26 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
       t("queue.actions.stopAll")
     );
   };
+  const handleClearTranslating = () => {
+    confirmDestructive(
+      t("queue.dialogs.clearTranslatingTitle"),
+      t("queue.dialogs.clearTranslatingConfirm"),
+      () => queueManager.clearTranslating()
+    );
+  };
+  const handleResumeAll = () => {
+    confirm(
+      t("queue.dialogs.resumeAllTitle"),
+      t("queue.dialogs.resumeAllConfirm"),
+      async () => {
+        const result = await queueManager.resumeAllPaused();
+        if (result.queued) {
+          alert(t("common.notice"), t("queue.addedToWaitingQueue"));
+        }
+      },
+      t("queue.actions.resumeAll")
+    );
+  };
   const handleSelectVideo = (item: QueueItem) => {
     onSelectVideo(item.videoUrl);
     handleClose();
@@ -367,41 +387,82 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
           )}
           {activeTab === "translating" && counts.translating > 0 && (
             <View style={queueStyles.actionSection}>
-              <TouchableOpacity
-                style={[
-                  queueStyles.clearAllBtnFull,
-                  { borderColor: colors.warning },
-                ]}
-                onPress={handleStopAll}
-              >
-                <MaterialCommunityIcons
-                  name="stop-circle"
-                  size={20}
-                  color={colors.warning}
-                />
-                <Text
-                  style={[queueStyles.clearAllText, { color: colors.warning }]}
+              <View style={queueStyles.actionButtons}>
+                <TouchableOpacity
+                  style={[
+                    queueStyles.clearAllBtnFull,
+                    { flex: 1, borderColor: colors.warning },
+                  ]}
+                  onPress={handleStopAll}
                 >
-                  {t("queue.actions.stopAll")}
-                </Text>
-              </TouchableOpacity>
+                  <MaterialCommunityIcons
+                    name="stop-circle"
+                    size={20}
+                    color={colors.warning}
+                  />
+                  <Text
+                    style={[
+                      queueStyles.clearAllText,
+                      { color: colors.warning },
+                    ]}
+                  >
+                    {t("queue.actions.stopAll")}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[queueStyles.clearAllBtnFull, { flex: 1 }]}
+                  onPress={handleClearTranslating}
+                >
+                  <MaterialCommunityIcons
+                    name="delete-sweep"
+                    size={20}
+                    color={colors.error}
+                  />
+                  <Text style={queueStyles.clearAllText}>
+                    {t("queue.actions.clearAll")}
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
           )}
           {activeTab === "paused" && counts.paused > 0 && (
             <View style={queueStyles.actionSection}>
-              <TouchableOpacity
-                style={queueStyles.clearAllBtnFull}
-                onPress={handleClearPaused}
-              >
-                <MaterialCommunityIcons
-                  name="delete-sweep"
-                  size={20}
-                  color={colors.error}
-                />
-                <Text style={queueStyles.clearAllText}>
-                  {t("queue.actions.clearAll")}
-                </Text>
-              </TouchableOpacity>
+              <View style={queueStyles.actionButtons}>
+                <TouchableOpacity
+                  style={[
+                    queueStyles.clearAllBtnFull,
+                    { flex: 1, borderColor: colors.primary },
+                  ]}
+                  onPress={handleResumeAll}
+                >
+                  <MaterialCommunityIcons
+                    name="play-circle"
+                    size={20}
+                    color={colors.primary}
+                  />
+                  <Text
+                    style={[
+                      queueStyles.clearAllText,
+                      { color: colors.primary },
+                    ]}
+                  >
+                    {t("queue.actions.resumeAll")}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[queueStyles.clearAllBtnFull, { flex: 1 }]}
+                  onPress={handleClearPaused}
+                >
+                  <MaterialCommunityIcons
+                    name="delete-sweep"
+                    size={20}
+                    color={colors.error}
+                  />
+                  <Text style={queueStyles.clearAllText}>
+                    {t("queue.actions.clearAll")}
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
           )}
           <FlatList

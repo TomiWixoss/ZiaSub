@@ -1222,6 +1222,110 @@ class QueueManager {
     console.log("[QueueManager] Stopped all - queue paused");
   }
 
+  // Resume all paused items - move to translating queue and start processing
+  async resumeAllPaused(): Promise<{
+    success: boolean;
+    reason?: string;
+    queued?: boolean;
+  }> {
+    // Get all paused items
+    const pausedItems = this.items
+      .filter((i) => i.status === "paused")
+      .sort((a, b) => (a.startedAt || a.addedAt) - (b.startedAt || b.addedAt));
+
+    if (pausedItems.length === 0) return { success: true };
+
+    // Clear from user paused items
+    for (const item of pausedItems) {
+      this.userPausedItems.delete(item.id);
+    }
+
+    // Enable auto-process mode
+    this.autoProcessEnabled = true;
+
+    // Record current completed count for notification later
+    this.queueStartCompletedCount = this.items.filter(
+      (i) => i.status === "completed"
+    ).length;
+
+    // Mark ALL paused items as "translating" (in queue) with sequential startedAt
+    const baseTime = Date.now();
+    for (let i = 0; i < pausedItems.length; i++) {
+      await this.updateItem(pausedItems[i].id, {
+        status: "translating",
+        startedAt: baseTime + i,
+        error: undefined,
+      });
+    }
+
+    // Check if translationManager is busy
+    if (translationManager.isTranslating() || this.isProcessing) {
+      console.log("[QueueManager] Busy, paused items added to queue");
+      return { success: true, queued: true };
+    }
+
+    // Start processing
+    const translatingItems = this.items
+      .filter((i) => i.status === "translating")
+      .sort((a, b) => (a.startedAt || 0) - (b.startedAt || 0));
+
+    if (translatingItems[0]) {
+      await this.processItem(translatingItems[0], true); // true = resume with partial data if available
+    }
+
+    return { success: true };
+  }
+
+  // Clear all translating items (abort current and remove all from queue)
+  async clearTranslating(): Promise<void> {
+    // Disable auto-process immediately
+    this.autoProcessEnabled = false;
+
+    // Find currently translating item
+    const currentItem = this.items.find(
+      (i) =>
+        i.status === "translating" &&
+        translationManager.isTranslatingUrl(i.videoUrl)
+    );
+
+    if (currentItem) {
+      // Set removing flag
+      this.removingItemId = currentItem.id;
+
+      // Abort current translation
+      const result = await translationManager.abortTranslation(
+        currentItem.videoUrl
+      );
+      if (result.aborted) {
+        this.isProcessing = false;
+        this.currentProcessingItemId = null;
+        await backgroundService.onTranslationStop();
+      }
+
+      // Clear removing flag after delay
+      setTimeout(() => {
+        if (this.removingItemId === currentItem.id) {
+          this.removingItemId = null;
+        }
+      }, 500);
+    }
+
+    // Remove all translating items
+    const translatingIds = this.items
+      .filter((i) => i.status === "translating")
+      .map((i) => i.id);
+
+    for (const id of translatingIds) {
+      this.userPausedItems.delete(id);
+    }
+
+    this.items = this.items.filter((i) => i.status !== "translating");
+    await this.save();
+    this.notify();
+
+    console.log("[QueueManager] Cleared all translating items");
+  }
+
   // Check if auto-process is currently enabled
   isAutoProcessing(): boolean {
     return this.autoProcessEnabled;

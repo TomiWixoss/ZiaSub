@@ -463,6 +463,7 @@ export default {
       translateAll: "Translate all",
       clearAll: "Clear all",
       stopAll: "Stop all",
+      resumeAll: "Resume all",
     },
 
     dialogs: {
@@ -478,6 +479,11 @@ export default {
       clearCompletedConfirm: "Remove all completed videos from the list?",
       clearPausedTitle: "Clear all",
       clearPausedConfirm: "Remove all paused videos from the list?",
+      clearTranslatingTitle: "Clear all",
+      clearTranslatingConfirm:
+        "Abort current translation and remove all waiting videos from the list?",
+      resumeAllTitle: "Resume all",
+      resumeAllConfirm: "Resume translating all paused videos?",
       translate: "Translate",
       stopTitle: "Stop translation",
       stopConfirm: 'Stop translating "{{title}}" and move to pending?',

@@ -461,6 +461,7 @@ export default {
       translateAll: "Dịch tất cả",
       clearAll: "Xóa tất cả",
       stopAll: "Dừng tất cả",
+      resumeAll: "Tiếp tục tất cả",
     },
 
     dialogs: {
@@ -476,6 +477,11 @@ export default {
       clearCompletedConfirm: "Bỏ hết video đã dịch khỏi danh sách?",
       clearPausedTitle: "Xóa tất cả",
       clearPausedConfirm: "Bỏ hết video tạm dừng khỏi danh sách?",
+      clearTranslatingTitle: "Xóa tất cả",
+      clearTranslatingConfirm:
+        "Hủy dịch video hiện tại và xóa hết video đang chờ khỏi danh sách?",
+      resumeAllTitle: "Tiếp tục tất cả",
+      resumeAllConfirm: "Tiếp tục dịch tất cả video đang tạm dừng?",
       translate: "Dịch",
       stopTitle: "Dừng dịch",
       stopConfirm: 'Dừng dịch "{{title}}" và chuyển về chưa dịch?',
