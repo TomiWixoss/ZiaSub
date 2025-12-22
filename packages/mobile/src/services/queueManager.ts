@@ -52,15 +52,16 @@ class QueueManager {
       if (data) {
         this.items = JSON.parse(data);
         // Reset stuck "translating" items - but keep partial data
+        // Paused items stay as paused
         this.items = this.items.map((item) => {
           if (item.status === "translating") {
-            // If has partial data, keep as translating with partial info
+            // If has partial data, move to paused (was interrupted)
             if (
               item.partialSrt &&
               item.completedBatches &&
               item.completedBatches > 0
             ) {
-              return item; // Keep as is - can resume
+              return { ...item, status: "paused" as QueueStatus };
             }
             // No partial data - reset to pending
             return { ...item, status: "pending" as QueueStatus };
@@ -721,6 +722,7 @@ class QueueManager {
         return (b.completedAt || 0) - (a.completedAt || 0);
       if (status === "translating")
         return (a.startedAt || 0) - (b.startedAt || 0); // FIFO order for translating
+      if (status === "paused") return (b.startedAt || 0) - (a.startedAt || 0); // Most recently paused first
       // Pending: oldest first (FIFO - video thêm trước hiện trước)
       return a.addedAt - b.addedAt;
     });
@@ -737,12 +739,14 @@ class QueueManager {
   getCounts(): {
     pending: number;
     translating: number;
+    paused: number;
     completed: number;
     error: number;
   } {
     return {
       pending: this.items.filter((i) => i.status === "pending").length,
       translating: this.items.filter((i) => i.status === "translating").length,
+      paused: this.items.filter((i) => i.status === "paused").length,
       completed: this.items.filter((i) => i.status === "completed").length,
       error: this.items.filter((i) => i.status === "error").length,
     };
@@ -898,30 +902,16 @@ class QueueManager {
     // Add to userPausedItems to prevent auto-resume
     this.userPausedItems.add(item.id);
 
-    if (partialData) {
-      // Has partial data - keep as translating (paused state)
-      await this.updateItem(item.id, {
-        status: "translating",
-        progress: undefined, // Clear progress to show paused
-        partialSrt: partialData.partialSrt,
-        completedBatchRanges: partialData.completedBatchRanges,
-        completedBatches: partialData.completedBatches,
-        totalBatches: partialData.totalBatches,
-        error: undefined,
-      });
-    } else {
-      // No partial - move back to pending
-      await this.updateItem(item.id, {
-        status: "pending",
-        progress: undefined,
-        error: undefined,
-        startedAt: undefined,
-        partialSrt: undefined,
-        completedBatches: undefined,
-        totalBatches: undefined,
-        completedBatchRanges: undefined,
-      });
-    }
+    // Always move to paused status (whether has partial data or not)
+    await this.updateItem(item.id, {
+      status: "paused",
+      progress: undefined, // Clear progress to show paused
+      partialSrt: partialData?.partialSrt,
+      completedBatchRanges: partialData?.completedBatchRanges,
+      completedBatches: partialData?.completedBatches,
+      totalBatches: partialData?.totalBatches,
+      error: undefined,
+    });
   }
 
   // Mark video as error
@@ -997,9 +987,9 @@ class QueueManager {
           result.completedRanges &&
           result.completedRanges.length > 0
         ) {
-          // Keep as translating with partial data - can resume
+          // Move to paused with partial data
           await this.updateItem(itemId, {
-            status: "translating",
+            status: "paused",
             partialSrt: result.partialResult,
             completedBatchRanges: result.completedRanges,
             completedBatches: result.completedRanges.length,
@@ -1007,16 +997,11 @@ class QueueManager {
             error: undefined,
           });
         } else {
-          // No partial - move to pending
+          // No partial - move to paused anyway
           await this.updateItem(itemId, {
-            status: "pending",
+            status: "paused",
             error: undefined,
             progress: undefined,
-            startedAt: undefined,
-            partialSrt: undefined,
-            completedBatches: undefined,
-            totalBatches: undefined,
-            completedBatchRanges: undefined,
           });
         }
 
@@ -1037,31 +1022,12 @@ class QueueManager {
       }
     } else {
       // Item is in translating queue but not actively being processed
-      // Check if has partial data from previous run
-      if (
-        item.partialSrt &&
-        item.completedBatchRanges &&
-        item.completedBatchRanges.length > 0
-      ) {
-        // Keep as translating with partial data - already in paused state
-        // Just ensure progress is cleared to show paused UI
-        await this.updateItem(itemId, {
-          progress: undefined,
-          error: undefined,
-        });
-      } else {
-        // No partial data - move back to pending
-        await this.updateItem(itemId, {
-          status: "pending",
-          error: undefined,
-          progress: undefined,
-          startedAt: undefined,
-          partialSrt: undefined,
-          completedBatches: undefined,
-          totalBatches: undefined,
-          completedBatchRanges: undefined,
-        });
-      }
+      // Move to paused status
+      await this.updateItem(itemId, {
+        status: "paused",
+        progress: undefined,
+        error: undefined,
+      });
 
       // Clear the user stopped flag after a delay
       setTimeout(() => {
@@ -1167,60 +1133,32 @@ class QueueManager {
         // Add to paused items
         this.userPausedItems.add(currentItem.id);
 
-        // Update item with partial data if available
-        if (
-          result.partialResult &&
-          result.completedRanges &&
-          result.completedRanges.length > 0
-        ) {
-          await this.updateItem(currentItem.id, {
-            status: "translating",
-            partialSrt: result.partialResult,
-            completedBatchRanges: result.completedRanges,
-            completedBatches: result.completedRanges.length,
-            progress: undefined,
-            error: undefined,
-          });
-        } else {
-          await this.updateItem(currentItem.id, {
-            status: "pending",
-            error: undefined,
-            progress: undefined,
-            startedAt: undefined,
-            partialSrt: undefined,
-            completedBatches: undefined,
-            totalBatches: undefined,
-            completedBatchRanges: undefined,
-          });
-        }
+        // Always move to paused status
+        await this.updateItem(currentItem.id, {
+          status: "paused",
+          partialSrt: result.partialResult || currentItem.partialSrt,
+          completedBatchRanges:
+            result.completedRanges || currentItem.completedBatchRanges,
+          completedBatches:
+            result.completedRanges?.length || currentItem.completedBatches,
+          progress: undefined,
+          error: undefined,
+        });
       }
     }
 
-    // Move all other translating items (waiting in queue) back to pending
+    // Move all other translating items (waiting in queue) to paused
     const waitingItems = this.items.filter(
       (i) => i.status === "translating" && i.id !== currentItem?.id
     );
 
     for (const item of waitingItems) {
-      // Add to paused items if has partial data
-      if (
-        item.partialSrt &&
-        item.completedBatchRanges &&
-        item.completedBatchRanges.length > 0
-      ) {
-        this.userPausedItems.add(item.id);
-        await this.updateItem(item.id, {
-          progress: undefined,
-          error: undefined,
-        });
-      } else {
-        await this.updateItem(item.id, {
-          status: "pending",
-          error: undefined,
-          progress: undefined,
-          startedAt: undefined,
-        });
-      }
+      this.userPausedItems.add(item.id);
+      await this.updateItem(item.id, {
+        status: "paused",
+        progress: undefined,
+        error: undefined,
+      });
     }
 
     console.log("[QueueManager] Stopped all - queue paused");

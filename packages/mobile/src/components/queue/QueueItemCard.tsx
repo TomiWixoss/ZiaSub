@@ -62,10 +62,9 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
     item.completedBatches &&
     item.completedBatches > 0
   );
-  const isPaused =
-    item.status === "translating" && hasPartialData && !hasRealProgress;
-  const isWaitingInQueue =
-    item.status === "translating" && !hasRealProgress && !hasPartialData;
+  // Paused is now a separate status
+  const isPaused = item.status === "paused";
+  const isWaitingInQueue = item.status === "translating" && !hasRealProgress;
 
   // Calculate progress percentage
   const progressPercent = isActivelyTranslating

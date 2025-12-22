@@ -449,11 +449,13 @@ export default {
     title: "Translation queue",
     empty: "No videos yet",
     emptyTranslating: "No videos translating",
+    emptyPaused: "No paused videos",
     emptyCompleted: "No videos translated yet",
 
     tabs: {
       pending: "Pending",
       translating: "Translating",
+      paused: "Paused",
       completed: "Completed",
     },
 
@@ -474,6 +476,8 @@ export default {
       clearPendingConfirm: "Remove all pending videos from the list?",
       clearCompletedTitle: "Clear all",
       clearCompletedConfirm: "Remove all completed videos from the list?",
+      clearPausedTitle: "Clear all",
+      clearPausedConfirm: "Remove all paused videos from the list?",
       translate: "Translate",
       stopTitle: "Stop translation",
       stopConfirm: 'Stop translating "{{title}}" and move to pending?',

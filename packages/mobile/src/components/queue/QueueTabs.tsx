@@ -6,7 +6,7 @@ import { useTheme } from "@src/contexts";
 import { useThemedStyles } from "@hooks/useThemedStyles";
 import { createQueueStyles } from "./queueStyles";
 
-export type TabType = "pending" | "translating" | "completed";
+export type TabType = "pending" | "translating" | "paused" | "completed";
 
 interface QueueTabsProps {
   activeTab: TabType;
@@ -14,6 +14,7 @@ interface QueueTabsProps {
   counts: {
     pending: number;
     translating: number;
+    paused: number;
     completed: number;
     error: number;
   };
@@ -75,6 +76,30 @@ const QueueTabs: React.FC<QueueTabsProps> = ({
             ]}
           >
             <Text style={styles.badgeText}>{counts.translating}</Text>
+          </View>
+        )}
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.tab, activeTab === "paused" && styles.tabActive]}
+        onPress={() => onTabChange("paused")}
+      >
+        <Text
+          style={[
+            styles.tabText,
+            activeTab === "paused" && styles.tabTextActive,
+          ]}
+        >
+          {t("queue.tabs.paused")}
+        </Text>
+        {counts.paused > 0 && (
+          <View
+            style={[
+              styles.badge,
+              styles.badgePaused,
+              activeTab === "paused" && styles.badgeActive,
+            ]}
+          >
+            <Text style={styles.badgeText}>{counts.paused}</Text>
           </View>
         )}
       </TouchableOpacity>

@@ -60,6 +60,7 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
   const [counts, setCounts] = useState({
     pending: 0,
     translating: 0,
+    paused: 0,
     completed: 0,
     error: 0,
   });
@@ -147,7 +148,7 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
   }, [visible]);
 
   const loadItemsWithParams = (tab: TabType, currentPage: number) => {
-    const status: QueueStatus = tab === "translating" ? "translating" : tab;
+    const status: QueueStatus = tab;
     const result = queueManager.getItemsByStatus(status, currentPage);
     if (tab === "pending") {
       const errorResult = queueManager.getItemsByStatus("error", 1);
@@ -269,6 +270,13 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
       () => queueManager.clearByStatus("completed")
     );
   };
+  const handleClearPaused = () => {
+    confirmDestructive(
+      t("queue.dialogs.clearPausedTitle"),
+      t("queue.dialogs.clearPausedConfirm"),
+      () => queueManager.clearByStatus("paused")
+    );
+  };
   const handleStopAll = () => {
     confirm(
       t("queue.dialogs.stopAllTitle"),
@@ -375,6 +383,23 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
                   style={[queueStyles.clearAllText, { color: colors.warning }]}
                 >
                   {t("queue.actions.stopAll")}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          {activeTab === "paused" && counts.paused > 0 && (
+            <View style={queueStyles.actionSection}>
+              <TouchableOpacity
+                style={queueStyles.clearAllBtnFull}
+                onPress={handleClearPaused}
+              >
+                <MaterialCommunityIcons
+                  name="delete-sweep"
+                  size={20}
+                  color={colors.error}
+                />
+                <Text style={queueStyles.clearAllText}>
+                  {t("queue.actions.clearAll")}
                 </Text>
               </TouchableOpacity>
             </View>

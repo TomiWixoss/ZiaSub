@@ -23,6 +23,8 @@ const QueueEmpty: React.FC<QueueEmptyProps> = ({ activeTab }) => {
         return t("queue.empty");
       case "translating":
         return t("queue.emptyTranslating");
+      case "paused":
+        return t("queue.emptyPaused");
       case "completed":
         return t("queue.emptyCompleted");
     }
@@ -32,7 +34,11 @@ const QueueEmpty: React.FC<QueueEmptyProps> = ({ activeTab }) => {
     <View style={styles.emptyContainer}>
       <MaterialCommunityIcons
         name={
-          activeTab === "completed" ? "check-circle-outline" : "playlist-plus"
+          activeTab === "completed"
+            ? "check-circle-outline"
+            : activeTab === "paused"
+            ? "pause-circle-outline"
+            : "playlist-plus"
         }
         size={48}
         color={colors.textMuted}

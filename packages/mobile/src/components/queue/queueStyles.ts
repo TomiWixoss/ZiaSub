@@ -34,6 +34,7 @@ export const createQueueStyles = (colors: ThemeColors) =>
     },
     badgeActive: { backgroundColor: colors.primary },
     badgeProcessing: { backgroundColor: colors.warning },
+    badgePaused: { backgroundColor: colors.textMuted },
     badgeCompleted: { backgroundColor: colors.success },
     badgeText: { color: colors.background, fontSize: 11, fontWeight: "600" },
 

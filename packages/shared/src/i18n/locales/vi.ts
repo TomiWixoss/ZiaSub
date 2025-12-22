@@ -447,11 +447,13 @@ export default {
     title: "Danh sách chờ dịch",
     empty: "Chưa có video nào",
     emptyTranslating: "Không có video nào đang dịch",
+    emptyPaused: "Không có video nào tạm dừng",
     emptyCompleted: "Chưa dịch video nào",
 
     tabs: {
       pending: "Chưa dịch",
       translating: "Đang dịch",
+      paused: "Tạm dừng",
       completed: "Đã dịch",
     },
 
@@ -472,6 +474,8 @@ export default {
       clearPendingConfirm: "Bỏ hết video chưa dịch khỏi danh sách?",
       clearCompletedTitle: "Xóa tất cả",
       clearCompletedConfirm: "Bỏ hết video đã dịch khỏi danh sách?",
+      clearPausedTitle: "Xóa tất cả",
+      clearPausedConfirm: "Bỏ hết video tạm dừng khỏi danh sách?",
       translate: "Dịch",
       stopTitle: "Dừng dịch",
       stopConfirm: 'Dừng dịch "{{title}}" và chuyển về chưa dịch?',

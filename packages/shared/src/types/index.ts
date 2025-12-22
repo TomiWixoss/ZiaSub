@@ -187,7 +187,12 @@ export interface StreamCallbacks {
 // ============================================
 // QUEUE TYPES
 // ============================================
-export type QueueStatus = "pending" | "translating" | "completed" | "error";
+export type QueueStatus =
+  | "pending"
+  | "translating"
+  | "paused"
+  | "completed"
+  | "error";
 
 export interface QueueItem {
   id: string;
