@@ -1,5 +1,5 @@
 import React from "react";
-import { View, TouchableOpacity } from "react-native";
+import { View, TouchableOpacity, ScrollView } from "react-native";
 import { Text } from "react-native-paper";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@src/contexts";
@@ -31,7 +31,12 @@ const QueueTabs: React.FC<QueueTabsProps> = ({
   const pendingCount = counts.pending + counts.error;
 
   return (
-    <View style={styles.tabBar}>
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.tabBarScroll}
+      style={styles.tabBarContainer}
+    >
       <TouchableOpacity
         style={[styles.tab, activeTab === "pending" && styles.tabActive]}
         onPress={() => onTabChange("pending")}
@@ -127,7 +132,7 @@ const QueueTabs: React.FC<QueueTabsProps> = ({
           </View>
         )}
       </TouchableOpacity>
-    </View>
+    </ScrollView>
   );
 };
 

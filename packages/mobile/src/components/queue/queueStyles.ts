@@ -4,6 +4,18 @@ import { ThemeColors } from "@src/contexts";
 export const createQueueStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     // Tab styles
+    tabBarContainer: {
+      marginHorizontal: 16,
+      marginBottom: 12,
+      maxHeight: 48,
+    },
+    tabBarScroll: {
+      flexDirection: "row",
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+      padding: 4,
+      gap: 4,
+    },
     tabBar: {
       flexDirection: "row",
       marginHorizontal: 16,
@@ -13,11 +25,11 @@ export const createQueueStyles = (colors: ThemeColors) =>
       marginBottom: 12,
     },
     tab: {
-      flex: 1,
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "center",
       paddingVertical: 10,
+      paddingHorizontal: 12,
       borderRadius: 8,
       gap: 6,
     },
