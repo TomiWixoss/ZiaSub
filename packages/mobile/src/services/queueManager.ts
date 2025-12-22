@@ -934,8 +934,8 @@ class QueueManager {
       progress: undefined, // Clear progress to show paused
       partialSrt: partialData?.partialSrt,
       completedBatchRanges: partialData?.completedBatchRanges,
-      completedBatches: partialData?.completedBatches,
-      totalBatches: partialData?.totalBatches,
+      completedBatches: partialData?.completedBatches ?? 0,
+      totalBatches: partialData?.totalBatches ?? 1,
       error: undefined,
     });
   }
@@ -1023,9 +1023,11 @@ class QueueManager {
             error: undefined,
           });
         } else {
-          // No partial - move to paused anyway
+          // No partial - move to paused anyway (video with single part)
           await this.updateItem(itemId, {
             status: "paused",
+            completedBatches: 0,
+            totalBatches: 1,
             error: undefined,
             progress: undefined,
           });
@@ -1048,9 +1050,11 @@ class QueueManager {
       }
     } else {
       // Item is in translating queue but not actively being processed
-      // Move to paused status
+      // Move to paused status (waiting item, not started yet)
       await this.updateItem(itemId, {
         status: "paused",
+        completedBatches: 0,
+        totalBatches: 1,
         progress: undefined,
         error: undefined,
       });
@@ -1182,6 +1186,8 @@ class QueueManager {
       this.userPausedItems.add(item.id);
       await this.updateItem(item.id, {
         status: "paused",
+        completedBatches: item.completedBatches || 0,
+        totalBatches: item.totalBatches || 1,
         progress: undefined,
         error: undefined,
       });
