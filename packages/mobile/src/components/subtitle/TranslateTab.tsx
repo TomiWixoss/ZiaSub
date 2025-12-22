@@ -224,11 +224,13 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
     if (translationManager.isTranslating()) {
       const { queueManager } = await import("@services/queueManager");
       // Always sync to queue when another video is translating
+      // forceRetranslate = true to allow re-translating completed videos
       await queueManager.syncDirectTranslation(
         videoUrl,
         undefined,
         videoDuration,
-        config.name
+        config.name,
+        true // forceRetranslate
       );
       alert(t("common.notice"), t("queue.addedToWaitingQueue"));
       return;
@@ -438,7 +440,8 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
               videoUrl,
               undefined,
               videoDuration,
-              config.name
+              config.name,
+              true // forceRetranslate
             );
             alert(t("common.notice"), t("queue.addedToWaitingQueue"));
             return;

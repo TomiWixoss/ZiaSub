@@ -1230,11 +1230,13 @@ class QueueManager {
 
   // Add or update video in queue when translating directly
   // This syncs the queue state with direct translation
+  // forceRetranslate: if true, will change completed status to translating
   async syncDirectTranslation(
     videoUrl: string,
     title?: string,
     duration?: number,
-    configName?: string
+    configName?: string,
+    forceRetranslate: boolean = false
   ): Promise<QueueItem> {
     const videoId = this.extractVideoId(videoUrl);
     let item = this.items.find((i) => i.videoId === videoId);
@@ -1242,6 +1244,17 @@ class QueueManager {
     if (item) {
       // Video exists in queue - update status based on current state
       if (item.status === "completed") {
+        if (forceRetranslate) {
+          // User wants to re-translate - change to translating
+          await this.updateItem(item.id, {
+            status: "translating",
+            startedAt: Date.now(),
+            configName: configName || item.configName,
+            completedAt: undefined,
+            error: undefined,
+          });
+          return this.items.find((i) => i.id === item!.id)!;
+        }
         // Don't change completed status, just return
         return item;
       }
