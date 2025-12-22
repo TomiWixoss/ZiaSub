@@ -433,9 +433,6 @@ class QueueManager {
           this.currentProcessingItemId = null;
           safeUnsubscribe();
 
-          // Stop background service khi dịch xong
-          backgroundService.onTranslationComplete();
-
           // Send notification when translation completes
           notificationService.notifyTranslationComplete(videoTitle, "queue");
 
@@ -449,13 +446,17 @@ class QueueManager {
               (i) => i.status === "translating" || i.status === "pending"
             );
             if (remainingItems.length === 0) {
-              // All done - send queue complete notification
+              // All done - send queue complete notification and stop background service
               const completedCount = this.items.filter(
                 (i) => i.status === "completed"
               ).length;
               notificationService.notifyQueueComplete(completedCount);
+              backgroundService.onTranslationComplete();
             }
             this.processNextInQueue();
+          } else {
+            // Auto-process disabled (single item translation) - stop background service
+            backgroundService.onTranslationComplete();
           }
         }
 
@@ -508,15 +509,23 @@ class QueueManager {
           this.currentProcessingItemId = null;
           safeUnsubscribe();
 
-          // Stop background service khi lỗi
-          backgroundService.onTranslationStop();
-
           // Only continue to next item if auto-process is enabled (user clicked "Translate All")
           if (this.autoProcessEnabled) {
             console.log(
               "[QueueManager] Queue item errored, checking for next..."
             );
+            // Check if there are more items to process
+            const remainingItems = this.items.filter(
+              (i) => i.status === "translating" || i.status === "pending"
+            );
+            if (remainingItems.length === 0) {
+              // No more items - stop background service
+              backgroundService.onTranslationStop();
+            }
             this.processNextInQueue();
+          } else {
+            // Auto-process disabled (single item translation) - stop background service
+            backgroundService.onTranslationStop();
           }
         }
       }
@@ -884,8 +893,16 @@ class QueueManager {
         this.isProcessing = false;
         this.currentProcessingItemId = null;
 
-        // Stop background service
-        await backgroundService.onTranslationStop();
+        // Only stop background service if no more items to process in queue
+        const remainingItems = this.items.filter(
+          (i) =>
+            (i.status === "translating" || i.status === "pending") &&
+            i.id !== itemId &&
+            !this.userPausedItems.has(i.id)
+        );
+        if (remainingItems.length === 0 || !wasAutoProcessEnabled) {
+          await backgroundService.onTranslationStop();
+        }
 
         // Check if has partial data
         if (
