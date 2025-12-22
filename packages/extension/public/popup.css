@@ -7,7 +7,7 @@
   --surface-elevated: #2a2a4a;
 
   --primary: #9b7ed9;
-  --primary-dark: #7b5fb9;
+  --primary-dark: #6b4fb9;
   --primary-light: #b8a0e8;
   --accent: #6b8dd6;
   --accent-dark: #4a6db6;
@@ -130,7 +130,7 @@ body {
   color: var(--text);
 }
 
-.tab.active svg {
+.tab.active i {
   color: var(--primary);
 }
 
@@ -158,6 +158,7 @@ body {
 
 /* ============================================
    Button3D - Exact clone from mobile
+   Structure: container > shadow (bottom) + button (top, animates)
    ============================================ */
 .btn-3d {
   position: relative;
@@ -165,14 +166,10 @@ body {
   border: none;
   background: transparent;
   padding: 0;
+  height: 56px; /* 52px button + 4px shadow */
 }
 
-/* Normal size: height 52px + 4px shadow = 56px */
-.btn-3d {
-  height: 56px;
-}
-
-/* Shadow layer (bottom) */
+/* Shadow layer - sits at bottom */
 .btn-3d .shadow {
   position: absolute;
   bottom: 0;
@@ -180,10 +177,9 @@ body {
   right: 0;
   height: 52px;
   border-radius: 14px;
-  border: 1px solid;
 }
 
-/* Button wrapper (animates on press) */
+/* Button layer - sits on top, moves down on press */
 .btn-3d .button {
   position: absolute;
   top: 0;
@@ -191,12 +187,13 @@ body {
   right: 0;
   height: 52px;
   border-radius: 14px;
-  border: 2px solid;
+  border: 2px solid transparent;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   transition: transform 0.1s ease;
+  font-family: inherit;
 }
 
 .btn-3d:active .button {
@@ -217,22 +214,27 @@ body {
   font-weight: 700;
 }
 
-/* Primary variant */
+.btn-3d .button i {
+  font-size: 20px;
+}
+
+/* === PRIMARY VARIANT === */
 .btn-3d.primary .shadow {
   background: var(--primary-dark);
-  border-color: var(--primary-dark);
 }
 
 .btn-3d.primary .button {
   background: var(--primary);
-  border-color: transparent;
   color: #ffffff;
 }
 
-/* Outline variant */
+.btn-3d.primary .button i {
+  color: #ffffff;
+}
+
+/* === OUTLINE VARIANT === */
 .btn-3d.outline .shadow {
-  background: var(--background);
-  border-color: var(--background);
+  background: #0a0a14;
 }
 
 .btn-3d.outline .button {
@@ -241,12 +243,20 @@ body {
   color: var(--text-secondary);
 }
 
+.btn-3d.outline .button i {
+  color: var(--text-secondary);
+}
+
 .btn-3d.outline:hover .button {
   background: var(--surface-light);
   color: var(--text);
 }
 
-/* Secondary variant */
+.btn-3d.outline:hover .button i {
+  color: var(--text);
+}
+
+/* === SECONDARY VARIANT === */
 .btn-3d.secondary {
   height: 48px;
 }
@@ -254,8 +264,7 @@ body {
 .btn-3d.secondary .shadow {
   height: 44px;
   border-radius: 12px;
-  background: var(--background);
-  border-color: var(--background);
+  background: #0a0a14;
 }
 
 .btn-3d.secondary .button {
@@ -271,27 +280,17 @@ body {
   font-weight: 500;
 }
 
+.btn-3d.secondary .button i {
+  font-size: 18px;
+  color: var(--text-secondary);
+}
+
 .btn-3d.secondary:hover .button {
   color: var(--text);
 }
 
-/* Small size */
-.btn-3d.small {
-  height: 44px;
-}
-
-.btn-3d.small .shadow {
-  height: 40px;
-  border-radius: 10px;
-}
-
-.btn-3d.small .button {
-  height: 40px;
-  border-radius: 10px;
-}
-
-.btn-3d.small .button span {
-  font-size: 13px;
+.btn-3d.secondary:hover .button i {
+  color: var(--text);
 }
 
 /* ============================================
@@ -377,7 +376,7 @@ body {
   padding: 40px 20px;
 }
 
-.coming-soon svg {
+.coming-soon i {
   opacity: 0.4;
   color: var(--primary);
 }
@@ -396,79 +395,131 @@ body {
   color: var(--text-muted);
 }
 
-/* Toast (matching mobile alert style) */
+/* Toast - Top notification style */
 .toast {
   position: fixed;
-  bottom: 24px;
-  left: 16px;
-  right: 16px;
-  padding: 14px 18px;
-  background: var(--surface-elevated);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  font-size: 14px;
-  font-weight: 500;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 12px 24px;
+  background: var(--surface);
+  border: 1.5px solid var(--border-light);
+  border-radius: 24px;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05);
   z-index: 100;
-  animation: slideUp 0.3s ease;
-  text-align: center;
+  animation: slideDown 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toast::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
 .toast.success {
-  background: rgba(126, 217, 155, 0.15);
+  background: linear-gradient(
+    135deg,
+    rgba(126, 217, 155, 0.15),
+    rgba(126, 217, 155, 0.05)
+  );
   border-color: rgba(126, 217, 155, 0.4);
   color: var(--success);
 }
 
+.toast.success::before {
+  background: var(--success);
+  box-shadow: 0 0 8px var(--success);
+}
+
 .toast.error {
-  background: rgba(229, 115, 115, 0.15);
+  background: linear-gradient(
+    135deg,
+    rgba(229, 115, 115, 0.15),
+    rgba(229, 115, 115, 0.05)
+  );
   border-color: rgba(229, 115, 115, 0.4);
   color: var(--error);
 }
 
+.toast.error::before {
+  background: var(--error);
+  box-shadow: 0 0 8px var(--error);
+}
+
 .toast.info {
-  background: rgba(107, 141, 214, 0.15);
+  background: linear-gradient(
+    135deg,
+    rgba(107, 141, 214, 0.15),
+    rgba(107, 141, 214, 0.05)
+  );
   border-color: rgba(107, 141, 214, 0.4);
   color: var(--accent);
 }
 
-@keyframes slideUp {
+.toast.info::before {
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
+}
+
+@keyframes slideDown {
   from {
     opacity: 0;
-    transform: translateY(16px);
+    transform: translateX(-50%) translateY(-20px) scale(0.9);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateX(-50%) translateY(0) scale(1);
   }
+}
+
+/* Custom Scrollbar - Global */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-light);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-dark);
+}
+
+/* Textarea Scrollbar */
+#srtInput::-webkit-scrollbar {
+  width: 8px;
+}
+
+#srtInput::-webkit-scrollbar-track {
+  background: var(--surface);
+  border-radius: 4px;
+  margin: 8px 0;
+}
+
+#srtInput::-webkit-scrollbar-thumb {
+  background: var(--surface-elevated);
+  border-radius: 4px;
+}
+
+#srtInput::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-dark);
 }
 
 /* Utility */
 .hidden {
   display: none !important;
-}
-
-/* Icon colors in buttons */
-.btn-3d svg {
-  flex-shrink: 0;
-}
-
-.btn-3d.primary svg {
-  color: #ffffff;
-}
-
-.btn-3d.outline svg {
-  color: var(--text-secondary);
-}
-
-.btn-3d.outline:hover svg {
-  color: var(--text);
-}
-
-.btn-3d.secondary svg {
-  color: var(--text-secondary);
-}
-
-.btn-3d.secondary:hover svg {
-  color: var(--text);
 }
