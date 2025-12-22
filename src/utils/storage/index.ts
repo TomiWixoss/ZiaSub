@@ -51,6 +51,8 @@ export {
 export {
   createDefaultGeminiConfig,
   createDefaultChatConfig,
+  createDefaultPresubConfig,
+  DEFAULT_PRESUB_CONFIG_ID,
   saveGeminiConfigs,
   getGeminiConfigs,
   // Translation config

@@ -28,6 +28,19 @@ export const createDefaultChatConfig = (): GeminiConfig => ({
   thinkingBudget: 24576,
 });
 
+// Default presub config ID
+export const DEFAULT_PRESUB_CONFIG_ID = "default-presub-config";
+
+export const createDefaultPresubConfig = (): GeminiConfig => ({
+  id: DEFAULT_PRESUB_CONFIG_ID,
+  name: "Xem nhanh",
+  model: "models/gemini-3-flash-preview",
+  temperature: 0.7,
+  systemPrompt: DEFAULT_SYSTEM_PROMPT,
+  mediaResolution: "MEDIA_RESOLUTION_MEDIUM",
+  thinkingLevel: "MEDIUM",
+});
+
 export const saveGeminiConfigs = async (
   configs: GeminiConfig[]
 ): Promise<void> => {
@@ -42,16 +55,28 @@ export const getGeminiConfigs = async (): Promise<GeminiConfig[]> => {
   if (!hasChatConfig) {
     const chatConfig = createDefaultChatConfig();
     configs = [chatConfig, ...configs];
-    await storageService.setGeminiConfigs(configs);
   }
 
-  // Ensure at least one translation config exists
+  // Ensure default presub config exists
+  const hasPresubConfig = configs.some(
+    (c) => c.id === DEFAULT_PRESUB_CONFIG_ID
+  );
+  if (!hasPresubConfig) {
+    const presubConfig = createDefaultPresubConfig();
+    configs = [...configs, presubConfig];
+  }
+
+  // Ensure at least one translation config exists (not chat or presub)
   const hasTranslationConfig = configs.some(
-    (c) => c.id !== DEFAULT_CHAT_CONFIG_ID
+    (c) => c.id !== DEFAULT_CHAT_CONFIG_ID && c.id !== DEFAULT_PRESUB_CONFIG_ID
   );
   if (!hasTranslationConfig) {
     const defaultConfig = createDefaultGeminiConfig();
     configs = [...configs, defaultConfig];
+  }
+
+  // Save if any configs were added
+  if (!hasChatConfig || !hasPresubConfig || !hasTranslationConfig) {
     await storageService.setGeminiConfigs(configs);
   }
 

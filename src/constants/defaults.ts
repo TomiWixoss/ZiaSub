@@ -22,6 +22,9 @@ export const DEFAULT_SUBTITLE_SETTINGS: SubtitleSettings = {
 // ============================================
 // DEFAULT BATCH SETTINGS
 // ============================================
+// Default presub config ID - must match geminiStorage.ts
+export const DEFAULT_PRESUB_CONFIG_ID = "default-presub-config";
+
 export const DEFAULT_BATCH_SETTINGS: BatchSettings = {
   maxVideoDuration: 600, // 10 minutes
   maxConcurrentBatches: 2,
@@ -29,7 +32,7 @@ export const DEFAULT_BATCH_SETTINGS: BatchSettings = {
   streamingMode: false,
   presubMode: false,
   presubDuration: 120, // 2 minutes
-  presubConfigId: undefined, // Use same config as main translation by default
+  presubConfigId: DEFAULT_PRESUB_CONFIG_ID, // Use default presub config
 };
 
 // ============================================
