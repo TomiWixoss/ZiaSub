@@ -1,6 +1,6 @@
-/* ZiaSub Extension - Mobile-inspired UI */
+/* ZiaSub Extension - Mobile App UI Clone */
 :root {
-  /* Dark Theme Colors (matching mobile app) */
+  /* Dark Theme Colors (exact match from mobile ThemeContext) */
   --background: #0d0d1a;
   --surface: #141428;
   --surface-light: #1e1e3a;
@@ -10,6 +10,7 @@
   --primary-dark: #7b5fb9;
   --primary-light: #b8a0e8;
   --accent: #6b8dd6;
+  --accent-dark: #4a6db6;
 
   --text: #ffffff;
   --text-secondary: #b8b8d0;
@@ -33,7 +34,7 @@
 
 body {
   width: 360px;
-  min-height: 480px;
+  min-height: 500px;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   background: var(--background);
   color: var(--text);
@@ -42,7 +43,7 @@ body {
 .container {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  min-height: 500px;
   padding: 16px;
 }
 
@@ -65,6 +66,7 @@ body {
 .logo {
   width: 32px;
   height: 32px;
+  border-radius: 8px;
 }
 
 .title {
@@ -74,14 +76,14 @@ body {
 }
 
 .icon-btn {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: var(--surface-light);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 12px;
   color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.2s;
@@ -90,16 +92,16 @@ body {
 .icon-btn:hover {
   background: var(--surface-elevated);
   color: var(--text);
+  border-color: var(--primary);
 }
 
-/* Tab Bar */
+/* Tab Bar (matching mobile) */
 .tab-bar {
   display: flex;
   background: var(--surface-light);
   border-radius: 12px;
   padding: 4px;
   margin-bottom: 16px;
-  gap: 4px;
 }
 
 .tab {
@@ -129,7 +131,7 @@ body {
 }
 
 .tab.active svg {
-  stroke: var(--primary);
+  color: var(--primary);
 }
 
 /* Tab Content */
@@ -137,7 +139,7 @@ body {
   display: none;
   flex-direction: column;
   flex: 1;
-  gap: 12px;
+  gap: 16px;
 }
 
 .tab-content.active {
@@ -154,60 +156,51 @@ body {
   flex: 1;
 }
 
-/* 3D Button (matching mobile Button3D) */
+/* ============================================
+   Button3D - Exact clone from mobile
+   ============================================ */
 .btn-3d {
   position: relative;
-  height: calc(44px + var(--shadow-height));
+  cursor: pointer;
   border: none;
   background: transparent;
-  cursor: pointer;
   padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  border-radius: 12px;
-  transition: transform 0.1s;
 }
 
-.btn-3d::before {
-  content: "";
+/* Normal size: height 52px + 4px shadow = 56px */
+.btn-3d {
+  height: 56px;
+}
+
+/* Shadow layer (bottom) */
+.btn-3d .shadow {
   position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
-  height: 44px;
-  border-radius: 12px;
+  height: 52px;
+  border-radius: 14px;
+  border: 1px solid;
 }
 
-.btn-3d::after {
-  content: "";
+/* Button wrapper (animates on press) */
+.btn-3d .button {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  height: 44px;
-  border-radius: 12px;
-  border: 2px solid transparent;
-  transition: transform 0.1s;
+  height: 52px;
+  border-radius: 14px;
+  border: 2px solid;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: transform 0.1s ease;
 }
 
-.btn-3d span,
-.btn-3d svg {
-  position: relative;
-  z-index: 2;
-  transition: transform 0.1s;
-}
-
-.btn-3d:active span,
-.btn-3d:active svg {
-  transform: translateY(var(--shadow-height));
-}
-
-.btn-3d:active::after {
-  transform: translateY(var(--shadow-height));
+.btn-3d:active .button {
+  transform: translateY(4px);
 }
 
 .btn-3d:disabled {
@@ -215,88 +208,114 @@ body {
   cursor: not-allowed;
 }
 
-.btn-3d:disabled:active span,
-.btn-3d:disabled:active svg,
-.btn-3d:disabled:active::after {
+.btn-3d:disabled:active .button {
   transform: none;
 }
 
-/* Primary Button */
-.btn-3d.primary {
-  color: white;
+.btn-3d .button span {
+  font-size: 15px;
+  font-weight: 700;
 }
 
-.btn-3d.primary::before {
+/* Primary variant */
+.btn-3d.primary .shadow {
   background: var(--primary-dark);
+  border-color: var(--primary-dark);
 }
 
-.btn-3d.primary::after {
+.btn-3d.primary .button {
   background: var(--primary);
+  border-color: transparent;
+  color: #ffffff;
 }
 
-/* Outline Button */
-.btn-3d.outline {
+/* Outline variant */
+.btn-3d.outline .shadow {
+  background: var(--background);
+  border-color: var(--background);
+}
+
+.btn-3d.outline .button {
+  background: var(--surface);
+  border-color: var(--border);
   color: var(--text-secondary);
 }
 
-.btn-3d.outline::before {
-  background: var(--background);
-}
-
-.btn-3d.outline::after {
-  background: var(--surface);
-  border-color: var(--border);
-}
-
-.btn-3d.outline:hover {
+.btn-3d.outline:hover .button {
+  background: var(--surface-light);
   color: var(--text);
 }
 
-.btn-3d.outline:hover::after {
-  background: var(--surface-light);
+/* Secondary variant */
+.btn-3d.secondary {
+  height: 48px;
 }
 
-/* Secondary Button */
-.btn-3d.secondary {
-  height: calc(40px + var(--shadow-height));
+.btn-3d.secondary .shadow {
+  height: 44px;
+  border-radius: 12px;
+  background: var(--background);
+  border-color: var(--background);
+}
+
+.btn-3d.secondary .button {
+  height: 44px;
+  border-radius: 12px;
+  background: var(--surface-elevated);
+  border-color: var(--border);
   color: var(--text-secondary);
+}
+
+.btn-3d.secondary .button span {
+  font-size: 14px;
   font-weight: 500;
 }
 
-.btn-3d.secondary::before {
-  background: var(--background);
-  height: 40px;
-}
-
-.btn-3d.secondary::after {
-  background: var(--surface-elevated);
-  border-color: var(--border);
-  height: 40px;
-}
-
-.btn-3d.secondary:hover {
+.btn-3d.secondary:hover .button {
   color: var(--text);
 }
 
-/* Input Container */
+/* Small size */
+.btn-3d.small {
+  height: 44px;
+}
+
+.btn-3d.small .shadow {
+  height: 40px;
+  border-radius: 10px;
+}
+
+.btn-3d.small .button {
+  height: 40px;
+  border-radius: 10px;
+}
+
+.btn-3d.small .button span {
+  font-size: 13px;
+}
+
+/* ============================================
+   Input Container (matching mobile SrtTab)
+   ============================================ */
 .input-container {
   position: relative;
   flex: 1;
-  min-height: 180px;
+  min-height: 200px;
 }
 
 #srtInput {
   width: 100%;
   height: 100%;
-  min-height: 180px;
-  padding: 14px;
-  padding-right: 40px;
+  min-height: 200px;
+  padding: 16px;
+  padding-right: 44px;
   background: var(--surface-light);
   border: 1px solid var(--border);
   border-radius: 12px;
   color: var(--text);
-  font-size: 12px;
-  font-family: "Consolas", "Monaco", monospace;
+  font-size: 13px;
+  font-family: "Menlo", "Consolas", "Monaco", monospace;
+  line-height: 1.5;
   resize: none;
   outline: none;
   transition: border-color 0.2s;
@@ -312,8 +331,8 @@ body {
 
 .clear-btn {
   position: absolute;
-  top: 10px;
-  right: 10px;
+  top: 12px;
+  right: 12px;
   width: 28px;
   height: 28px;
   display: flex;
@@ -337,12 +356,12 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 14px;
+  padding: 12px 16px;
   background: rgba(126, 217, 155, 0.1);
   border: 1px solid rgba(126, 217, 155, 0.3);
-  border-radius: 10px;
+  border-radius: 12px;
   color: var(--success);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
 }
 
@@ -353,74 +372,103 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 16px;
   color: var(--text-muted);
+  padding: 40px 20px;
 }
 
 .coming-soon svg {
-  opacity: 0.5;
+  opacity: 0.4;
+  color: var(--primary);
 }
 
 .coming-soon p {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 500;
   color: var(--text-secondary);
 }
 
 .coming-soon span {
   font-size: 13px;
-  padding: 6px 14px;
+  padding: 8px 16px;
   background: var(--surface-light);
   border-radius: 20px;
+  color: var(--text-muted);
 }
 
-/* Toast */
+/* Toast (matching mobile alert style) */
 .toast {
   position: fixed;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 12px 20px;
+  bottom: 24px;
+  left: 16px;
+  right: 16px;
+  padding: 14px 18px;
   background: var(--surface-elevated);
   border: 1px solid var(--border);
-  border-radius: 10px;
-  font-size: 13px;
+  border-radius: 12px;
+  font-size: 14px;
   font-weight: 500;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
   z-index: 100;
   animation: slideUp 0.3s ease;
+  text-align: center;
 }
 
 .toast.success {
   background: rgba(126, 217, 155, 0.15);
-  border-color: var(--success);
+  border-color: rgba(126, 217, 155, 0.4);
   color: var(--success);
 }
 
 .toast.error {
   background: rgba(229, 115, 115, 0.15);
-  border-color: var(--error);
+  border-color: rgba(229, 115, 115, 0.4);
   color: var(--error);
 }
 
 .toast.info {
   background: rgba(107, 141, 214, 0.15);
-  border-color: var(--accent);
+  border-color: rgba(107, 141, 214, 0.4);
   color: var(--accent);
 }
 
 @keyframes slideUp {
   from {
     opacity: 0;
-    transform: translateX(-50%) translateY(10px);
+    transform: translateY(16px);
   }
   to {
     opacity: 1;
-    transform: translateX(-50%) translateY(0);
+    transform: translateY(0);
   }
 }
 
 /* Utility */
 .hidden {
   display: none !important;
+}
+
+/* Icon colors in buttons */
+.btn-3d svg {
+  flex-shrink: 0;
+}
+
+.btn-3d.primary svg {
+  color: #ffffff;
+}
+
+.btn-3d.outline svg {
+  color: var(--text-secondary);
+}
+
+.btn-3d.outline:hover svg {
+  color: var(--text);
+}
+
+.btn-3d.secondary svg {
+  color: var(--text-secondary);
+}
+
+.btn-3d.secondary:hover svg {
+  color: var(--text);
 }
