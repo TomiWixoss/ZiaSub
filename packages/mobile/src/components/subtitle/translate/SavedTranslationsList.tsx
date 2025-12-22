@@ -195,14 +195,11 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
                 activeOpacity={0.7}
               >
                 <View style={styles.translationHeaderLeft}>
-                  {/* Hide chevron for partial items - user should use Resume button below */}
-                  {!item.isPartial && (
-                    <MaterialCommunityIcons
-                      name={isExpanded ? "chevron-down" : "chevron-right"}
-                      size={20}
-                      color={colors.textMuted}
-                    />
-                  )}
+                  <MaterialCommunityIcons
+                    name={isExpanded ? "chevron-down" : "chevron-right"}
+                    size={20}
+                    color={colors.textMuted}
+                  />
                   <MaterialCommunityIcons
                     name={
                       item.isPartial
@@ -250,24 +247,8 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
                     </Text>
                   </View>
                 </View>
-                {/* Quick actions on header */}
-                <View style={styles.translationHeaderActions}>
-                  {item.isPartial && onResume && (
-                    <TouchableOpacity
-                      style={styles.headerActionBtn}
-                      onPress={(e) => {
-                        e.stopPropagation();
-                        onResume(item);
-                      }}
-                    >
-                      <MaterialCommunityIcons
-                        name="play-circle-outline"
-                        size={20}
-                        color={colors.success}
-                      />
-                    </TouchableOpacity>
-                  )}
-                </View>
+                {/* Quick actions on header - removed resume button, use main Resume button below instead */}
+                <View style={styles.translationHeaderActions}></View>
               </TouchableOpacity>
 
               {/* Expanded content */}
