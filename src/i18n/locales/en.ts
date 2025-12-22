@@ -259,6 +259,10 @@ export default {
       presubDuration: "Preview part: {{minutes}} min {{seconds}}s",
       presubDurationHint:
         "Duration of first part when Quick Preview is enabled for faster subtitles",
+      presubConfig: "Quick preview config",
+      presubConfigHint:
+        "Use lighter config for first part for faster AI processing",
+      presubConfigSame: "Same as main config",
     },
 
     // TTS

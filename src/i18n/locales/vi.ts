@@ -256,6 +256,10 @@ export default {
       presubDuration: "Phần đầu (xem nhanh): {{minutes}} phút {{seconds}}s",
       presubDurationHint:
         "Độ dài phần đầu khi bật chế độ Xem nhanh để có phụ đề sớm hơn",
+      presubConfig: "Cấu hình xem nhanh",
+      presubConfigHint:
+        "Dùng cấu hình nhẹ hơn cho phần đầu để AI xử lý nhanh hơn",
+      presubConfigSame: "Giống cấu hình chính",
     },
 
     // TTS

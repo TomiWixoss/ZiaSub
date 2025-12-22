@@ -396,6 +396,9 @@ export const translateVideoWithGemini = async (
     presubMode,
     presubMode ? `(${presubDuration}s)` : ""
   );
+  if (presubMode && options?.presubConfig) {
+    console.log("[Gemini] Presub config:", options.presubConfig.name);
+  }
 
   try {
     // Shorts videos are typically under 60 seconds, so skip batching for them
@@ -450,15 +453,25 @@ export const translateVideoWithGemini = async (
 
       for (let i = 0; i < numBatches; i++) {
         const { start: startSeconds, end: endSeconds } = batchRanges[i];
+        const isFirstBatch = i === 0;
+        // Use presub config for first batch if presub mode is enabled and config is provided
+        const batchConfig =
+          presubMode && isFirstBatch && options?.presubConfig
+            ? options.presubConfig
+            : config;
 
         console.log(
-          `[Gemini] Batch ${i + 1}: ${startSeconds}s - ${endSeconds}s`
+          `[Gemini] Batch ${i + 1}: ${startSeconds}s - ${endSeconds}s${
+            isFirstBatch && presubMode && options?.presubConfig
+              ? ` (using presub config: ${batchConfig.name})`
+              : ""
+          }`
         );
 
         batchTasks.push(() =>
           translateVideoBatch(
             normalizedUrl,
-            config,
+            batchConfig,
             `${startSeconds}s`,
             `${endSeconds}s`
           ).then((content) => ({ content, offsetSeconds: startSeconds }))

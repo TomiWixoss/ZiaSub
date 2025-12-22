@@ -29,6 +29,7 @@ export const DEFAULT_BATCH_SETTINGS: BatchSettings = {
   streamingMode: false,
   presubMode: false,
   presubDuration: 120, // 2 minutes
+  presubConfigId: undefined, // Use same config as main translation by default
 };
 
 // ============================================

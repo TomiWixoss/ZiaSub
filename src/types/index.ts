@@ -26,6 +26,7 @@ export interface BatchSettings {
   streamingMode: boolean;
   presubMode: boolean;
   presubDuration: number;
+  presubConfigId?: string; // ID of Gemini config to use for presub (first batch)
 }
 
 export interface BatchProgress {
@@ -277,4 +278,6 @@ export interface VideoTranslateOptions {
   existingPartialSrt?: string;
   // Skip automatic timestamp adjustment (caller will handle it)
   skipTimestampAdjust?: boolean;
+  // Presub config - use different config for first batch (when presubMode is enabled)
+  presubConfig?: GeminiConfig;
 }

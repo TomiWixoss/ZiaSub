@@ -73,7 +73,8 @@ class TranslationManager {
       partialSrt: string;
       completedBatchRanges: Array<{ start: number; end: number }>;
       existingTranslationId?: string;
-    }
+    },
+    presubConfig?: GeminiConfig
   ): Promise<string> {
     if (this.isTranslatingUrl(videoUrl)) {
       throw new Error("Video này đang dịch rồi");
@@ -139,6 +140,7 @@ class TranslationManager {
           abortSignal: this.abortController.signal,
           skipRanges: resumeData?.completedBatchRanges,
           existingPartialSrt: resumeData?.partialSrt,
+          presubConfig,
           onBatchProgress: (progress: BatchProgress) => {
             if (
               this.currentJob &&

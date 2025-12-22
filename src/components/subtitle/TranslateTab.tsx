@@ -309,6 +309,17 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
         };
       }
 
+      // Get presub config if presubMode is enabled and presubConfigId is set
+      let presubConfig: GeminiConfig | undefined;
+      if (
+        effectiveBatchSettings?.presubMode &&
+        effectiveBatchSettings?.presubConfigId
+      ) {
+        presubConfig = geminiConfigs.find(
+          (c) => c.id === effectiveBatchSettings?.presubConfigId
+        );
+      }
+
       translationManager.startTranslation(
         videoUrl,
         config,
@@ -316,7 +327,8 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
         effectiveBatchSettings,
         rangeStart,
         rangeEnd,
-        resumeData
+        resumeData,
+        presubConfig
       );
     } catch (error: any) {
       alert(
