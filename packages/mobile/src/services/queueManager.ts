@@ -215,6 +215,11 @@ class QueueManager {
     if (item.status === "translating" && !item.partialSrt && !isResume)
       return { success: false, reason: "already_translating" };
 
+    // Clear userStoppedItemId if it matches this item (user is starting/resuming after stopping)
+    if (this.userStoppedItemId === itemId) {
+      this.userStoppedItemId = null;
+    }
+
     // Check if translationManager is busy with another video
     // Instead of returning error, add to queue
     if (translationManager.isTranslating() || this.isProcessing) {
@@ -244,7 +249,7 @@ class QueueManager {
     return { success: true };
   }
 
-  // Resume translation for an item with partial data
+  // Resume translation for an item with partial data or paused item
   // Returns: { success: boolean, reason?: string, queued?: boolean }
   async resumeTranslation(
     itemId: string
@@ -255,17 +260,21 @@ class QueueManager {
     // Clear from user paused items since user is manually resuming
     this.userPausedItems.delete(itemId);
 
-    // Must have partial data to resume
-    if (
-      !item.partialSrt ||
-      !item.completedBatchRanges ||
-      item.completedBatchRanges.length === 0
-    ) {
-      // No partial data - start fresh
-      return await this.startTranslation(itemId, false);
+    // Clear userStoppedItemId if it matches this item (user is resuming after stopping)
+    if (this.userStoppedItemId === itemId) {
+      this.userStoppedItemId = null;
     }
 
-    return await this.startTranslation(itemId, true);
+    // Check if has partial data to resume
+    const hasPartialData = !!(
+      item.partialSrt &&
+      item.completedBatchRanges &&
+      item.completedBatchRanges.length > 0
+    );
+
+    // For paused items without partial data (e.g., single-part video that was paused before starting)
+    // Just start fresh translation
+    return await this.startTranslation(itemId, hasPartialData);
   }
 
   // Internal: Process a specific item
@@ -390,8 +399,13 @@ class QueueManager {
       };
     }
 
+    // Clear any completed/error job for this video before starting new one
+    // This prevents the subscription from receiving old job notifications
+    translationManager.clearCompletedJob(item.videoUrl);
+
     // Subscribe to translation progress
     let hasUnsubscribed = false;
+    let jobStarted = false; // Track if new job has started
     const currentItemId = item.id; // Capture item ID for this subscription
     const safeUnsubscribe = () => {
       if (!hasUnsubscribed) {
@@ -402,6 +416,18 @@ class QueueManager {
     const unsubscribe = translationManager.subscribe((job) => {
       // Skip if already unsubscribed
       if (hasUnsubscribed) return;
+
+      // Skip notifications from old jobs (before our new job started)
+      // This prevents processing error status from previous aborted job
+      if (!jobStarted) {
+        // Only mark jobStarted when we see a processing job for our video
+        if (job.videoUrl === item.videoUrl && job.status === "processing") {
+          jobStarted = true;
+        } else {
+          // Ignore this notification - it's from an old job
+          return;
+        }
+      }
 
       if (job.videoUrl === item.videoUrl) {
         if (job.progress) {
