@@ -110,18 +110,12 @@ const ChatModal: React.FC<ChatModalProps> = ({
 
   // Keyboard handling with react-native-keyboard-controller
   const keyboardHeight = useSharedValue(0);
+
   useKeyboardHandler(
     {
       onMove: (event) => {
         "worklet";
         keyboardHeight.value = Math.max(event.height, 0);
-      },
-      onEnd: () => {
-        // Scroll to end when keyboard finishes showing
-        setTimeout(
-          () => flatListRef.current?.scrollToEnd({ animated: true }),
-          100
-        );
       },
     },
     []
@@ -593,6 +587,9 @@ const ChatModal: React.FC<ChatModalProps> = ({
             renderItem={renderTask}
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.taskList}
+            onContentSizeChange={() =>
+              flatListRef.current?.scrollToEnd({ animated: true })
+            }
             ListEmptyComponent={
               <ChatEmptyState
                 hasApiKey={hasApiKey}

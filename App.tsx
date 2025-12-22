@@ -220,7 +220,7 @@ const AppContent = () => {
 export default function App() {
   return (
     <SafeAreaProvider>
-      <KeyboardProvider>
+      <KeyboardProvider statusBarTranslucent navigationBarTranslucent>
         <ThemeProvider>
           <UpdateProvider>
             <AppContent />
