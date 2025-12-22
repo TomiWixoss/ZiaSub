@@ -35,6 +35,7 @@ class QueueManager {
   private userPausedItems: Set<string> = new Set(); // Track items paused by user (won't auto-resume)
   private queueStartCompletedCount: number = 0; // Track completed count when queue started
   private directTranslationVideoUrl: string | null = null; // Track video being translated directly (not from queue)
+  private removingItemId: string | null = null; // Track item being removed (to skip subscription handling)
 
   private constructor() {}
 
@@ -515,6 +516,15 @@ class QueueManager {
         }
 
         if (job.status === "error") {
+          // Check if this item is being removed - if so, skip handling
+          // abortAndRemove will handle processNextInQueue
+          if (this.removingItemId === currentItemId) {
+            this.isProcessing = false;
+            this.currentProcessingItemId = null;
+            safeUnsubscribe();
+            return;
+          }
+
           // Check if this was a user-initiated stop - if so, stopTranslation already handled it
           const wasUserStopped = this.userStoppedItemId === currentItemId;
           if (wasUserStopped) {
@@ -1073,6 +1083,11 @@ class QueueManager {
     const item = this.items.find((i) => i.id === itemId);
     if (!item) return;
 
+    // Set flag to indicate this item is being removed
+    // This prevents subscription from handling the abort error
+    this.removingItemId = itemId;
+    const wasAutoProcessEnabled = this.autoProcessEnabled;
+
     // If this item is currently being processed, abort it (now async)
     if (item.status === "translating" && this.isProcessing) {
       const result = await translationManager.abortTranslation(item.videoUrl);
@@ -1082,14 +1097,25 @@ class QueueManager {
       }
     }
 
+    // Clear from user paused items
+    this.userPausedItems.delete(itemId);
+
     // Remove from queue
     this.items = this.items.filter((i) => i.id !== itemId);
     await this.save();
     this.notify();
 
+    // Clear the removing flag after a delay (to ensure subscription has processed)
+    setTimeout(() => {
+      if (this.removingItemId === itemId) {
+        this.removingItemId = null;
+      }
+    }, 500);
+
     // Process next if auto-process is enabled
-    if (this.autoProcessEnabled) {
-      this.processNextInQueue();
+    if (wasAutoProcessEnabled) {
+      // Small delay to ensure state is settled
+      setTimeout(() => this.processNextInQueue(), 1000);
     }
   }
 
@@ -1319,6 +1345,7 @@ class QueueManager {
     this.userPausedItems.clear();
     this.queueStartCompletedCount = 0;
     this.directTranslationVideoUrl = null;
+    this.removingItemId = null;
     await this.save();
     this.notify();
   }

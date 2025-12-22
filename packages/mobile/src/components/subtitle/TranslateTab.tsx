@@ -340,6 +340,16 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
         );
       }
 
+      // Sync to queue before starting translation (so it shows in queue UI)
+      const { queueManager } = await import("@services/queueManager");
+      await queueManager.syncDirectTranslation(
+        videoUrl,
+        undefined,
+        videoDuration,
+        config.name,
+        true // forceRetranslate
+      );
+
       translationManager.startTranslation(
         videoUrl,
         config,
