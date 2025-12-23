@@ -52,20 +52,19 @@ class QueueManager {
       const data = await AsyncStorage.getItem(QUEUE_STORAGE_KEY);
       if (data) {
         this.items = JSON.parse(data);
-        // Reset stuck "translating" items - but keep partial data
-        // Paused items stay as paused
+        // Reset stuck "translating" items to "paused" - they were interrupted by app restart
+        // This allows user to resume them later
         this.items = this.items.map((item) => {
           if (item.status === "translating") {
-            // If has partial data, move to paused (was interrupted)
-            if (
-              item.partialSrt &&
-              item.completedBatches &&
-              item.completedBatches > 0
-            ) {
-              return { ...item, status: "paused" as QueueStatus };
-            }
-            // No partial data - reset to pending
-            return { ...item, status: "pending" as QueueStatus };
+            // Move all translating items to paused (was interrupted by app restart)
+            // Keep all existing data (partial, config, etc.) for resume
+            return {
+              ...item,
+              status: "paused" as QueueStatus,
+              // Set default values if not present
+              completedBatches: item.completedBatches ?? 0,
+              totalBatches: item.totalBatches ?? 1,
+            };
           }
           return item;
         });
