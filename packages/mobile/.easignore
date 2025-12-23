@@ -1,0 +1,20 @@
+# Native build folders (EAS will generate these)
+android/
+
+# Node modules (EAS will install dependencies)
+node_modules/
+
+# Expo cache
+.expo/
+
+# Build artifacts
+dist/
+build/
+
+# IDE
+.idea/
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
