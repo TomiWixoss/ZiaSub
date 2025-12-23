@@ -11,6 +11,7 @@ import type {
   BatchSettings,
   SavedTranslation,
   BatchProgress,
+  TranslationJob,
 } from "@src/types";
 import {
   getGeminiConfigs,
@@ -103,6 +104,9 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
   const [currentPresetId, setCurrentPresetId] = useState<
     PresetPromptType | undefined
   >();
+  // Track batch retranslation job (for single batch or fromHere mode)
+  const [batchRetranslateJob, setBatchRetranslateJob] =
+    useState<TranslationJob | null>(null);
 
   // Detect current preset from selected config
   useEffect(() => {
@@ -169,6 +173,29 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
       loadTranslations();
     }
   }, [visible, videoUrl, loadTranslations]);
+  // Subscribe to translationManager to track batch retranslation
+  useEffect(() => {
+    if (!videoUrl) return;
+    const unsubscribe = translationManager.subscribe((job) => {
+      // Check if this is a batch retranslation for current video
+      if (
+        job.videoUrl === videoUrl &&
+        job.rangeStart !== undefined &&
+        job.rangeEnd !== undefined
+      ) {
+        if (job.status === "processing") {
+          setBatchRetranslateJob(job);
+        } else if (job.status === "completed" || job.status === "error") {
+          setBatchRetranslateJob(null);
+          // Reload translations when batch retranslation completes
+          if (job.status === "completed") {
+            loadTranslations();
+          }
+        }
+      }
+    });
+    return () => unsubscribe();
+  }, [videoUrl, loadTranslations]);
   useEffect(() => {
     if (batchSettings) {
       setStreamingMode(batchSettings.streamingMode ?? false);
@@ -208,7 +235,24 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
   };
 
   const handleTranslate = async (resumeTranslation?: SavedTranslation) => {
-    const config = geminiConfigs.find((c) => c.id === selectedConfigId);
+    // IMPORTANT: When resuming/retranslating, use saved config from translation
+    // Otherwise use currently selected config
+    let config: GeminiConfig | undefined;
+    let effectivePresetId: string | undefined;
+
+    if (resumeTranslation?.configName) {
+      // Find config by name (saved in translation)
+      config = geminiConfigs.find(
+        (c) => c.name === resumeTranslation.configName
+      );
+      effectivePresetId = resumeTranslation.presetId;
+    }
+
+    // Fallback to selected config if saved config not found
+    if (!config) {
+      config = geminiConfigs.find((c) => c.id === selectedConfigId);
+    }
+
     if (!config)
       return alert(
         t("subtitleModal.translate.notSelected"),
@@ -355,6 +399,11 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
         );
       }
 
+      // Create effective config with saved presetId (for resume/retranslate)
+      const effectiveConfig = effectivePresetId
+        ? { ...config, presetId: effectivePresetId }
+        : config;
+
       // Sync to queue before starting translation (so it shows in queue UI)
       // Pass all config info to preserve translation settings
       const { queueManager } = await import("@services/queueManager");
@@ -362,16 +411,16 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
         videoUrl,
         videoTitle,
         videoDuration,
-        config.name,
+        effectiveConfig.name,
         true, // forceRetranslate
-        config.id,
-        config.presetId,
+        effectiveConfig.id,
+        effectiveConfig.presetId,
         effectiveBatchSettings
       );
 
       translationManager.startTranslation(
         videoUrl,
-        config,
+        effectiveConfig,
         videoDuration,
         effectiveBatchSettings,
         rangeStart,
@@ -475,7 +524,13 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
           total: totalBatches,
         }),
         async () => {
-          const config = geminiConfigs.find((c) => c.id === selectedConfigId);
+          // IMPORTANT: Use saved config from translation, not current selected config
+          const savedConfigId = translation.configName
+            ? geminiConfigs.find((c) => c.name === translation.configName)?.id
+            : null;
+          const config = geminiConfigs.find(
+            (c) => c.id === (savedConfigId || selectedConfigId)
+          );
           if (!config) {
             alert(
               t("subtitleModal.translate.notSelected"),
@@ -494,7 +549,7 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
               config.name,
               true, // forceRetranslate
               config.id,
-              config.presetId,
+              translation.presetId ?? config.presetId, // Use saved presetId
               translation.batchSettings
             );
             alert(t("common.notice"), t("queue.addedToWaitingQueue"));
@@ -502,10 +557,15 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
           }
 
           try {
+            // Create effective config with saved presetId
+            const effectiveConfig = translation.presetId
+              ? { ...config, presetId: translation.presetId }
+              : config;
+
             // Use translationManager to handle single batch translation
             const updatedSrt = await translationManager.translateSingleBatch(
               videoUrl,
-              config,
+              effectiveConfig,
               translation.srtContent,
               batchStart,
               batchEnd,
@@ -655,9 +715,15 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
           onDelete={handleDeleteTranslation}
           onResume={handleResumeTranslation}
           onRetranslateBatch={handleRetranslateBatch}
+          onStopBatchRetranslate={() => {
+            if (videoUrl) {
+              translationManager.abortTranslation(videoUrl);
+            }
+          }}
           videoDuration={videoDuration}
           isPausedInQueue={isPausedInQueue}
           isTranslating={isTranslating}
+          batchRetranslateJob={batchRetranslateJob}
         />
         {!hasApiKey && (
           <View style={themedStyles.warningContainer}>

@@ -89,6 +89,9 @@ export interface TranslationJob {
   batchStatuses?: BatchStatus[];
   // ID of existing translation to update (instead of creating new)
   existingTranslationId?: string;
+  // Batch retranslation mode
+  retranslateBatchIndex?: number;
+  retranslateMode?: "single" | "fromHere";
 }
 
 // ============================================
@@ -218,6 +221,9 @@ export interface QueueItem {
   batchSettings?: BatchSettings;
   // ID of saved translation to update when resuming (instead of creating new)
   savedTranslationId?: string;
+  // Batch retranslation mode
+  retranslateBatchIndex?: number; // Index of batch being retranslated
+  retranslateMode?: "single" | "fromHere"; // single = only this batch, fromHere = this batch and all after
 }
 
 // ============================================

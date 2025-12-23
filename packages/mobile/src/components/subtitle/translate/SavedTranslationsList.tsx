@@ -5,7 +5,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@src/contexts";
 import { useThemedStyles } from "@hooks/useThemedStyles";
-import type { SavedTranslation } from "@src/types";
+import type { SavedTranslation, TranslationJob } from "@src/types";
 import { createTranslateStyles } from "./translateStyles";
 import { parseSRT } from "@utils/srtParser";
 import { PRESET_PROMPTS } from "@constants/defaults";
@@ -21,9 +21,12 @@ interface SavedTranslationsListProps {
     batchIndex: number,
     mode: "single" | "fromHere"
   ) => void;
+  onStopBatchRetranslate?: () => void;
   videoDuration?: number;
   isPausedInQueue?: boolean;
   isTranslating?: boolean;
+  // Batch retranslation state
+  batchRetranslateJob?: TranslationJob | null;
 }
 
 const formatDate = (timestamp: number) => {
@@ -61,9 +64,11 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
   onDelete,
   onResume,
   onRetranslateBatch,
+  onStopBatchRetranslate,
   videoDuration,
   isPausedInQueue = false,
   isTranslating = false,
+  batchRetranslateJob,
 }) => {
   const { t } = useTranslation();
   const { colors } = useTheme();
@@ -375,9 +380,20 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
                       </Text>
                       <View style={styles.batchesGrid}>
                         {batches.map((batch) => {
+                          // Check if this batch is being retranslated
+                          const isBatchRetranslating =
+                            batchRetranslateJob?.status === "processing" &&
+                            batchRetranslateJob?.rangeStart !== undefined &&
+                            batch.startTime >= batchRetranslateJob.rangeStart &&
+                            (batchRetranslateJob.rangeEnd === undefined ||
+                              batch.startTime < batchRetranslateJob.rangeEnd);
+
                           // Use status from batchStatuses metadata
-                          const isCompleted = batch.status === "completed";
+                          const isCompleted =
+                            batch.status === "completed" &&
+                            !isBatchRetranslating;
                           const isError = batch.status === "error";
+                          const isProcessing = isBatchRetranslating;
 
                           return (
                             <View
@@ -389,35 +405,46 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
                                   styles.batchChip,
                                   isCompleted && styles.batchChipCompleted,
                                   isError && styles.batchChipError,
+                                  isProcessing && styles.batchChipProcessing,
                                   !isCompleted &&
                                     !isError &&
+                                    !isProcessing &&
                                     styles.batchChipPending,
                                 ]}
                               >
-                                <Text
-                                  style={[
-                                    styles.batchChipText,
-                                    isCompleted &&
-                                      styles.batchChipTextCompleted,
-                                    isError && styles.batchChipTextError,
-                                  ]}
-                                >
-                                  {batch.index + 1}
-                                </Text>
+                                {isProcessing ? (
+                                  <MaterialCommunityIcons
+                                    name="translate"
+                                    size={12}
+                                    color="#fff"
+                                  />
+                                ) : (
+                                  <Text
+                                    style={[
+                                      styles.batchChipText,
+                                      isCompleted &&
+                                        styles.batchChipTextCompleted,
+                                      isError && styles.batchChipTextError,
+                                    ]}
+                                  >
+                                    {batch.index + 1}
+                                  </Text>
+                                )}
                                 <Text
                                   style={[
                                     styles.batchChipTime,
                                     isCompleted &&
                                       styles.batchChipTimeCompleted,
                                     isError && styles.batchChipTimeError,
+                                    isProcessing && { color: "#fff" },
                                   ]}
                                 >
                                   {formatTime(batch.startTime)} -{" "}
                                   {formatTime(batch.endTime)}
                                 </Text>
                               </View>
-                              {/* Retranslate buttons */}
-                              {onRetranslateBatch && (
+                              {/* Retranslate buttons - hide when retranslating */}
+                              {onRetranslateBatch && !batchRetranslateJob && (
                                 <View style={styles.batchActions}>
                                   <TouchableOpacity
                                     style={styles.batchActionBtn}
@@ -457,9 +484,31 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
                           );
                         })}
                       </View>
-                      <Text style={styles.batchesHint}>
-                        {t("subtitleModal.translate.retranslateHint")}
-                      </Text>
+                      {/* Stop button when retranslating */}
+                      {batchRetranslateJob?.status === "processing" &&
+                        onStopBatchRetranslate && (
+                          <TouchableOpacity
+                            style={[
+                              styles.expandedActionBtn,
+                              { backgroundColor: colors.error, marginTop: 8 },
+                            ]}
+                            onPress={onStopBatchRetranslate}
+                          >
+                            <MaterialCommunityIcons
+                              name="stop"
+                              size={16}
+                              color="#fff"
+                            />
+                            <Text style={{ color: "#fff", marginLeft: 4 }}>
+                              {t("subtitleModal.translate.stopRetranslate")}
+                            </Text>
+                          </TouchableOpacity>
+                        )}
+                      {!batchRetranslateJob && (
+                        <Text style={styles.batchesHint}>
+                          {t("subtitleModal.translate.retranslateHint")}
+                        </Text>
+                      )}
                     </View>
                   )}
 

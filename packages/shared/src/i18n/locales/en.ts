@@ -524,6 +524,8 @@ export default {
     paused: "Paused",
     pausedWithProgress: "Paused ({{completed}}/{{total}})",
     resumeTranslation: "Resume",
+    batchSingle: "Part {{batch}}",
+    batchFromHere: "From part {{batch}}",
   },
 
   // Subtitle Modal
@@ -599,6 +601,7 @@ export default {
       error: "Translation failed",
       errorMessage: "Cannot translate this video.",
       stopTranslation: "Stop translation",
+      stopRetranslate: "Stop retranslation",
 
       // Batch viewer
       batchList: "Translation batches",

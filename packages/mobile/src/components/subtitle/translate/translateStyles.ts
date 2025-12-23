@@ -145,6 +145,10 @@ export const createTranslateStyles = (colors: ThemeColors) =>
       backgroundColor: colors.success + "20",
       borderColor: colors.success,
     },
+    batchChipProcessing: {
+      backgroundColor: colors.primary,
+      borderColor: colors.primary,
+    },
     batchChipPending: {
       backgroundColor: colors.surface,
       borderColor: colors.border,

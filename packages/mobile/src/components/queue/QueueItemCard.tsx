@@ -215,6 +215,40 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
                   </Text>
                 </View>
               )}
+              {/* Batch retranslation mode badge */}
+              {item.retranslateBatchIndex !== undefined && (
+                <View
+                  style={[
+                    styles.settingsBadge,
+                    { backgroundColor: colors.warning + "30" },
+                  ]}
+                >
+                  <MaterialCommunityIcons
+                    name={
+                      item.retranslateMode === "single"
+                        ? "numeric-1-box"
+                        : "arrow-right-bold"
+                    }
+                    size={10}
+                    color={colors.warning}
+                  />
+                  <Text
+                    style={[
+                      styles.settingsBadgeText,
+                      { color: colors.warning },
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {item.retranslateMode === "single"
+                      ? t("queue.batchSingle", {
+                          batch: item.retranslateBatchIndex + 1,
+                        })
+                      : t("queue.batchFromHere", {
+                          batch: item.retranslateBatchIndex + 1,
+                        })}
+                  </Text>
+                </View>
+              )}
             </View>
           )}
 

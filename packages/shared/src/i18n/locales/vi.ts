@@ -523,6 +523,8 @@ export default {
     paused: "Đã tạm dừng",
     pausedWithProgress: "Đã tạm dừng ({{completed}}/{{total}})",
     resumeTranslation: "Dịch tiếp",
+    batchSingle: "Phần {{batch}}",
+    batchFromHere: "Từ phần {{batch}}",
   },
 
   // Subtitle Modal
@@ -599,6 +601,7 @@ export default {
       error: "Không dịch được",
       errorMessage: "Không thể dịch video này.",
       stopTranslation: "Dừng dịch",
+      stopRetranslate: "Dừng dịch lại",
 
       // Batch viewer
       batchList: "Các phần đã dịch",
