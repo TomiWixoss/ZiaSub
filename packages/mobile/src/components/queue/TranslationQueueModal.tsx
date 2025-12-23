@@ -211,12 +211,13 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
               batch: item.retranslateBatchIndex + 1,
             }),
         async () => {
-          // Resume batch retranslation - just move back to translating status
-          // The actual translation will be triggered when user opens the video
+          // Resume batch retranslation - start immediately if not busy
           const result = await queueManager.resumeBatchRetranslation(
             item.videoUrl
           );
-          if (!result.success) {
+          if (result.queued) {
+            alert(t("common.notice"), t("queue.addedToWaitingQueue"));
+          } else if (!result.success) {
             alert(t("common.error"), t("errors.generic"));
           }
         },

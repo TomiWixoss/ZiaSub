@@ -12,6 +12,7 @@ import {
   getBatchSettings,
   getGeminiConfigs,
   getPartialTranslation,
+  getVideoTranslations,
 } from "@utils/storage";
 
 // Re-export types for backward compatibility
@@ -91,6 +92,24 @@ class QueueManager {
     this.translationManagerUnsubscribe = translationManager.subscribe((job) => {
       // Skip if job is null or missing videoUrl
       if (!job || !job.videoUrl) return;
+
+      // Update progress for any translating queue item (including batch retranslation from TranslateTab)
+      if (job.status === "processing" && job.progress) {
+        const videoId = this.extractVideoId(job.videoUrl);
+        const queueItem = this.items.find(
+          (item) => item.videoId === videoId && item.status === "translating"
+        );
+        if (queueItem) {
+          this.updateItem(queueItem.id, {
+            progress: {
+              completed: job.progress.completedBatches,
+              total: job.progress.totalBatches,
+            },
+            completedBatches: job.progress.completedBatches,
+            totalBatches: job.progress.totalBatches,
+          });
+        }
+      }
 
       // When a job completes or errors, check if it was a direct translation
       if (job.status === "completed" || job.status === "error") {
@@ -632,17 +651,46 @@ class QueueManager {
     });
 
     try {
-      await translationManager.startTranslation(
-        item.videoUrl,
-        effectiveConfig,
-        item.duration,
-        queueBatchSettings,
-        undefined,
-        undefined,
-        resumeData,
-        undefined,
-        { skipBackgroundControl: true, skipNotification: true } // Queue tự quản lý background và notification
-      );
+      // Check if this is a batch retranslation
+      if (item.retranslateBatchIndex !== undefined) {
+        // Batch retranslation - need to get existing SRT and call translateSingleBatch
+        const batchDuration = queueBatchSettings.maxVideoDuration || 600;
+        const batchStart = item.retranslateBatchIndex * batchDuration;
+        const batchEnd = Math.min(
+          (item.retranslateBatchIndex + 1) * batchDuration,
+          item.duration || Infinity
+        );
+
+        // Get existing translation SRT
+        const videoData = await getVideoTranslations(item.videoUrl);
+        const existingTranslation = videoData?.translations?.[0];
+        if (!existingTranslation) {
+          throw new Error("Không tìm thấy bản dịch để dịch lại");
+        }
+
+        await translationManager.translateSingleBatch(
+          item.videoUrl,
+          effectiveConfig,
+          existingTranslation.srtContent,
+          batchStart,
+          batchEnd,
+          item.duration,
+          existingTranslation.id
+        );
+      } else {
+        // Full translation
+        await translationManager.startTranslation(
+          item.videoUrl,
+          effectiveConfig,
+          item.duration,
+          queueBatchSettings,
+          undefined,
+          undefined,
+          resumeData,
+          undefined,
+          { skipBackgroundControl: true, skipNotification: true } // Queue tự quản lý background và notification
+        );
+      }
     } catch (e: any) {
       // Error handled in subscription
     }
@@ -1060,7 +1108,7 @@ class QueueManager {
   // Resume batch retranslation
   async resumeBatchRetranslation(
     videoUrl: string
-  ): Promise<{ success: boolean; item?: QueueItem }> {
+  ): Promise<{ success: boolean; item?: QueueItem; queued?: boolean }> {
     const videoId = this.extractVideoId(videoUrl);
     const item = this.items.find((i) => i.videoId === videoId);
     if (!item || item.retranslateBatchIndex === undefined) {
@@ -1070,16 +1118,36 @@ class QueueManager {
     // Clear from user paused items
     this.userPausedItems.delete(item.id);
 
+    // Clear userStoppedItemId if it matches this item
+    if (this.userStoppedItemId === item.id) {
+      this.userStoppedItemId = null;
+    }
+
     // Move back to translating status
-    // Clear progress so getBatchRetranslationInfo can find it
     await this.updateItem(item.id, {
       status: "translating",
       startedAt: Date.now(),
       error: undefined,
-      progress: undefined, // Clear progress to indicate waiting for resume
+      progress: undefined,
     });
 
-    return { success: true, item: this.items.find((i) => i.id === item.id) };
+    // Check if we can start immediately
+    if (!translationManager.isTranslating() && !this.isProcessing) {
+      // Start processing immediately
+      const updatedItem = this.items.find((i) => i.id === item.id);
+      if (updatedItem) {
+        await this.processItem(updatedItem, false);
+      }
+      return { success: true, item: updatedItem };
+    } else {
+      // Busy - will be picked up when current finishes
+      this.autoProcessEnabled = true;
+      return {
+        success: true,
+        item: this.items.find((i) => i.id === item.id),
+        queued: true,
+      };
+    }
   }
 
   // Get paused batch retranslation info for a video
@@ -1596,6 +1664,32 @@ class QueueManager {
             await this.updateItem(item.id, updates);
           }
         }
+        return this.items.find((i) => i.id === item!.id)!;
+      }
+      if (item.status === "paused") {
+        // Resume paused item - change to translating with all config info
+        await this.updateItem(item.id, {
+          status: "translating",
+          startedAt: Date.now(),
+          configName: configName || item.configName,
+          configId: configId || item.configId,
+          presetId: presetId ?? item.presetId,
+          batchSettings: batchSettings || item.batchSettings,
+          completedAt: undefined,
+          error: undefined,
+          // For batch retranslation resume, keep partial data (don't clear)
+          // Only clear if this is a fresh retranslation (not resuming batch)
+          ...(forceRetranslate && !retranslateBatchIndex
+            ? {
+                partialSrt: undefined,
+                completedBatches: undefined,
+                totalBatches: undefined,
+                completedBatchRanges: undefined,
+              }
+            : {}),
+          // Batch retranslation mode
+          ...batchRetranslateFields,
+        });
         return this.items.find((i) => i.id === item!.id)!;
       }
       // Update pending/error to translating - save all config info
