@@ -369,10 +369,7 @@ class TranslationManager {
     const completedRanges = this.currentJob.completedBatchRanges || [];
     const batchStatuses = this.currentJob.batchStatuses || [];
     const presetId = this.currentJob.presetId;
-    const isBatchRetranslation = this.currentJob.isBatchRetranslation;
-    // Don't save partial for batch retranslation (it updates existing translation)
-    const hasPartial =
-      partialResult && completedRanges.length > 0 && !isBatchRetranslation;
+    const hasPartial = partialResult && completedRanges.length > 0;
 
     // Save partial translation IMMEDIATELY (don't wait for catch block)
     if (hasPartial) {
@@ -502,7 +499,6 @@ class TranslationManager {
       batchSettings: undefined,
       completedBatchRanges: [],
       existingTranslationId,
-      isBatchRetranslation: true, // Flag to prevent saving partial on abort
     };
     this.notify();
 

@@ -92,8 +92,6 @@ export interface TranslationJob {
   // Batch retranslation mode
   retranslateBatchIndex?: number;
   retranslateMode?: "single" | "fromHere";
-  // Flag to indicate batch retranslation (don't save partial on abort)
-  isBatchRetranslation?: boolean;
 }
 
 // ============================================
