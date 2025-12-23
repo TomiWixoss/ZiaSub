@@ -532,6 +532,7 @@ export default {
     waitingInQueue: "Waiting in queue...",
     waitingPosition: "Waiting (position #{{position}})",
     cancelWaiting: "Cancel",
+    cancelPaused: "Cancel",
     paused: "Paused",
     pausedWithProgress: "Paused ({{completed}}/{{total}})",
     resumeTranslation: "Resume",
@@ -616,6 +617,7 @@ export default {
       pauseRetranslate: "Pause",
       resumeBatchSingle: "Resume part {{batch}}",
       resumeBatchFrom: "Resume from part {{batch}}",
+      cancelBatchRetranslate: "Cancel retranslation",
 
       // Batch viewer
       batchList: "Translation batches",

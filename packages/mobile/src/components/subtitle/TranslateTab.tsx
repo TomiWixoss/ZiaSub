@@ -855,6 +855,13 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
               }
             }
           }}
+          onCancelBatchRetranslate={async () => {
+            if (videoUrl) {
+              // Clear batch retranslation mode from queue
+              const { queueManager } = await import("@services/queueManager");
+              await queueManager.clearBatchRetranslateMode(videoUrl);
+            }
+          }}
           videoDuration={videoDuration}
           isPausedInQueue={isPausedInQueue}
           isWaitingInQueue={isWaitingInQueue}
@@ -967,12 +974,26 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
                   : t("queue.paused")}
               </Text>
             </View>
-            <Button3D
-              onPress={handleResumeFromQueue}
-              title={t("queue.resumeTranslation")}
-              variant="primary"
-              size="small"
-            />
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              <View style={{ flex: 1 }}>
+                <Button3D
+                  onPress={handleResumeFromQueue}
+                  title={t("queue.resumeTranslation")}
+                  variant="primary"
+                  size="small"
+                />
+              </View>
+              {onCancelQueue && (
+                <View style={{ flex: 1 }}>
+                  <Button3D
+                    onPress={onCancelQueue}
+                    title={t("queue.cancelPaused")}
+                    variant="destructive"
+                    size="small"
+                  />
+                </View>
+              )}
+            </View>
           </View>
         ) : isWaitingInQueue ? (
           <View style={themedStyles.waitingContainer}>

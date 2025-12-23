@@ -531,6 +531,7 @@ export default {
     waitingInQueue: "Đang chờ trong hàng đợi...",
     waitingPosition: "Đang chờ (vị trí #{{position}})",
     cancelWaiting: "Hủy chờ",
+    cancelPaused: "Hủy",
     paused: "Đã tạm dừng",
     pausedWithProgress: "Đã tạm dừng ({{completed}}/{{total}})",
     resumeTranslation: "Dịch tiếp",
@@ -616,6 +617,7 @@ export default {
       pauseRetranslate: "Tạm dừng",
       resumeBatchSingle: "Tiếp tục phần {{batch}}",
       resumeBatchFrom: "Tiếp tục từ phần {{batch}}",
+      cancelBatchRetranslate: "Hủy dịch lại",
 
       // Batch viewer
       batchList: "Các phần đã dịch",

@@ -23,6 +23,7 @@ interface SavedTranslationsListProps {
   ) => void;
   onStopBatchRetranslate?: () => void;
   onResumeBatchRetranslate?: () => void;
+  onCancelBatchRetranslate?: () => void;
   videoDuration?: number;
   isPausedInQueue?: boolean;
   isWaitingInQueue?: boolean;
@@ -73,6 +74,7 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
   onRetranslateBatch,
   onStopBatchRetranslate,
   onResumeBatchRetranslate,
+  onCancelBatchRetranslate,
   videoDuration,
   isPausedInQueue = false,
   isWaitingInQueue = false,
@@ -616,6 +618,29 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
                                     batch:
                                       pausedBatchRetranslation.batchIndex + 1,
                                   })}
+                            </Text>
+                          </TouchableOpacity>
+                        )}
+                      {/* Cancel button when paused - to clear paused state */}
+                      {pausedBatchRetranslation &&
+                        !batchRetranslateJob &&
+                        onCancelBatchRetranslate && (
+                          <TouchableOpacity
+                            style={[
+                              styles.expandedActionBtn,
+                              { backgroundColor: colors.error, marginTop: 8 },
+                            ]}
+                            onPress={onCancelBatchRetranslate}
+                          >
+                            <MaterialCommunityIcons
+                              name="close"
+                              size={16}
+                              color="#fff"
+                            />
+                            <Text style={{ color: "#fff", marginLeft: 4 }}>
+                              {t(
+                                "subtitleModal.translate.cancelBatchRetranslate"
+                              )}
                             </Text>
                           </TouchableOpacity>
                         )}
