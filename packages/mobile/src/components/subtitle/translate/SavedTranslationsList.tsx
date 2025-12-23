@@ -222,6 +222,17 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
 
   if (translations.length === 0) return null;
 
+  // Auto-expand first translation when there's a batch retranslation in progress or paused
+  React.useEffect(() => {
+    if (
+      (batchRetranslateJob || pausedBatchRetranslation) &&
+      translations.length > 0 &&
+      !expandedId
+    ) {
+      setExpandedId(translations[0].id);
+    }
+  }, [batchRetranslateJob, pausedBatchRetranslation, translations, expandedId]);
+
   const getProgressPercent = (item: SavedTranslation) => {
     if (!item.isPartial || !item.totalBatches) return 100;
     return Math.round(((item.completedBatches || 0) / item.totalBatches) * 100);

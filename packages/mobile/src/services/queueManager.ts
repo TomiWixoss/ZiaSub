@@ -1079,10 +1079,12 @@ class QueueManager {
     this.userPausedItems.delete(item.id);
 
     // Move back to translating status
+    // Clear progress so getBatchRetranslationInfo can find it
     await this.updateItem(item.id, {
       status: "translating",
       startedAt: Date.now(),
       error: undefined,
+      progress: undefined, // Clear progress to indicate waiting for resume
     });
 
     return { success: true, item: this.items.find((i) => i.id === item.id) };

@@ -186,40 +186,43 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
       return;
     }
 
-    const checkBatchRetranslation = async () => {
-      const { queueManager } = await import("@services/queueManager");
-      // Use getBatchRetranslationInfo to get both paused and waiting-to-resume items
-      const batchItem = queueManager.getBatchRetranslationInfo(videoUrl);
-      if (
-        batchItem &&
-        batchItem.retranslateBatchIndex !== undefined &&
-        batchItem.retranslateMode
-      ) {
-        setPausedBatchRetranslation({
-          batchIndex: batchItem.retranslateBatchIndex,
-          mode: batchItem.retranslateMode,
-        });
-      } else {
-        setPausedBatchRetranslation(null);
-      }
-    };
+    let isMounted = true;
+    let unsubscribe: (() => void) | null = null;
 
-    checkBatchRetranslation();
-
-    // Subscribe to queue changes to update state
-    const setupSubscription = async () => {
+    const setupAndSubscribe = async () => {
       const { queueManager } = await import("@services/queueManager");
-      return queueManager.subscribe(() => {
+
+      const checkBatchRetranslation = () => {
+        if (!isMounted) return;
+        // Use getBatchRetranslationInfo to get both paused and waiting-to-resume items
+        const batchItem = queueManager.getBatchRetranslationInfo(videoUrl);
+        if (
+          batchItem &&
+          batchItem.retranslateBatchIndex !== undefined &&
+          batchItem.retranslateMode
+        ) {
+          setPausedBatchRetranslation({
+            batchIndex: batchItem.retranslateBatchIndex,
+            mode: batchItem.retranslateMode,
+          });
+        } else {
+          setPausedBatchRetranslation(null);
+        }
+      };
+
+      // Check immediately
+      checkBatchRetranslation();
+
+      // Subscribe to queue changes
+      unsubscribe = queueManager.subscribe(() => {
         checkBatchRetranslation();
       });
     };
 
-    let unsubscribe: (() => void) | null = null;
-    setupSubscription().then((unsub) => {
-      unsubscribe = unsub;
-    });
+    setupAndSubscribe();
 
     return () => {
+      isMounted = false;
       if (unsubscribe) unsubscribe();
     };
   }, [videoUrl]);
