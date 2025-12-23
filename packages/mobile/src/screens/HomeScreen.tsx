@@ -46,6 +46,38 @@ const HomeScreen = () => {
   // Desktop mode state
   const [isDesktopMode, setIsDesktopMode] = useState(false);
 
+  // Helper to convert URL between mobile and desktop YouTube
+  const convertYouTubeUrl = (
+    url: string | undefined,
+    toDesktop: boolean
+  ): string => {
+    if (!url) {
+      return toDesktop ? "https://www.youtube.com" : "https://m.youtube.com";
+    }
+    if (toDesktop) {
+      return url.replace(
+        /^https?:\/\/m\.youtube\.com/,
+        "https://www.youtube.com"
+      );
+    } else {
+      return url.replace(
+        /^https?:\/\/(www\.)?youtube\.com/,
+        "https://m.youtube.com"
+      );
+    }
+  };
+
+  // Toggle between mobile and desktop mode
+  const handleToggleDesktopMode = () => {
+    const newMode = !isDesktopMode;
+    const convertedUrl = convertYouTubeUrl(currentUrl, newMode);
+    setIsDesktopMode(newMode);
+    // Navigate to converted URL after mode change
+    setTimeout(() => {
+      navigateToUrl(convertedUrl);
+    }, 100);
+  };
+
   // App settings hook
   const {
     subtitleSettings,
@@ -395,7 +427,7 @@ const HomeScreen = () => {
                   styles.modeToggleBtn,
                   isDesktopMode && themedStyles.modeToggleBtnActive,
                 ]}
-                onPress={() => setIsDesktopMode(!isDesktopMode)}
+                onPress={handleToggleDesktopMode}
                 activeOpacity={0.7}
               >
                 <MaterialCommunityIcons

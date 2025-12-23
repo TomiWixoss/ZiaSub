@@ -27,14 +27,14 @@ const YouTubePlayer = React.forwardRef<WebView, YouTubePlayerProps>(
   ) => {
     const styles = useThemedStyles(themedStyles);
 
-    // Memoize source based on mode
+    // Initial source based on mode (navigation handled by parent via navigateToUrl)
     const source = useMemo(
       () => ({
         uri: isDesktopMode
           ? "https://www.youtube.com"
           : "https://m.youtube.com",
       }),
-      [isDesktopMode]
+      [] // Empty deps - only set initial URL
     );
 
     // Select user agent and script based on mode
