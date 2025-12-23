@@ -260,6 +260,7 @@ export default {
       showBackground: "Show subtitle background",
       showBackgroundHint:
         "Show dark background behind subtitles in desktop mode",
+      desktopPosition: "Subtitle position: {{value}}px from bottom",
     },
 
     // Batch Translation

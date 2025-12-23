@@ -259,6 +259,7 @@ export default {
       showBackground: "Hiện nền phụ đề",
       showBackgroundHint:
         "Hiện nền đen mờ phía sau phụ đề khi xem ở chế độ desktop",
+      desktopPosition: "Vị trí phụ đề: {{value}}px từ dưới",
     },
 
     // Batch Translation

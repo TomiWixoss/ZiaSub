@@ -17,6 +17,7 @@ export const INJECTED_JAVASCRIPT_DESKTOP = `
     let portraitBottom = 100;
     let landscapeBottom = 8;
     let desktopShowBackground = true;
+    let desktopBottom = 60;
 
     const throttle = (fn, delay) => {
       let last = 0;
@@ -48,7 +49,8 @@ export const INJECTED_JAVASCRIPT_DESKTOP = `
       const textShadow = 'text-shadow:0 0 2px #000,-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000,0 -1px 0 #000,0 1px 0 #000,-1px 0 0 #000,1px 0 0 #000;';
       
       const isFullscreen = document.fullscreenElement || document.webkitFullscreenElement;
-      const bottomPos = isFullscreen ? landscapeBottom : 60;
+      // Use landscapeBottom for fullscreen, desktopBottom for normal view
+      const bottomPos = isFullscreen ? landscapeBottom : desktopBottom;
       
       // Background style based on setting
       const bgStyle = desktopShowBackground ? 'background:rgba(0,0,0,0.7);padding:8px 16px;border-radius:8px;' : '';
@@ -272,6 +274,7 @@ export const INJECTED_JAVASCRIPT_DESKTOP = `
           portraitBottom = d.payload.portraitBottom || 12;
           landscapeBottom = d.payload.landscapeBottom || 8;
           desktopShowBackground = d.payload.desktopShowBackground !== false;
+          desktopBottom = d.payload.desktopBottom || 60;
           updateSubtitleStyle();
         } else if (d.type === 'setTranslatedVideos') {
           if (Array.isArray(d.payload)) {

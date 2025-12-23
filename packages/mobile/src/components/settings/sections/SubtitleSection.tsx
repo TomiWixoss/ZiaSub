@@ -53,7 +53,7 @@ const SubtitleSection: React.FC<SubtitleSectionProps> = ({
   };
 
   const handlePositionChange = (
-    key: "portraitBottom" | "landscapeBottom",
+    key: "portraitBottom" | "landscapeBottom" | "desktopBottom",
     value: number
   ) => {
     const newSettings = { ...subtitleSettings, [key]: value };
@@ -235,6 +235,26 @@ const SubtitleSection: React.FC<SubtitleSectionProps> = ({
             }
           />
         </View>
+        <View style={styles.desktopPositionRow}>
+          <Text style={themedStyles.settingLabel}>
+            {t("settings.subtitle.desktopPosition", {
+              value: subtitleSettings.desktopBottom ?? 60,
+            })}
+          </Text>
+          <Slider
+            style={styles.slider}
+            minimumValue={0}
+            maximumValue={200}
+            step={5}
+            value={subtitleSettings.desktopBottom ?? 60}
+            onValueChange={(value) =>
+              handlePositionChange("desktopBottom", value)
+            }
+            minimumTrackTintColor={colors.primary}
+            maximumTrackTintColor={colors.border}
+            thumbTintColor={colors.primary}
+          />
+        </View>
       </View>
     </>
   );
@@ -274,6 +294,9 @@ const styles = StyleSheet.create({
   switchInfo: {
     flex: 1,
     marginRight: 12,
+  },
+  desktopPositionRow: {
+    marginTop: 16,
   },
 });
 
