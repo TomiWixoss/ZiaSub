@@ -804,8 +804,9 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
           onRangeEndChange={setRangeEndStr}
           videoDuration={videoDuration}
         />
+        {/* Only show TranslationProgress for full video translation, not batch retranslation */}
         <TranslationProgress
-          isTranslating={isTranslating}
+          isTranslating={isTranslating && !batchRetranslateJob}
           translateStatus={translateStatus}
           keyStatus={keyStatus}
           batchProgress={batchProgress}
@@ -859,7 +860,8 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
               />
             )}
           </View>
-        ) : isTranslating ? (
+        ) : isTranslating && !batchRetranslateJob ? (
+          // Only show stop button for full video translation, not batch retranslation
           <Button3D
             onPress={() => {
               if (videoUrl) {
