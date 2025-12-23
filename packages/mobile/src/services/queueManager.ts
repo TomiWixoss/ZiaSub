@@ -663,12 +663,30 @@ class QueueManager {
           item.duration || Infinity
         );
 
-        // Get existing translation SRT
+        // Get existing translation SRT - use savedTranslationId if available
         const videoData = await getVideoTranslations(item.videoUrl);
-        const existingTranslation = videoData?.translations?.[0];
+        let existingTranslation = item.savedTranslationId
+          ? videoData?.translations?.find(
+              (t) => t.id === item.savedTranslationId
+            )
+          : videoData?.translations?.[0];
+
+        if (!existingTranslation) {
+          // Fallback to first translation
+          existingTranslation = videoData?.translations?.[0];
+        }
+
         if (!existingTranslation) {
           throw new Error("Không tìm thấy bản dịch để dịch lại");
         }
+
+        // Update progress immediately to show "đang dịch" instead of "đang chờ"
+        await this.updateItem(item.id, {
+          progress: {
+            completed: 0,
+            total: 1,
+          },
+        });
 
         await translationManager.translateSingleBatch(
           item.videoUrl,
@@ -679,6 +697,8 @@ class QueueManager {
           item.duration,
           existingTranslation.id
         );
+
+        // Note: Progress is updated via subscription when translateSingleBatch notifies
       } else {
         // Full translation
         await translationManager.startTranslation(

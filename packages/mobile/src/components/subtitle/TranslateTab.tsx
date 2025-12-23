@@ -250,6 +250,7 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
                 batchItem.retranslateMode === "single"
                   ? (batchItem.retranslateBatchIndex + 1) * batchDuration
                   : batchItem.duration,
+              existingTranslationId: batchItem.savedTranslationId, // Track which translation is being retranslated
             });
           }
         } else {
@@ -917,8 +918,12 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
           }}
           onResumeBatchRetranslate={async () => {
             if (videoUrl && pausedBatchRetranslation) {
-              // Find the translation to retranslate
-              const translation = savedTranslations[0]; // Use first translation
+              // Find the translation being retranslated using translationId
+              const translation = pausedBatchRetranslation.translationId
+                ? savedTranslations.find(
+                    (t) => t.id === pausedBatchRetranslation.translationId
+                  )
+                : savedTranslations[0]; // Fallback to first translation
               if (translation) {
                 // Skip confirm since user already confirmed in queue modal
                 handleRetranslateBatch(
