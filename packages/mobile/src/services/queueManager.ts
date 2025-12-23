@@ -61,9 +61,8 @@ class QueueManager {
             return {
               ...item,
               status: "paused" as QueueStatus,
-              // Set default values if not present
+              // Only set completedBatches if not present (don't override totalBatches)
               completedBatches: item.completedBatches ?? 0,
-              totalBatches: item.totalBatches ?? 1,
             };
           }
           return item;
