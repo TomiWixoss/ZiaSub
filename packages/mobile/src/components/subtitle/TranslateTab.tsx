@@ -999,9 +999,18 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
         ) : isTranslating && !batchRetranslateJob ? (
           // Only show stop button for full video translation, not batch retranslation
           <Button3D
-            onPress={() => {
+            onPress={async () => {
               if (videoUrl) {
-                translationManager.abortTranslation(videoUrl);
+                // Use queueManager to stop translation properly
+                // This ensures queue state is updated and next video can be processed
+                const { queueManager } = await import("@services/queueManager");
+                const queueItem = queueManager.isInQueue(videoUrl);
+                if (queueItem && queueItem.status === "translating") {
+                  await queueManager.stopTranslation(queueItem.id);
+                } else {
+                  // Fallback: direct abort if not in queue
+                  await translationManager.abortTranslation(videoUrl);
+                }
               }
             }}
             icon="stop"

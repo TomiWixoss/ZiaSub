@@ -91,6 +91,9 @@ class QueueManager {
   // NOTE: This is only for logging/debugging - actual queue continuation is handled in processItem's subscription
   private subscribeToTranslationManager(): void {
     this.translationManagerUnsubscribe = translationManager.subscribe((job) => {
+      // Skip if job is null or missing videoUrl
+      if (!job || !job.videoUrl) return;
+
       // When a job completes or errors, check if it was a direct translation
       if (job.status === "completed" || job.status === "error") {
         const isQueueItem = this.items.some(
@@ -448,8 +451,8 @@ class QueueManager {
       }
     };
     const unsubscribe = translationManager.subscribe((job) => {
-      // Skip if already unsubscribed
-      if (hasUnsubscribed) return;
+      // Skip if already unsubscribed or job is null
+      if (hasUnsubscribed || !job || !job.videoUrl) return;
 
       // Skip notifications from old jobs (before our new job started)
       // This prevents processing error status from previous aborted job
@@ -564,10 +567,9 @@ class QueueManager {
           // Check if this was a user-initiated stop - if so, stopTranslation already handled it
           const wasUserStopped = this.userStoppedItemId === currentItemId;
           if (wasUserStopped) {
-            // User stopped - stopTranslation() already handled the state update
-            // Just cleanup subscription and return
-            this.isProcessing = false;
-            this.currentProcessingItemId = null;
+            // User stopped - stopTranslation() already handled the state update and processNextInQueue
+            // Just cleanup subscription and return - DON'T reset isProcessing here
+            // stopTranslation will handle isProcessing reset after it finishes
             safeUnsubscribe();
             return;
           }
@@ -652,21 +654,16 @@ class QueueManager {
   private async processNextInQueue(): Promise<void> {
     // Only continue if auto-process is enabled
     if (!this.autoProcessEnabled) {
-      console.log("[QueueManager] Auto-process disabled, not continuing");
       return;
     }
 
     // Prevent concurrent calls
     if (this.isProcessing) {
-      console.log(
-        "[QueueManager] Already processing, skipping processNextInQueue"
-      );
       return;
     }
 
     // Check if translationManager is already busy (e.g., user translating directly)
     if (translationManager.isTranslating()) {
-      console.log("[QueueManager] translationManager busy, waiting...");
       return;
     }
 
@@ -696,9 +693,6 @@ class QueueManager {
 
     // No more translating items - disable auto-process
     // Don't automatically pick up pending items - user must explicitly start them
-    console.log(
-      "[QueueManager] No more translating items, disabling auto-process"
-    );
     this.autoProcessEnabled = false;
   }
 
@@ -1167,8 +1161,7 @@ class QueueManager {
     // Add to user paused items - this item won't auto-resume in processNextInQueue
     this.userPausedItems.add(itemId);
 
-    // Disable auto-process to prevent queue from continuing with this item
-    // User can manually resume or restart auto-process later
+    // Save auto-process state BEFORE any changes
     const wasAutoProcessEnabled = this.autoProcessEnabled;
 
     // Check if this specific item is currently being processed by translationManager
@@ -1179,61 +1172,62 @@ class QueueManager {
     if (isThisItemProcessing) {
       // This item is actively being translated - abort it (now async)
       const result = await translationManager.abortTranslation(item.videoUrl);
-      if (result.aborted) {
-        this.isProcessing = false;
-        this.currentProcessingItemId = null;
 
-        // Only stop background service if no more items to process in queue
-        const remainingItems = this.items.filter(
-          (i) =>
-            (i.status === "translating" || i.status === "pending") &&
-            i.id !== itemId &&
-            !this.userPausedItems.has(i.id)
-        );
-        if (remainingItems.length === 0 || !wasAutoProcessEnabled) {
-          await backgroundService.onTranslationStop();
+      // Always reset processing state after abort attempt
+      this.isProcessing = false;
+      this.currentProcessingItemId = null;
+
+      // Only stop background service if no more items to process in queue
+      const remainingItems = this.items.filter(
+        (i) =>
+          (i.status === "translating" || i.status === "pending") &&
+          i.id !== itemId &&
+          !this.userPausedItems.has(i.id)
+      );
+
+      if (remainingItems.length === 0 || !wasAutoProcessEnabled) {
+        await backgroundService.onTranslationStop();
+      }
+
+      // Check if has partial data
+      if (
+        result.partialResult &&
+        result.completedRanges &&
+        result.completedRanges.length > 0
+      ) {
+        // Move to paused with partial data
+        await this.updateItem(itemId, {
+          status: "paused",
+          partialSrt: result.partialResult,
+          completedBatchRanges: result.completedRanges,
+          completedBatches: result.completedRanges.length,
+          progress: undefined, // Clear progress to show paused state
+          error: undefined,
+        });
+      } else {
+        // No partial - move to paused anyway (video with single part)
+        await this.updateItem(itemId, {
+          status: "paused",
+          completedBatches: 0,
+          totalBatches: 1,
+          error: undefined,
+          progress: undefined,
+        });
+      }
+
+      // Clear the user stopped flag after handling
+      // Use setTimeout to ensure all callbacks have processed
+      // Clear AFTER processNextInQueue delay (1500ms > 1000ms)
+      setTimeout(() => {
+        if (this.userStoppedItemId === itemId) {
+          this.userStoppedItemId = null;
         }
+      }, 1500);
 
-        // Check if has partial data
-        if (
-          result.partialResult &&
-          result.completedRanges &&
-          result.completedRanges.length > 0
-        ) {
-          // Move to paused with partial data
-          await this.updateItem(itemId, {
-            status: "paused",
-            partialSrt: result.partialResult,
-            completedBatchRanges: result.completedRanges,
-            completedBatches: result.completedRanges.length,
-            progress: undefined, // Clear progress to show paused state
-            error: undefined,
-          });
-        } else {
-          // No partial - move to paused anyway (video with single part)
-          await this.updateItem(itemId, {
-            status: "paused",
-            completedBatches: 0,
-            totalBatches: 1,
-            error: undefined,
-            progress: undefined,
-          });
-        }
-
-        // Clear the user stopped flag after handling
-        // Use setTimeout to ensure all callbacks have processed
-        // Clear AFTER processNextInQueue delay (1500ms > 1000ms)
-        setTimeout(() => {
-          if (this.userStoppedItemId === itemId) {
-            this.userStoppedItemId = null;
-          }
-        }, 1500);
-
-        // Process next item in queue if auto-process was enabled
-        if (wasAutoProcessEnabled) {
-          // Small delay to ensure state is settled
-          setTimeout(() => this.processNextInQueue(), 1000);
-        }
+      // Process next item in queue if auto-process was enabled
+      if (wasAutoProcessEnabled) {
+        // Small delay to ensure state is settled
+        setTimeout(() => this.processNextInQueue(), 1000);
       }
     } else {
       // Item is in translating queue but not actively being processed

@@ -389,11 +389,6 @@ class TranslationManager {
             presetId,
           }
         );
-        console.log(
-          "[TranslationManager] Saved partial translation immediately:",
-          completedRanges.length,
-          "batches"
-        );
       } catch (saveError) {
         console.error(
           "[TranslationManager] Failed to save partial:",
@@ -404,7 +399,11 @@ class TranslationManager {
 
     // Abort the signal (this will eventually trigger catch block, but we don't wait)
     if (this.abortController) {
-      this.abortController.abort();
+      try {
+        this.abortController.abort();
+      } catch (abortError) {
+        // Ignore abort errors
+      }
       this.abortController = null;
     }
 
@@ -417,7 +416,12 @@ class TranslationManager {
         : "Đã dừng dịch",
       completedAt: Date.now(),
     };
-    this.notify();
+
+    try {
+      this.notify();
+    } catch (notifyError) {
+      // Ignore notify errors - subscribers may have stale references
+    }
 
     return { aborted: true, partialResult, completedRanges };
   }

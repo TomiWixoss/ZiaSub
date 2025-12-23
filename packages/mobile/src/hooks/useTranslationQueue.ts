@@ -194,6 +194,9 @@ export const useTranslationQueue = ({
   // Subscribe to translation manager for auto-apply
   useEffect(() => {
     const unsubscribe = translationManager.subscribe((job) => {
+      // Skip if job is null or missing videoUrl
+      if (!job || !job.videoUrl) return;
+
       const jobVideoId = extractVideoId(job.videoUrl);
       const currentVideoId = extractVideoId(currentUrlRef.current);
 
