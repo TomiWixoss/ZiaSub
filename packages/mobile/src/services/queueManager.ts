@@ -751,28 +751,73 @@ class QueueManager {
     });
   }
 
-  // Remove from queue
+  // Remove from queue - also aborts if video is being translated
   async removeFromQueue(itemId: string): Promise<void> {
+    const item = this.items.find((i) => i.id === itemId);
+    if (!item) return;
+
+    // Set flag to indicate this item is being removed
+    // This prevents subscription from handling the abort error
+    this.removingItemId = itemId;
+
+    // If this video is currently being translated, abort it
+    if (translationManager.isTranslatingUrl(item.videoUrl)) {
+      const result = await translationManager.abortTranslation(item.videoUrl);
+      if (result.aborted) {
+        this.isProcessing = false;
+        this.currentProcessingItemId = null;
+        await backgroundService.onTranslationStop();
+      }
+    }
+
     // Clear from user paused items
-    this.userPausedItems.delete(itemId);
+    this.userPausedItems.delete(item.id);
 
     this.items = this.items.filter((i) => i.id !== itemId);
     await this.save();
     this.notify();
+
+    // Clear the removing flag after a delay (to ensure subscription has processed)
+    setTimeout(() => {
+      if (this.removingItemId === itemId) {
+        this.removingItemId = null;
+      }
+    }, 500);
   }
 
-  // Remove from queue by video URL
+  // Remove from queue by video URL - also aborts if video is being translated
   async removeFromQueueByUrl(videoUrl: string): Promise<void> {
     const videoId = this.extractVideoId(videoUrl);
     const item = this.items.find((i) => i.videoId === videoId);
-    if (item) {
-      // Clear from user paused items
-      this.userPausedItems.delete(item.id);
+    if (!item) return;
 
-      this.items = this.items.filter((i) => i.id !== item.id);
-      await this.save();
-      this.notify();
+    // Set flag to indicate this item is being removed
+    // This prevents subscription from handling the abort error
+    this.removingItemId = item.id;
+
+    // If this video is currently being translated, abort it
+    if (translationManager.isTranslatingUrl(item.videoUrl)) {
+      const result = await translationManager.abortTranslation(item.videoUrl);
+      if (result.aborted) {
+        this.isProcessing = false;
+        this.currentProcessingItemId = null;
+        await backgroundService.onTranslationStop();
+      }
     }
+
+    // Clear from user paused items
+    this.userPausedItems.delete(item.id);
+
+    this.items = this.items.filter((i) => i.id !== item.id);
+    await this.save();
+    this.notify();
+
+    // Clear the removing flag after a delay (to ensure subscription has processed)
+    setTimeout(() => {
+      if (this.removingItemId === item.id) {
+        this.removingItemId = null;
+      }
+    }, 500);
   }
 
   // Get items by status with pagination
@@ -1133,12 +1178,13 @@ class QueueManager {
     this.removingItemId = itemId;
     const wasAutoProcessEnabled = this.autoProcessEnabled;
 
-    // If this item is currently being processed, abort it (now async)
-    if (item.status === "translating" && this.isProcessing) {
+    // If this video is currently being translated (by queue or direct), abort it
+    if (translationManager.isTranslatingUrl(item.videoUrl)) {
       const result = await translationManager.abortTranslation(item.videoUrl);
       if (result.aborted) {
         this.isProcessing = false;
         this.currentProcessingItemId = null;
+        await backgroundService.onTranslationStop();
       }
     }
 

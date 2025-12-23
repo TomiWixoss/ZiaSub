@@ -204,7 +204,16 @@ export const useTranslationQueue = ({
           setIsTranslating(false);
           setTranslationProgress(null);
           currentTranslatingUrlRef.current = null;
-          checkQueueStatus();
+          // Check if video was removed from queue (isBeingRemoved)
+          // If so, also reset waiting/paused states
+          if (queueManager.isBeingRemoved(job.videoUrl)) {
+            setIsWaitingInQueue(false);
+            setIsPausedInQueue(false);
+            setQueuePosition(null);
+            setPausedProgress(null);
+          } else {
+            checkQueueStatus();
+          }
         }
       } else {
         // Different video is being translated - ensure current video shows correct state
