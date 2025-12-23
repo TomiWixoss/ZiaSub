@@ -781,6 +781,14 @@ class QueueManager {
     this.notify();
   }
 
+  // Public method to update queue item progress (used by TranslateTab for immediate progress update)
+  async updateQueueItemProgress(
+    itemId: string,
+    progress: { completed: number; total: number }
+  ): Promise<void> {
+    await this.updateItem(itemId, { progress });
+  }
+
   // Move to pending (re-queue) - clear old config so it uses new config when translated
   async moveToPending(itemId: string): Promise<void> {
     // Clear from user paused items

@@ -551,7 +551,7 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
       // Sync to queue before starting translation (so it shows in queue UI)
       // Pass all config info to preserve translation settings
       const { queueManager } = await import("@services/queueManager");
-      await queueManager.syncDirectTranslation(
+      const queueItem = await queueManager.syncDirectTranslation(
         videoUrl,
         videoTitle,
         videoDuration,
@@ -568,6 +568,18 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
       // Track which translation is being retranslated (for fromHere mode)
       if (retranslateBatchIndex !== undefined && resumeTranslation?.id) {
         setRetranslatingTranslationId(resumeTranslation.id);
+
+        // Update progress immediately to show "đang dịch" instead of "đang chờ"
+        // For fromHere mode, calculate total batches based on remaining batches
+        const batchDuration = effectiveBatchSettings?.maxVideoDuration || 600;
+        const totalBatches = Math.ceil((videoDuration || 0) / batchDuration);
+        const remainingBatches = totalBatches - retranslateBatchIndex;
+        if (queueItem && remainingBatches > 0) {
+          await queueManager.updateQueueItemProgress(queueItem.id, {
+            completed: 0,
+            total: remainingBatches,
+          });
+        }
       }
 
       translationManager.startTranslation(
