@@ -1032,6 +1032,7 @@ class QueueManager {
     this.userPausedItems.add(item.id);
 
     // Always move to paused status (whether has partial data or not)
+    // Keep retranslateBatchIndex and retranslateMode for batch retranslation
     await this.updateItem(item.id, {
       status: "paused",
       progress: undefined, // Clear progress to show paused
@@ -1040,7 +1041,63 @@ class QueueManager {
       completedBatches: partialData?.completedBatches ?? 0,
       totalBatches: partialData?.totalBatches ?? 1,
       error: undefined,
+      // Keep batch retranslation info for resume
+      // retranslateBatchIndex and retranslateMode are preserved
     });
+  }
+
+  // Pause batch retranslation - move to paused status while keeping batch info
+  async pauseBatchRetranslation(videoUrl: string): Promise<void> {
+    const videoId = this.extractVideoId(videoUrl);
+    const item = this.items.find((i) => i.videoId === videoId);
+    if (!item || item.retranslateBatchIndex === undefined) return;
+
+    // Add to userPausedItems to prevent auto-resume
+    this.userPausedItems.add(item.id);
+
+    // Move to paused status - keep retranslateBatchIndex and retranslateMode
+    await this.updateItem(item.id, {
+      status: "paused",
+      progress: undefined,
+      error: undefined,
+      // Keep batch retranslation info
+      // retranslateBatchIndex and retranslateMode are preserved automatically
+    });
+  }
+
+  // Resume batch retranslation
+  async resumeBatchRetranslation(
+    videoUrl: string
+  ): Promise<{ success: boolean; item?: QueueItem }> {
+    const videoId = this.extractVideoId(videoUrl);
+    const item = this.items.find((i) => i.videoId === videoId);
+    if (!item || item.retranslateBatchIndex === undefined) {
+      return { success: false };
+    }
+
+    // Clear from user paused items
+    this.userPausedItems.delete(item.id);
+
+    // Move back to translating status
+    await this.updateItem(item.id, {
+      status: "translating",
+      startedAt: Date.now(),
+      error: undefined,
+    });
+
+    return { success: true, item: this.items.find((i) => i.id === item.id) };
+  }
+
+  // Get paused batch retranslation info for a video
+  getPausedBatchRetranslation(videoUrl: string): QueueItem | null {
+    const videoId = this.extractVideoId(videoUrl);
+    const item = this.items.find(
+      (i) =>
+        i.videoId === videoId &&
+        i.status === "paused" &&
+        i.retranslateBatchIndex !== undefined
+    );
+    return item || null;
   }
 
   // Mark video as error

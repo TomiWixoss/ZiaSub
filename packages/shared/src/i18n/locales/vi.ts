@@ -604,6 +604,9 @@ export default {
       errorMessage: "Không thể dịch video này.",
       stopTranslation: "Dừng dịch",
       stopRetranslate: "Dừng dịch lại",
+      pauseRetranslate: "Tạm dừng",
+      resumeBatchSingle: "Tiếp tục phần {{batch}}",
+      resumeBatchFrom: "Tiếp tục từ phần {{batch}}",
 
       // Batch viewer
       batchList: "Các phần đã dịch",

@@ -107,6 +107,11 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
   // Track batch retranslation job (for single batch or fromHere mode)
   const [batchRetranslateJob, setBatchRetranslateJob] =
     useState<TranslationJob | null>(null);
+  // Track paused batch retranslation (from queue)
+  const [pausedBatchRetranslation, setPausedBatchRetranslation] = useState<{
+    batchIndex: number;
+    mode: "single" | "fromHere";
+  } | null>(null);
 
   // Detect current preset from selected config
   useEffect(() => {
@@ -173,6 +178,51 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
       loadTranslations();
     }
   }, [visible, videoUrl, loadTranslations]);
+
+  // Check for paused batch retranslation from queue
+  useEffect(() => {
+    if (!videoUrl) {
+      setPausedBatchRetranslation(null);
+      return;
+    }
+
+    const checkPausedBatch = async () => {
+      const { queueManager } = await import("@services/queueManager");
+      const pausedItem = queueManager.getPausedBatchRetranslation(videoUrl);
+      if (
+        pausedItem &&
+        pausedItem.retranslateBatchIndex !== undefined &&
+        pausedItem.retranslateMode
+      ) {
+        setPausedBatchRetranslation({
+          batchIndex: pausedItem.retranslateBatchIndex,
+          mode: pausedItem.retranslateMode,
+        });
+      } else {
+        setPausedBatchRetranslation(null);
+      }
+    };
+
+    checkPausedBatch();
+
+    // Subscribe to queue changes to update paused state
+    const setupSubscription = async () => {
+      const { queueManager } = await import("@services/queueManager");
+      return queueManager.subscribe(() => {
+        checkPausedBatch();
+      });
+    };
+
+    let unsubscribe: (() => void) | null = null;
+    setupSubscription().then((unsub) => {
+      unsubscribe = unsub;
+    });
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [videoUrl]);
+
   // Subscribe to translationManager to track batch retranslation
   useEffect(() => {
     if (!videoUrl) return;
@@ -203,6 +253,8 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
       ) {
         if (job.status === "processing") {
           setBatchRetranslateJob(job);
+          // Clear paused state when job starts
+          setPausedBatchRetranslation(null);
         } else if (job.status === "completed" || job.status === "error") {
           setBatchRetranslateJob(null);
           // Reload translations when batch retranslation completes
@@ -764,15 +816,32 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
           onDelete={handleDeleteTranslation}
           onResume={handleResumeTranslation}
           onRetranslateBatch={handleRetranslateBatch}
-          onStopBatchRetranslate={() => {
+          onStopBatchRetranslate={async () => {
             if (videoUrl) {
-              translationManager.abortTranslation(videoUrl);
+              // Abort translation and pause in queue
+              await translationManager.abortTranslation(videoUrl);
+              const { queueManager } = await import("@services/queueManager");
+              await queueManager.pauseBatchRetranslation(videoUrl);
+            }
+          }}
+          onResumeBatchRetranslate={async () => {
+            if (videoUrl && pausedBatchRetranslation) {
+              // Find the translation to retranslate
+              const translation = savedTranslations[0]; // Use first translation
+              if (translation) {
+                handleRetranslateBatch(
+                  translation,
+                  pausedBatchRetranslation.batchIndex,
+                  pausedBatchRetranslation.mode
+                );
+              }
             }
           }}
           videoDuration={videoDuration}
           isPausedInQueue={isPausedInQueue}
           isTranslating={isTranslating}
           batchRetranslateJob={batchRetranslateJob}
+          pausedBatchRetranslation={pausedBatchRetranslation}
         />
         {!hasApiKey && (
           <View style={themedStyles.warningContainer}>

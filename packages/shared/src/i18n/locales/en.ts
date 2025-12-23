@@ -604,6 +604,9 @@ export default {
       errorMessage: "Cannot translate this video.",
       stopTranslation: "Stop translation",
       stopRetranslate: "Stop retranslation",
+      pauseRetranslate: "Pause",
+      resumeBatchSingle: "Resume part {{batch}}",
+      resumeBatchFrom: "Resume from part {{batch}}",
 
       // Batch viewer
       batchList: "Translation batches",

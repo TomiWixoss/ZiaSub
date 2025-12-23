@@ -158,6 +158,10 @@ export const createTranslateStyles = (colors: ThemeColors) =>
       backgroundColor: colors.error + "20",
       borderColor: colors.error,
     },
+    batchChipPaused: {
+      backgroundColor: colors.warning,
+      borderColor: colors.warning,
+    },
     batchChipText: {
       color: colors.textMuted,
       fontSize: 12,
