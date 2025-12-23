@@ -577,7 +577,8 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
   const handleRetranslateBatch = (
     translation: SavedTranslation,
     batchIndex: number,
-    mode: "single" | "fromHere"
+    mode: "single" | "fromHere",
+    skipConfirm: boolean = false
   ) => {
     // IMPORTANT: Use original batch settings from the translation
     const originalBatchDuration =
@@ -595,158 +596,169 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
       translation.videoDuration || videoDuration || Infinity
     );
 
+    // Helper function to execute the actual retranslation
+    const executeRetranslate = async () => {
+      // IMPORTANT: Use saved config from translation, not current selected config
+      const savedConfigId = translation.configName
+        ? geminiConfigs.find((c) => c.name === translation.configName)?.id
+        : null;
+      const config = geminiConfigs.find(
+        (c) => c.id === (savedConfigId || selectedConfigId)
+      );
+      if (!config) {
+        alert(
+          t("subtitleModal.translate.notSelected"),
+          t("subtitleModal.translate.notSelectedMessage")
+        );
+        return;
+      }
+      if (!videoUrl) return;
+
+      const { queueManager } = await import("@services/queueManager");
+
+      if (translationManager.isTranslating()) {
+        // Add to queue instead of blocking (with batch retranslation info)
+        await queueManager.syncDirectTranslation(
+          videoUrl,
+          videoTitle,
+          videoDuration,
+          config.name,
+          true, // forceRetranslate
+          config.id,
+          translation.presetId ?? config.presetId, // Use saved presetId
+          translation.batchSettings,
+          batchIndex, // retranslateBatchIndex
+          mode // retranslateMode
+        );
+        alert(t("common.notice"), t("queue.addedToWaitingQueue"));
+        return;
+      }
+
+      try {
+        // Create effective config with saved presetId
+        const effectiveConfig = translation.presetId
+          ? { ...config, presetId: translation.presetId }
+          : config;
+
+        // Sync to queue BEFORE starting translation (so it shows in queue UI)
+        await queueManager.syncDirectTranslation(
+          videoUrl,
+          videoTitle,
+          videoDuration,
+          effectiveConfig.name,
+          true, // forceRetranslate
+          effectiveConfig.id,
+          effectiveConfig.presetId,
+          translation.batchSettings,
+          batchIndex, // retranslateBatchIndex
+          mode // retranslateMode
+        );
+
+        // Use translationManager to handle single batch translation
+        const updatedSrt = await translationManager.translateSingleBatch(
+          videoUrl,
+          effectiveConfig,
+          translation.srtContent,
+          batchStart,
+          batchEnd,
+          translation.videoDuration || videoDuration,
+          translation.id // Pass existing translation ID to update instead of creating new
+        );
+
+        // Clear batch retranslation mode from queue (mark as completed)
+        await queueManager.clearBatchRetranslateMode(videoUrl);
+
+        await loadTranslations();
+        onSelectTranslation(updatedSrt);
+
+        alert(
+          t("common.success"),
+          t("subtitleModal.translate.batchRetranslated", {
+            batch: batchIndex + 1,
+          })
+        );
+      } catch (error: any) {
+        // Clear batch retranslation mode on error too
+        await queueManager.clearBatchRetranslateMode(videoUrl);
+
+        if (error.message !== "Đã dừng dịch") {
+          alert(
+            t("subtitleModal.translate.error"),
+            error.message || t("errors.generic")
+          );
+        }
+      }
+    };
+
     if (mode === "single") {
       // Mode 1: Retranslate ONLY this batch, keep before and after
-      confirm(
-        t("subtitleModal.translate.retranslateSingleTitle"),
-        t("subtitleModal.translate.retranslateSingleConfirm", {
-          batch: batchIndex + 1,
-          total: totalBatches,
-        }),
-        async () => {
-          // IMPORTANT: Use saved config from translation, not current selected config
-          const savedConfigId = translation.configName
-            ? geminiConfigs.find((c) => c.name === translation.configName)?.id
-            : null;
-          const config = geminiConfigs.find(
-            (c) => c.id === (savedConfigId || selectedConfigId)
-          );
-          if (!config) {
-            alert(
-              t("subtitleModal.translate.notSelected"),
-              t("subtitleModal.translate.notSelectedMessage")
-            );
-            return;
-          }
-          if (!videoUrl) return;
-
-          const { queueManager } = await import("@services/queueManager");
-
-          if (translationManager.isTranslating()) {
-            // Add to queue instead of blocking (with batch retranslation info)
-            await queueManager.syncDirectTranslation(
-              videoUrl,
-              videoTitle,
-              videoDuration,
-              config.name,
-              true, // forceRetranslate
-              config.id,
-              translation.presetId ?? config.presetId, // Use saved presetId
-              translation.batchSettings,
-              batchIndex, // retranslateBatchIndex
-              "single" // retranslateMode
-            );
-            alert(t("common.notice"), t("queue.addedToWaitingQueue"));
-            return;
-          }
-
-          try {
-            // Create effective config with saved presetId
-            const effectiveConfig = translation.presetId
-              ? { ...config, presetId: translation.presetId }
-              : config;
-
-            // Sync to queue BEFORE starting translation (so it shows in queue UI)
-            await queueManager.syncDirectTranslation(
-              videoUrl,
-              videoTitle,
-              videoDuration,
-              effectiveConfig.name,
-              true, // forceRetranslate
-              effectiveConfig.id,
-              effectiveConfig.presetId,
-              translation.batchSettings,
-              batchIndex, // retranslateBatchIndex
-              "single" // retranslateMode
-            );
-
-            // Use translationManager to handle single batch translation
-            const updatedSrt = await translationManager.translateSingleBatch(
-              videoUrl,
-              effectiveConfig,
-              translation.srtContent,
-              batchStart,
-              batchEnd,
-              translation.videoDuration || videoDuration,
-              translation.id // Pass existing translation ID to update instead of creating new
-            );
-
-            // Clear batch retranslation mode from queue (mark as completed)
-            await queueManager.clearBatchRetranslateMode(videoUrl);
-
-            await loadTranslations();
-            onSelectTranslation(updatedSrt);
-
-            alert(
-              t("common.success"),
-              t("subtitleModal.translate.batchRetranslated", {
-                batch: batchIndex + 1,
-              })
-            );
-          } catch (error: any) {
-            // Clear batch retranslation mode on error too
-            await queueManager.clearBatchRetranslateMode(videoUrl);
-
-            if (error.message !== "Đã dừng dịch") {
-              alert(
-                t("subtitleModal.translate.error"),
-                error.message || t("errors.generic")
-              );
-            }
-          }
-        },
-        t("subtitleModal.translate.retranslate")
-      );
+      if (skipConfirm) {
+        executeRetranslate();
+      } else {
+        confirm(
+          t("subtitleModal.translate.retranslateSingleTitle"),
+          t("subtitleModal.translate.retranslateSingleConfirm", {
+            batch: batchIndex + 1,
+            total: totalBatches,
+          }),
+          executeRetranslate,
+          t("subtitleModal.translate.retranslate")
+        );
+      }
     } else {
       // Mode 2: Retranslate FROM this batch onwards
-      confirm(
-        t("subtitleModal.translate.retranslateFromTitle"),
-        t("subtitleModal.translate.retranslateFromConfirm", {
-          from: batchIndex + 1,
-          total: totalBatches,
-        }),
-        () => {
-          // Keep batches before batchIndex
-          const parsed = parseSRT(translation.srtContent);
-          const keptSubtitles = parsed.filter(
-            (sub) => sub.endTime <= batchStart
-          );
-          const partialSrt = rebuildSrt(keptSubtitles);
+      const executeFromHere = () => {
+        // Keep batches before batchIndex
+        const parsed = parseSRT(translation.srtContent);
+        const keptSubtitles = parsed.filter((sub) => sub.endTime <= batchStart);
+        const partialSrt = rebuildSrt(keptSubtitles);
 
-          // Build completed ranges
-          const completedRanges: Array<{ start: number; end: number }> = [];
-          for (let i = 0; i < batchIndex; i++) {
-            completedRanges.push({
-              start: i * originalBatchDuration,
-              end: Math.min(
-                (i + 1) * originalBatchDuration,
-                translation.videoDuration || videoDuration || Infinity
-              ),
-            });
-          }
+        // Build completed ranges
+        const completedRanges: Array<{ start: number; end: number }> = [];
+        for (let i = 0; i < batchIndex; i++) {
+          completedRanges.push({
+            start: i * originalBatchDuration,
+            end: Math.min(
+              (i + 1) * originalBatchDuration,
+              translation.videoDuration || videoDuration || Infinity
+            ),
+          });
+        }
 
-          // Create modified translation for resume
-          const modifiedTranslation: SavedTranslation = {
-            ...translation,
-            srtContent: partialSrt,
-            isPartial: true,
-            completedBatches: batchIndex,
-            totalBatches: totalBatches,
-            batchSettings: translation.batchSettings || {
-              maxVideoDuration: originalBatchDuration,
-              maxConcurrentBatches: batchSettings?.maxConcurrentBatches || 1,
-              batchOffset: batchSettings?.batchOffset || 60,
-              streamingMode: true,
-              presubMode: false,
-              presubDuration: 120,
-            },
-          };
+        // Create modified translation for resume
+        const modifiedTranslation: SavedTranslation = {
+          ...translation,
+          srtContent: partialSrt,
+          isPartial: true,
+          completedBatches: batchIndex,
+          totalBatches: totalBatches,
+          batchSettings: translation.batchSettings || {
+            maxVideoDuration: originalBatchDuration,
+            maxConcurrentBatches: batchSettings?.maxConcurrentBatches || 1,
+            batchOffset: batchSettings?.batchOffset || 60,
+            streamingMode: true,
+            presubMode: false,
+            presubDuration: 120,
+          },
+        };
 
-          // Pass batch retranslation info to show in queue
-          handleTranslate(modifiedTranslation, batchIndex, "fromHere");
-        },
-        t("subtitleModal.translate.retranslate")
-      );
+        // Pass batch retranslation info to show in queue
+        handleTranslate(modifiedTranslation, batchIndex, "fromHere");
+      };
+
+      if (skipConfirm) {
+        executeFromHere();
+      } else {
+        confirm(
+          t("subtitleModal.translate.retranslateFromTitle"),
+          t("subtitleModal.translate.retranslateFromConfirm", {
+            from: batchIndex + 1,
+            total: totalBatches,
+          }),
+          executeFromHere,
+          t("subtitleModal.translate.retranslate")
+        );
+      }
     }
   };
 
@@ -833,10 +845,12 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
               // Find the translation to retranslate
               const translation = savedTranslations[0]; // Use first translation
               if (translation) {
+                // Skip confirm since user already confirmed in queue modal
                 handleRetranslateBatch(
                   translation,
                   pausedBatchRetranslation.batchIndex,
-                  pausedBatchRetranslation.mode
+                  pausedBatchRetranslation.mode,
+                  true // skipConfirm
                 );
               }
             }

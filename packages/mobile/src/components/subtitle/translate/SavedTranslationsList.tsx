@@ -220,9 +220,8 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
     return parts.length > 0 ? parts.join(" • ") : null;
   };
 
-  if (translations.length === 0) return null;
-
   // Auto-expand first translation when there's a batch retranslation in progress or paused
+  // Must be before early return to maintain hooks order
   React.useEffect(() => {
     if (
       (batchRetranslateJob || pausedBatchRetranslation) &&
@@ -232,6 +231,8 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
       setExpandedId(translations[0].id);
     }
   }, [batchRetranslateJob, pausedBatchRetranslation, translations, expandedId]);
+
+  if (translations.length === 0) return null;
 
   const getProgressPercent = (item: SavedTranslation) => {
     if (!item.isPartial || !item.totalBatches) return 100;
