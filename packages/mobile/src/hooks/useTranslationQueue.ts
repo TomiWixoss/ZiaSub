@@ -2,7 +2,7 @@
  * Hook for managing translation queue
  */
 import { useState, useEffect, useCallback, useRef } from "react";
-import { queueManager, QueueItem } from "@services/queueManager";
+import { queueManager } from "@services/queueManager";
 import { translationManager } from "@services/translationManager";
 import { extractVideoId } from "@utils/videoUtils";
 import {
@@ -74,6 +74,15 @@ export const useTranslationQueue = ({
     setPausedProgress(null);
 
     if (queueStatus.inQueue && queueStatus.status === "translating") {
+      // Check if this is a batch retranslation - should NOT show as waiting
+      const queueItem = queueManager.isInQueue(currentUrlRef.current);
+      if (queueItem?.retranslateBatchIndex !== undefined) {
+        // Batch retranslation - don't show waiting state, let user do other things
+        setIsWaitingInQueue(false);
+        setQueuePosition(null);
+        return;
+      }
+
       // Video is in translating queue - check if it's actually being translated
       const currentJob = translationManager.getCurrentJob();
       const currentVideoId = extractVideoId(currentUrlRef.current);
@@ -86,9 +95,18 @@ export const useTranslationQueue = ({
         jobVideoId === currentVideoId &&
         currentJob.status === "processing"
       ) {
-        // This video is actively being translated
-        setIsWaitingInQueue(false);
-        setQueuePosition(null);
+        // This video is actively being translated (full translation)
+        // Check if it's batch retranslation - don't show waiting
+        if (
+          currentJob.rangeStart !== undefined &&
+          currentJob.rangeEnd !== undefined
+        ) {
+          setIsWaitingInQueue(false);
+          setQueuePosition(null);
+        } else {
+          setIsWaitingInQueue(false);
+          setQueuePosition(null);
+        }
       } else {
         // This video is waiting in queue
         setIsWaitingInQueue(true);
@@ -172,8 +190,14 @@ export const useTranslationQueue = ({
       const isCurrentVideo =
         jobVideoId && currentVideoId && jobVideoId === currentVideoId;
 
+      // Check if this is a batch retranslation (has rangeStart and rangeEnd)
+      const isBatchRetranslation =
+        job.rangeStart !== undefined && job.rangeEnd !== undefined;
+
       if (isCurrentVideo) {
-        const isJobProcessing = job.status === "processing";
+        // Batch retranslation should NOT affect main isTranslating state
+        const isJobProcessing =
+          job.status === "processing" && !isBatchRetranslation;
         setIsTranslating(isJobProcessing);
 
         if (isJobProcessing) {
@@ -186,13 +210,17 @@ export const useTranslationQueue = ({
           }
         }
 
-        // Streaming mode: Apply partial result
-        if (job.status === "processing" && job.partialResult) {
+        // Streaming mode: Apply partial result (only for full translation, not batch retranslation)
+        if (
+          job.status === "processing" &&
+          job.partialResult &&
+          !isBatchRetranslation
+        ) {
           onTranslationComplete?.(job.partialResult);
         }
 
-        // Final result when completed
-        if (job.status === "completed" && job.result) {
+        // Final result when completed (only for full translation)
+        if (job.status === "completed" && job.result && !isBatchRetranslation) {
           onTranslationComplete?.(job.result);
           syncTranslatedVideosToWebView();
           setIsTranslating(false);
@@ -200,10 +228,18 @@ export const useTranslationQueue = ({
           currentTranslatingUrlRef.current = null;
         }
 
+        // Batch retranslation completed - just sync and check status
+        if (job.status === "completed" && isBatchRetranslation) {
+          syncTranslatedVideosToWebView();
+          checkQueueStatus();
+        }
+
         if (job.status === "error") {
-          setIsTranslating(false);
-          setTranslationProgress(null);
-          currentTranslatingUrlRef.current = null;
+          if (!isBatchRetranslation) {
+            setIsTranslating(false);
+            setTranslationProgress(null);
+            currentTranslatingUrlRef.current = null;
+          }
           // Check if video was removed from queue (isBeingRemoved)
           // If so, also reset waiting/paused states
           if (queueManager.isBeingRemoved(job.videoUrl)) {
@@ -243,7 +279,15 @@ export const useTranslationQueue = ({
 
     if (job) {
       const jobVideoId = extractVideoId(job.videoUrl);
-      if (jobVideoId === currentVideoId && job.status === "processing") {
+      // Check if this is a batch retranslation
+      const isBatchRetranslation =
+        job.rangeStart !== undefined && job.rangeEnd !== undefined;
+
+      if (
+        jobVideoId === currentVideoId &&
+        job.status === "processing" &&
+        !isBatchRetranslation
+      ) {
         setIsTranslating(true);
         currentTranslatingUrlRef.current = job.videoUrl;
         if (job.progress) {

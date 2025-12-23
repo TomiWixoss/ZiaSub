@@ -65,12 +65,13 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
   const isWaitingInQueue =
     item.status === "translating" && !hasRealProgress && !isBatchRetranslation;
 
-  // Calculate progress percentage
-  const progressPercent = isActivelyTranslating
-    ? (item.progress!.completed / item.progress!.total) * 100
-    : isPaused && item.totalBatches
-    ? (item.completedBatches! / item.totalBatches) * 100
-    : 0;
+  // Calculate progress percentage (only for full translation with progress, not batch retranslation)
+  const progressPercent =
+    isActivelyTranslating && hasRealProgress
+      ? (item.progress!.completed / item.progress!.total) * 100
+      : isPaused && item.totalBatches
+      ? (item.completedBatches! / item.totalBatches) * 100
+      : 0;
 
   // Get preset name from presetId
   const getPresetName = (presetId?: string): string | null => {
@@ -129,7 +130,9 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
   };
 
   const statusStyle = getStatusStyle();
-  const showProgressBar = isActivelyTranslating || isPaused;
+  // Show progress bar only when there's actual progress to show
+  const showProgressBar =
+    (isActivelyTranslating && hasRealProgress) || isPaused;
 
   return (
     <TouchableOpacity
