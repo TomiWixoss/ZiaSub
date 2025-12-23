@@ -111,7 +111,12 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
   const [pausedBatchRetranslation, setPausedBatchRetranslation] = useState<{
     batchIndex: number;
     mode: "single" | "fromHere";
+    translationId?: string;
   } | null>(null);
+  // Track which translation is being retranslated
+  const [retranslatingTranslationId, setRetranslatingTranslationId] = useState<
+    string | null
+  >(null);
 
   // Detect current preset from selected config
   useEffect(() => {
@@ -202,11 +207,17 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
           batchItem.retranslateBatchIndex !== undefined &&
           batchItem.retranslateMode
         ) {
+          // Track which translation is being retranslated
+          if (batchItem.savedTranslationId) {
+            setRetranslatingTranslationId(batchItem.savedTranslationId);
+          }
+
           if (batchItem.status === "paused") {
             // Paused state
             setPausedBatchRetranslation({
               batchIndex: batchItem.retranslateBatchIndex,
               mode: batchItem.retranslateMode,
+              translationId: batchItem.savedTranslationId,
             });
             setBatchRetranslateJob(null);
           } else if (batchItem.status === "translating") {
@@ -243,6 +254,7 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
           }
         } else {
           setPausedBatchRetranslation(null);
+          setRetranslatingTranslationId(null);
           // Only clear batchRetranslateJob if there's no active translation
           const currentJob = translationManager.getCurrentJob();
           if (!currentJob || currentJob.status !== "processing") {
@@ -672,13 +684,19 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
           translation.presetId ?? config.presetId, // Use saved presetId
           translation.batchSettings,
           batchIndex, // retranslateBatchIndex
-          mode // retranslateMode
+          mode, // retranslateMode
+          translation.id // savedTranslationId - track which translation is being retranslated
         );
+        // Track which translation is being retranslated
+        setRetranslatingTranslationId(translation.id);
         alert(t("common.notice"), t("queue.addedToWaitingQueue"));
         return;
       }
 
       try {
+        // Track which translation is being retranslated
+        setRetranslatingTranslationId(translation.id);
+
         // Create effective config with saved presetId
         const effectiveConfig = translation.presetId
           ? { ...config, presetId: translation.presetId }
@@ -695,7 +713,8 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
           effectiveConfig.presetId,
           translation.batchSettings,
           batchIndex, // retranslateBatchIndex
-          mode // retranslateMode
+          mode, // retranslateMode
+          translation.id // savedTranslationId - track which translation is being retranslated
         );
 
         // Use translationManager to handle single batch translation
@@ -712,6 +731,9 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
         // Clear batch retranslation mode from queue (mark as completed)
         await queueManager.clearBatchRetranslateMode(videoUrl);
 
+        // Clear retranslating translation ID
+        setRetranslatingTranslationId(null);
+
         await loadTranslations();
         onSelectTranslation(updatedSrt);
 
@@ -724,6 +746,9 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
       } catch (error: any) {
         // Clear batch retranslation mode on error too
         await queueManager.clearBatchRetranslateMode(videoUrl);
+
+        // Clear retranslating translation ID
+        setRetranslatingTranslationId(null);
 
         if (error.message !== "Đã dừng dịch") {
           alert(
@@ -912,6 +937,7 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
           isTranslating={isTranslating}
           batchRetranslateJob={batchRetranslateJob}
           pausedBatchRetranslation={pausedBatchRetranslation}
+          retranslatingTranslationId={retranslatingTranslationId}
         />
         {!hasApiKey && (
           <View style={themedStyles.warningContainer}>

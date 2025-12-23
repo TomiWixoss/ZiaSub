@@ -1581,6 +1581,7 @@ class QueueManager {
   // This syncs the queue state with direct translation
   // forceRetranslate: if true, will change completed status to translating
   // retranslateBatchIndex & retranslateMode: for batch retranslation (single batch or fromHere)
+  // savedTranslationId: ID of translation being retranslated (for UI tracking)
   async syncDirectTranslation(
     videoUrl: string,
     title?: string,
@@ -1591,7 +1592,8 @@ class QueueManager {
     presetId?: string,
     batchSettings?: any,
     retranslateBatchIndex?: number,
-    retranslateMode?: "single" | "fromHere"
+    retranslateMode?: "single" | "fromHere",
+    savedTranslationId?: string
   ): Promise<QueueItem> {
     const videoId = this.extractVideoId(videoUrl);
     let item = this.items.find((i) => i.videoId === videoId);
@@ -1599,8 +1601,12 @@ class QueueManager {
     // Batch retranslation fields to include in updates
     const batchRetranslateFields =
       retranslateBatchIndex !== undefined
-        ? { retranslateBatchIndex, retranslateMode }
-        : { retranslateBatchIndex: undefined, retranslateMode: undefined };
+        ? { retranslateBatchIndex, retranslateMode, savedTranslationId }
+        : {
+            retranslateBatchIndex: undefined,
+            retranslateMode: undefined,
+            savedTranslationId: undefined,
+          };
 
     if (item) {
       // Video exists in queue - update status based on current state

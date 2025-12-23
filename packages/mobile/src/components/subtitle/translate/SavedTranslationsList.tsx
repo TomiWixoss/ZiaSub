@@ -34,7 +34,10 @@ interface SavedTranslationsListProps {
   pausedBatchRetranslation?: {
     batchIndex: number;
     mode: "single" | "fromHere";
+    translationId?: string; // ID of translation being retranslated
   } | null;
+  // ID of translation currently being retranslated
+  retranslatingTranslationId?: string | null;
 }
 
 const formatDate = (timestamp: number) => {
@@ -81,6 +84,7 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
   isTranslating = false,
   batchRetranslateJob,
   pausedBatchRetranslation,
+  retranslatingTranslationId,
 }) => {
   const { t } = useTranslation();
   const { colors } = useTheme();
@@ -268,6 +272,11 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
           const progressPercent = getProgressPercent(item);
           const isExpanded = expandedId === item.id;
           const batches = isExpanded ? getBatchesInfo(item) : [];
+          // Show batch retranslation status only for the translation being retranslated
+          const isThisTranslationBeingRetranslated =
+            retranslatingTranslationId === item.id ||
+            batchRetranslateJob?.existingTranslationId === item.id ||
+            pausedBatchRetranslation?.translationId === item.id;
 
           return (
             <View
@@ -407,234 +416,237 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
                       </Text>
 
                       {/* Retranslation status bar for fromHere mode */}
-                      {(batchRetranslateJob || pausedBatchRetranslation) && (
-                        <View
-                          style={{
-                            backgroundColor:
-                              batchRetranslateJob?.status === "processing"
-                                ? colors.primary + "15"
-                                : pausedBatchRetranslation
-                                ? colors.warning + "15"
-                                : colors.primary + "10",
-                            borderRadius: 8,
-                            padding: 10,
-                            marginBottom: 10,
-                            borderWidth: 1,
-                            borderColor:
-                              batchRetranslateJob?.status === "processing"
-                                ? colors.primary
-                                : pausedBatchRetranslation
-                                ? colors.warning
-                                : colors.primary + "50",
-                          }}
-                        >
+                      {isThisTranslationBeingRetranslated &&
+                        (batchRetranslateJob || pausedBatchRetranslation) && (
                           <View
                             style={{
-                              flexDirection: "row",
-                              alignItems: "center",
-                              gap: 8,
-                            }}
-                          >
-                            <MaterialCommunityIcons
-                              name={
+                              backgroundColor:
                                 batchRetranslateJob?.status === "processing"
-                                  ? "translate"
+                                  ? colors.primary + "15"
                                   : pausedBatchRetranslation
-                                  ? "pause-circle"
-                                  : "clock-outline"
-                              }
-                              size={18}
-                              color={
+                                  ? colors.warning + "15"
+                                  : colors.primary + "10",
+                              borderRadius: 8,
+                              padding: 10,
+                              marginBottom: 10,
+                              borderWidth: 1,
+                              borderColor:
                                 batchRetranslateJob?.status === "processing"
                                   ? colors.primary
                                   : pausedBatchRetranslation
                                   ? colors.warning
-                                  : colors.primary
-                              }
-                            />
-                            <Text
+                                  : colors.primary + "50",
+                            }}
+                          >
+                            <View
                               style={{
-                                color:
+                                flexDirection: "row",
+                                alignItems: "center",
+                                gap: 8,
+                              }}
+                            >
+                              <MaterialCommunityIcons
+                                name={
+                                  batchRetranslateJob?.status === "processing"
+                                    ? "translate"
+                                    : pausedBatchRetranslation
+                                    ? "pause-circle"
+                                    : "clock-outline"
+                                }
+                                size={18}
+                                color={
                                   batchRetranslateJob?.status === "processing"
                                     ? colors.primary
                                     : pausedBatchRetranslation
                                     ? colors.warning
-                                    : colors.primary,
-                                fontSize: 12,
-                                fontWeight: "600",
-                                flex: 1,
+                                    : colors.primary
+                                }
+                              />
+                              <Text
+                                style={{
+                                  color:
+                                    batchRetranslateJob?.status === "processing"
+                                      ? colors.primary
+                                      : pausedBatchRetranslation
+                                      ? colors.warning
+                                      : colors.primary,
+                                  fontSize: 12,
+                                  fontWeight: "600",
+                                  flex: 1,
+                                }}
+                              >
+                                {batchRetranslateJob?.status === "processing"
+                                  ? pausedBatchRetranslation?.mode ===
+                                      "single" ||
+                                    (batchRetranslateJob.rangeEnd !==
+                                      undefined &&
+                                      batchRetranslateJob.rangeEnd -
+                                        (batchRetranslateJob.rangeStart || 0) <=
+                                        (item.batchSettings?.maxVideoDuration ||
+                                          600))
+                                    ? t(
+                                        "subtitleModal.translate.retranslatingSingle",
+                                        {
+                                          batch:
+                                            Math.floor(
+                                              (batchRetranslateJob.rangeStart ||
+                                                0) /
+                                                (item.batchSettings
+                                                  ?.maxVideoDuration || 600)
+                                            ) + 1,
+                                        }
+                                      )
+                                    : t(
+                                        "subtitleModal.translate.retranslatingFrom",
+                                        {
+                                          batch:
+                                            Math.floor(
+                                              (batchRetranslateJob.rangeStart ||
+                                                0) /
+                                                (item.batchSettings
+                                                  ?.maxVideoDuration || 600)
+                                            ) + 1,
+                                        }
+                                      )
+                                  : pausedBatchRetranslation
+                                  ? pausedBatchRetranslation.mode === "single"
+                                    ? t(
+                                        "subtitleModal.translate.pausedBatchSingle",
+                                        {
+                                          batch:
+                                            pausedBatchRetranslation.batchIndex +
+                                            1,
+                                        }
+                                      )
+                                    : t(
+                                        "subtitleModal.translate.pausedBatchFrom",
+                                        {
+                                          batch:
+                                            pausedBatchRetranslation.batchIndex +
+                                            1,
+                                        }
+                                      )
+                                  : t("subtitleModal.translate.waitingBatch")}
+                              </Text>
+                            </View>
+
+                            {/* Action buttons */}
+                            <View
+                              style={{
+                                flexDirection: "row",
+                                gap: 8,
+                                marginTop: 10,
                               }}
                             >
-                              {batchRetranslateJob?.status === "processing"
-                                ? pausedBatchRetranslation?.mode === "single" ||
-                                  (batchRetranslateJob.rangeEnd !== undefined &&
-                                    batchRetranslateJob.rangeEnd -
-                                      (batchRetranslateJob.rangeStart || 0) <=
-                                      (item.batchSettings?.maxVideoDuration ||
-                                        600))
-                                  ? t(
-                                      "subtitleModal.translate.retranslatingSingle",
-                                      {
-                                        batch:
-                                          Math.floor(
-                                            (batchRetranslateJob.rangeStart ||
-                                              0) /
-                                              (item.batchSettings
-                                                ?.maxVideoDuration || 600)
-                                          ) + 1,
-                                      }
-                                    )
-                                  : t(
-                                      "subtitleModal.translate.retranslatingFrom",
-                                      {
-                                        batch:
-                                          Math.floor(
-                                            (batchRetranslateJob.rangeStart ||
-                                              0) /
-                                              (item.batchSettings
-                                                ?.maxVideoDuration || 600)
-                                          ) + 1,
-                                      }
-                                    )
-                                : pausedBatchRetranslation
-                                ? pausedBatchRetranslation.mode === "single"
-                                  ? t(
-                                      "subtitleModal.translate.pausedBatchSingle",
-                                      {
-                                        batch:
-                                          pausedBatchRetranslation.batchIndex +
-                                          1,
-                                      }
-                                    )
-                                  : t(
-                                      "subtitleModal.translate.pausedBatchFrom",
-                                      {
-                                        batch:
-                                          pausedBatchRetranslation.batchIndex +
-                                          1,
-                                      }
-                                    )
-                                : t("subtitleModal.translate.waitingBatch")}
-                            </Text>
+                              {/* Stop/Pause button when processing */}
+                              {batchRetranslateJob?.status === "processing" &&
+                                onStopBatchRetranslate && (
+                                  <TouchableOpacity
+                                    style={{
+                                      flex: 1,
+                                      flexDirection: "row",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      gap: 6,
+                                      paddingVertical: 8,
+                                      paddingHorizontal: 12,
+                                      borderRadius: 6,
+                                      backgroundColor: colors.warning,
+                                    }}
+                                    onPress={onStopBatchRetranslate}
+                                  >
+                                    <MaterialCommunityIcons
+                                      name="pause"
+                                      size={16}
+                                      color="#fff"
+                                    />
+                                    <Text
+                                      style={{
+                                        color: "#fff",
+                                        fontSize: 12,
+                                        fontWeight: "600",
+                                      }}
+                                    >
+                                      {t(
+                                        "subtitleModal.translate.pauseRetranslate"
+                                      )}
+                                    </Text>
+                                  </TouchableOpacity>
+                                )}
+
+                              {/* Resume button when paused */}
+                              {pausedBatchRetranslation &&
+                                !batchRetranslateJob &&
+                                onResumeBatchRetranslate && (
+                                  <TouchableOpacity
+                                    style={{
+                                      flex: 1,
+                                      flexDirection: "row",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      gap: 6,
+                                      paddingVertical: 8,
+                                      paddingHorizontal: 12,
+                                      borderRadius: 6,
+                                      backgroundColor: colors.success,
+                                    }}
+                                    onPress={onResumeBatchRetranslate}
+                                  >
+                                    <MaterialCommunityIcons
+                                      name="play"
+                                      size={16}
+                                      color="#fff"
+                                    />
+                                    <Text
+                                      style={{
+                                        color: "#fff",
+                                        fontSize: 12,
+                                        fontWeight: "600",
+                                      }}
+                                    >
+                                      {t(
+                                        "subtitleModal.translate.resumeRetranslate"
+                                      )}
+                                    </Text>
+                                  </TouchableOpacity>
+                                )}
+
+                              {/* Cancel button when paused */}
+                              {pausedBatchRetranslation &&
+                                !batchRetranslateJob &&
+                                onCancelBatchRetranslate && (
+                                  <TouchableOpacity
+                                    style={{
+                                      flexDirection: "row",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      gap: 6,
+                                      paddingVertical: 8,
+                                      paddingHorizontal: 12,
+                                      borderRadius: 6,
+                                      backgroundColor: colors.error,
+                                    }}
+                                    onPress={onCancelBatchRetranslate}
+                                  >
+                                    <MaterialCommunityIcons
+                                      name="close"
+                                      size={16}
+                                      color="#fff"
+                                    />
+                                    <Text
+                                      style={{
+                                        color: "#fff",
+                                        fontSize: 12,
+                                        fontWeight: "600",
+                                      }}
+                                    >
+                                      {t("common.cancel")}
+                                    </Text>
+                                  </TouchableOpacity>
+                                )}
+                            </View>
                           </View>
-
-                          {/* Action buttons */}
-                          <View
-                            style={{
-                              flexDirection: "row",
-                              gap: 8,
-                              marginTop: 10,
-                            }}
-                          >
-                            {/* Stop/Pause button when processing */}
-                            {batchRetranslateJob?.status === "processing" &&
-                              onStopBatchRetranslate && (
-                                <TouchableOpacity
-                                  style={{
-                                    flex: 1,
-                                    flexDirection: "row",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    gap: 6,
-                                    paddingVertical: 8,
-                                    paddingHorizontal: 12,
-                                    borderRadius: 6,
-                                    backgroundColor: colors.warning,
-                                  }}
-                                  onPress={onStopBatchRetranslate}
-                                >
-                                  <MaterialCommunityIcons
-                                    name="pause"
-                                    size={16}
-                                    color="#fff"
-                                  />
-                                  <Text
-                                    style={{
-                                      color: "#fff",
-                                      fontSize: 12,
-                                      fontWeight: "600",
-                                    }}
-                                  >
-                                    {t(
-                                      "subtitleModal.translate.pauseRetranslate"
-                                    )}
-                                  </Text>
-                                </TouchableOpacity>
-                              )}
-
-                            {/* Resume button when paused */}
-                            {pausedBatchRetranslation &&
-                              !batchRetranslateJob &&
-                              onResumeBatchRetranslate && (
-                                <TouchableOpacity
-                                  style={{
-                                    flex: 1,
-                                    flexDirection: "row",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    gap: 6,
-                                    paddingVertical: 8,
-                                    paddingHorizontal: 12,
-                                    borderRadius: 6,
-                                    backgroundColor: colors.success,
-                                  }}
-                                  onPress={onResumeBatchRetranslate}
-                                >
-                                  <MaterialCommunityIcons
-                                    name="play"
-                                    size={16}
-                                    color="#fff"
-                                  />
-                                  <Text
-                                    style={{
-                                      color: "#fff",
-                                      fontSize: 12,
-                                      fontWeight: "600",
-                                    }}
-                                  >
-                                    {t(
-                                      "subtitleModal.translate.resumeRetranslate"
-                                    )}
-                                  </Text>
-                                </TouchableOpacity>
-                              )}
-
-                            {/* Cancel button when paused */}
-                            {pausedBatchRetranslation &&
-                              !batchRetranslateJob &&
-                              onCancelBatchRetranslate && (
-                                <TouchableOpacity
-                                  style={{
-                                    flexDirection: "row",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    gap: 6,
-                                    paddingVertical: 8,
-                                    paddingHorizontal: 12,
-                                    borderRadius: 6,
-                                    backgroundColor: colors.error,
-                                  }}
-                                  onPress={onCancelBatchRetranslate}
-                                >
-                                  <MaterialCommunityIcons
-                                    name="close"
-                                    size={16}
-                                    color="#fff"
-                                  />
-                                  <Text
-                                    style={{
-                                      color: "#fff",
-                                      fontSize: 12,
-                                      fontWeight: "600",
-                                    }}
-                                  >
-                                    {t("common.cancel")}
-                                  </Text>
-                                </TouchableOpacity>
-                              )}
-                          </View>
-                        </View>
-                      )}
+                        )}
 
                       <View style={styles.batchesGrid}>
                         {batches.map((batch) => {
