@@ -221,6 +221,21 @@ class QueueManager {
       this.userStoppedItemId = null;
     }
 
+    // Get current config and batch settings to save (only if not already set)
+    let configToSave: Partial<QueueItem> = {};
+    if (!item.configId || !item.batchSettings) {
+      const activeConfig = await getActiveGeminiConfig();
+      const currentBatchSettings = await getBatchSettings();
+      if (!item.configId && activeConfig) {
+        configToSave.configId = activeConfig.id;
+        configToSave.configName = activeConfig.name;
+        configToSave.presetId = activeConfig.presetId;
+      }
+      if (!item.batchSettings && currentBatchSettings) {
+        configToSave.batchSettings = currentBatchSettings;
+      }
+    }
+
     // Check if translationManager is busy with another video
     // Instead of returning error, add to queue
     if (translationManager.isTranslating() || this.isProcessing) {
@@ -228,11 +243,12 @@ class QueueManager {
         "[QueueManager] Busy, adding item to translating queue instead"
       );
 
-      // Mark as translating (waiting in queue)
+      // Mark as translating (waiting in queue) and save config
       await this.updateItem(itemId, {
         status: "translating",
         startedAt: Date.now(),
         error: undefined,
+        ...configToSave,
       });
 
       // Enable auto-process so this item will be picked up when current finishes
@@ -241,11 +257,12 @@ class QueueManager {
       return { success: true, queued: true };
     }
 
-    // Mark as translating (add to queue)
+    // Mark as translating (add to queue) and save config
     await this.updateItem(itemId, {
       status: "translating",
       startedAt: item.startedAt || Date.now(),
       error: undefined,
+      ...configToSave,
     });
 
     // Start processing this item (don't enable auto-process for single item)
@@ -329,9 +346,9 @@ class QueueManager {
         item.completedBatchRanges.length > 0
       );
 
-    // Get config - use saved configId if resuming, otherwise get active config
+    // Get config - use saved configId if available (for resume or continuing), otherwise get active config
     let config = null;
-    if (shouldResume && item.configId) {
+    if (item.configId) {
       const configs = await getGeminiConfigs();
       config = configs.find((c) => c.id === item.configId) || null;
     }
@@ -351,6 +368,15 @@ class QueueManager {
       return;
     }
 
+    // Use saved presetId if available (for resume/continue), otherwise use config's presetId
+    const effectivePresetId = item.presetId ?? config.presetId;
+
+    // Create effective config with saved presetId
+    const effectiveConfig =
+      effectivePresetId !== config.presetId
+        ? { ...config, presetId: effectivePresetId }
+        : config;
+
     const batchSettings = item.batchSettings || (await getBatchSettings());
 
     // Force streaming mode for queue items to support resume
@@ -363,14 +389,18 @@ class QueueManager {
     this.currentProcessingItemId = item.id;
 
     // Start background service để giữ app chạy khi ở background
-    await backgroundService.onTranslationStart(item.title || config.name);
+    await backgroundService.onTranslationStart(
+      item.title || effectiveConfig.name
+    );
 
     // Keep existing startedAt to maintain order, only set if not exists
+    // Save presetId when starting translation (only if not already saved)
     await this.updateItem(item.id, {
       status: "translating",
       startedAt: item.startedAt || Date.now(),
-      configName: config.name,
-      configId: config.id,
+      configName: effectiveConfig.name,
+      configId: effectiveConfig.id,
+      presetId: item.presetId ?? effectiveConfig.presetId, // Preserve saved presetId or save new one
       batchSettings: queueBatchSettings,
       error: undefined,
     });
@@ -391,7 +421,7 @@ class QueueManager {
         // Fallback: find partial translation in storage
         const partialTranslation = await getPartialTranslation(
           item.videoUrl,
-          config.name
+          effectiveConfig.name
         );
         existingTranslationId = partialTranslation?.id;
       }
@@ -601,7 +631,7 @@ class QueueManager {
     try {
       await translationManager.startTranslation(
         item.videoUrl,
-        config,
+        effectiveConfig,
         item.duration,
         queueBatchSettings,
         undefined,
@@ -802,6 +832,10 @@ class QueueManager {
 
     if (pendingItems.length === 0) return { success: true };
 
+    // Get current active config and batch settings to save for all items
+    const activeConfig = await getActiveGeminiConfig();
+    const currentBatchSettings = await getBatchSettings();
+
     // Enable auto-process mode
     this.autoProcessEnabled = true;
 
@@ -811,13 +845,21 @@ class QueueManager {
     ).length;
 
     // Mark ALL pending/error items as "translating" (in queue) with sequential startedAt
+    // Save current config for each item so they use the same settings when processed
     // First item in display order gets smallest startedAt
     const baseTime = Date.now();
     for (let i = 0; i < pendingItems.length; i++) {
-      await this.updateItem(pendingItems[i].id, {
+      const item = pendingItems[i];
+      // Only save config if not already set (preserve existing config for items that were paused/resumed)
+      await this.updateItem(item.id, {
         status: "translating",
         startedAt: baseTime + i, // Sequential timestamps to maintain order
         error: undefined,
+        // Save config info only if not already set
+        configId: item.configId || activeConfig?.id,
+        configName: item.configName || activeConfig?.name,
+        presetId: item.presetId ?? activeConfig?.presetId,
+        batchSettings: item.batchSettings || currentBatchSettings,
       });
     }
 
@@ -1338,7 +1380,10 @@ class QueueManager {
     title?: string,
     duration?: number,
     configName?: string,
-    forceRetranslate: boolean = false
+    forceRetranslate: boolean = false,
+    configId?: string,
+    presetId?: string,
+    batchSettings?: any
   ): Promise<QueueItem> {
     const videoId = this.extractVideoId(videoUrl);
     let item = this.items.find((i) => i.videoId === videoId);
@@ -1348,12 +1393,21 @@ class QueueManager {
       if (item.status === "completed") {
         if (forceRetranslate) {
           // User wants to re-translate - change to translating
+          // Save all config info for this translation
           await this.updateItem(item.id, {
             status: "translating",
             startedAt: Date.now(),
             configName: configName || item.configName,
+            configId: configId || item.configId,
+            presetId: presetId ?? item.presetId, // Use nullish coalescing to allow undefined override
+            batchSettings: batchSettings || item.batchSettings,
             completedAt: undefined,
             error: undefined,
+            // Clear partial data for fresh translation
+            partialSrt: undefined,
+            completedBatches: undefined,
+            totalBatches: undefined,
+            completedBatchRanges: undefined,
           });
           return this.items.find((i) => i.id === item!.id)!;
         }
@@ -1361,24 +1415,34 @@ class QueueManager {
         return item;
       }
       if (item.status === "translating") {
-        // Already in translating queue, just update config if provided
-        if (configName) {
-          await this.updateItem(item.id, {
-            configName,
-          });
+        // Already in translating queue
+        // Only update config if not already set (preserve original config)
+        const updates: Partial<QueueItem> = {};
+        if (!item.configName && configName) updates.configName = configName;
+        if (!item.configId && configId) updates.configId = configId;
+        if (item.presetId === undefined && presetId !== undefined)
+          updates.presetId = presetId;
+        if (!item.batchSettings && batchSettings)
+          updates.batchSettings = batchSettings;
+
+        if (Object.keys(updates).length > 0) {
+          await this.updateItem(item.id, updates);
         }
         return this.items.find((i) => i.id === item!.id)!;
       }
-      // Update pending/error to translating
+      // Update pending/error to translating - save all config info
       await this.updateItem(item.id, {
         status: "translating",
         startedAt: item.startedAt || Date.now(),
         configName: configName || item.configName,
+        configId: configId || item.configId,
+        presetId: presetId ?? item.presetId,
+        batchSettings: batchSettings || item.batchSettings,
         error: undefined,
       });
       return this.items.find((i) => i.id === item!.id)!;
     } else {
-      // Add new item to queue
+      // Add new item to queue with all config info
       const newItem: QueueItem = {
         id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
         videoUrl,
@@ -1390,6 +1454,9 @@ class QueueManager {
         addedAt: Date.now(),
         startedAt: Date.now(),
         configName,
+        configId,
+        presetId,
+        batchSettings,
       };
 
       this.items.unshift(newItem);

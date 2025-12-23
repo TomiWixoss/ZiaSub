@@ -204,6 +204,7 @@ export interface QueueItem {
   status: QueueStatus;
   configName?: string;
   configId?: string;
+  presetId?: string; // ID of preset prompt used for translation
   progress?: { completed: number; total: number };
   error?: string;
   addedAt: number;

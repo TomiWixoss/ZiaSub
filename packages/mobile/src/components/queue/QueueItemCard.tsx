@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { useTheme } from "@src/contexts";
 import { useThemedStyles, createThemedStyles } from "@hooks/useThemedStyles";
 import type { QueueItem } from "@src/types";
+import { PRESET_PROMPTS } from "@constants/defaults";
 
 interface QueueItemCardProps {
   item: QueueItem;
@@ -57,11 +58,6 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
   const hasRealProgress = item.progress && item.progress.total > 0;
   const isActivelyTranslating =
     item.status === "translating" && hasRealProgress;
-  const hasPartialData = !!(
-    item.partialSrt &&
-    item.completedBatches &&
-    item.completedBatches > 0
-  );
   // Paused is now a separate status
   const isPaused = item.status === "paused";
   const isWaitingInQueue = item.status === "translating" && !hasRealProgress;
@@ -72,6 +68,15 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
     : isPaused && item.totalBatches
     ? (item.completedBatches! / item.totalBatches) * 100
     : 0;
+
+  // Get preset name from presetId
+  const getPresetName = (presetId?: string): string | null => {
+    if (!presetId) return null;
+    const preset = PRESET_PROMPTS.find((p) => p.id === presetId);
+    return preset?.nameVi || preset?.name || null;
+  };
+
+  const presetName = getPresetName(item.presetId);
 
   // Get status color and icon
   const getStatusStyle = () => {
@@ -149,10 +154,26 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
             {item.title}
           </Text>
 
-          {item.configName && (
-            <Text style={styles.configText} numberOfLines={1}>
-              {item.configName}
-            </Text>
+          {(item.configName || presetName) && (
+            <View style={styles.configRow}>
+              {item.configName && (
+                <Text style={styles.configText} numberOfLines={1}>
+                  {item.configName}
+                </Text>
+              )}
+              {presetName && (
+                <View style={styles.presetBadge}>
+                  <MaterialCommunityIcons
+                    name="tag-outline"
+                    size={10}
+                    color={colors.primary}
+                  />
+                  <Text style={styles.presetBadgeText} numberOfLines={1}>
+                    {presetName}
+                  </Text>
+                </View>
+              )}
+            </View>
           )}
 
           <View style={styles.footer}>
@@ -387,10 +408,30 @@ const themedStyles = createThemedStyles((colors) => ({
     fontWeight: "500" as const,
     lineHeight: 18,
   },
+  configRow: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    flexWrap: "wrap" as const,
+    marginTop: 2,
+    gap: 4,
+  },
   configText: {
     color: colors.textMuted,
     fontSize: 11,
-    marginTop: 2,
+  },
+  presetBadge: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    backgroundColor: `${colors.primary}20`,
+    borderRadius: 4,
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    gap: 2,
+  },
+  presetBadgeText: {
+    color: colors.primary,
+    fontSize: 9,
+    fontWeight: "500" as const,
   },
   footer: {
     marginTop: 4,

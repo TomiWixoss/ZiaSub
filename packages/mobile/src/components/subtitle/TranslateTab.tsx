@@ -231,12 +231,16 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
       const { queueManager } = await import("@services/queueManager");
       // Always sync to queue when another video is translating
       // forceRetranslate = true to allow re-translating completed videos
+      // Pass all config info to preserve translation settings
       await queueManager.syncDirectTranslation(
         videoUrl,
         videoTitle,
         videoDuration,
         config.name,
-        true // forceRetranslate
+        true, // forceRetranslate
+        config.id,
+        config.presetId,
+        batchSettings
       );
       alert(t("common.notice"), t("queue.addedToWaitingQueue"));
       return;
@@ -343,13 +347,17 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
       }
 
       // Sync to queue before starting translation (so it shows in queue UI)
+      // Pass all config info to preserve translation settings
       const { queueManager } = await import("@services/queueManager");
       await queueManager.syncDirectTranslation(
         videoUrl,
         videoTitle,
         videoDuration,
         config.name,
-        true // forceRetranslate
+        true, // forceRetranslate
+        config.id,
+        config.presetId,
+        effectiveBatchSettings
       );
 
       translationManager.startTranslation(
@@ -475,7 +483,10 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
               videoTitle,
               videoDuration,
               config.name,
-              true // forceRetranslate
+              true, // forceRetranslate
+              config.id,
+              config.presetId,
+              translation.batchSettings
             );
             alert(t("common.notice"), t("queue.addedToWaitingQueue"));
             return;
