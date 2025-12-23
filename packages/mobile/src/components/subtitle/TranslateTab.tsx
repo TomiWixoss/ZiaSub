@@ -1083,13 +1083,18 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
             title={t("subtitleModal.translate.stopTranslation")}
             variant="destructive"
           />
-        ) : batchRetranslateJob || pausedBatchRetranslation ? null : ( // Batch retranslation in progress or paused - show nothing here, UI is in SavedTranslationsList
+        ) : (
           <Button3D
             onPress={() => handleTranslate()}
             icon="translate"
             title={t("subtitleModal.translate.newTranslation")}
             variant="primary"
-            disabled={!videoUrl || !hasApiKey}
+            disabled={
+              !videoUrl ||
+              !hasApiKey ||
+              !!batchRetranslateJob ||
+              !!pausedBatchRetranslation
+            }
           />
         )}
       </View>
