@@ -5,21 +5,43 @@ import {
   WebViewMessageEvent,
   WebViewNavigation,
 } from "react-native-webview";
-import { CUSTOM_USER_AGENT, INJECTED_JAVASCRIPT } from "@constants/scripts";
+import {
+  MOBILE_USER_AGENT,
+  DESKTOP_USER_AGENT,
+  INJECTED_JAVASCRIPT,
+  INJECTED_JAVASCRIPT_DESKTOP,
+} from "@constants/scripts";
 import { useThemedStyles, createThemedStyles } from "@hooks/useThemedStyles";
 
 interface YouTubePlayerProps {
   onMessage: (event: WebViewMessageEvent) => void;
   onNavigationStateChange: (navState: WebViewNavigation) => void;
   onLoad?: () => void;
+  isDesktopMode?: boolean;
 }
 
 const YouTubePlayer = React.forwardRef<WebView, YouTubePlayerProps>(
-  ({ onMessage, onNavigationStateChange, onLoad }, ref) => {
+  (
+    { onMessage, onNavigationStateChange, onLoad, isDesktopMode = false },
+    ref
+  ) => {
     const styles = useThemedStyles(themedStyles);
 
-    // Memoize source to prevent re-renders
-    const source = useMemo(() => ({ uri: "https://m.youtube.com" }), []);
+    // Memoize source based on mode
+    const source = useMemo(
+      () => ({
+        uri: isDesktopMode
+          ? "https://www.youtube.com"
+          : "https://m.youtube.com",
+      }),
+      [isDesktopMode]
+    );
+
+    // Select user agent and script based on mode
+    const userAgent = isDesktopMode ? DESKTOP_USER_AGENT : MOBILE_USER_AGENT;
+    const injectedScript = isDesktopMode
+      ? INJECTED_JAVASCRIPT_DESKTOP
+      : INJECTED_JAVASCRIPT;
 
     return (
       <View style={styles.videoContainer}>
@@ -27,8 +49,8 @@ const YouTubePlayer = React.forwardRef<WebView, YouTubePlayerProps>(
           ref={ref}
           source={source}
           style={styles.webview}
-          userAgent={CUSTOM_USER_AGENT}
-          injectedJavaScript={INJECTED_JAVASCRIPT}
+          userAgent={userAgent}
+          injectedJavaScript={injectedScript}
           onMessage={onMessage}
           onNavigationStateChange={onNavigationStateChange}
           onLoad={onLoad}

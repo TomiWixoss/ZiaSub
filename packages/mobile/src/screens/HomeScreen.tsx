@@ -43,6 +43,9 @@ const HomeScreen = () => {
   const [chatModalVisible, setChatModalVisible] = useState(false);
   const [isChatLoading, setIsChatLoading] = useState(false);
 
+  // Desktop mode state
+  const [isDesktopMode, setIsDesktopMode] = useState(false);
+
   // App settings hook
   const {
     subtitleSettings,
@@ -386,6 +389,21 @@ const HomeScreen = () => {
                   color={colors.text}
                 />
               </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.navBtn,
+                  styles.modeToggleBtn,
+                  isDesktopMode && themedStyles.modeToggleBtnActive,
+                ]}
+                onPress={() => setIsDesktopMode(!isDesktopMode)}
+                activeOpacity={0.7}
+              >
+                <MaterialCommunityIcons
+                  name={isDesktopMode ? "monitor" : "cellphone"}
+                  size={16}
+                  color={isDesktopMode ? colors.primary : colors.text}
+                />
+              </TouchableOpacity>
             </View>
 
             {showUrlInput ? (
@@ -481,6 +499,7 @@ const HomeScreen = () => {
         onMessage={handleWebViewMessage}
         onNavigationStateChange={handleNavigationStateChange}
         onLoad={handleWebViewLoad}
+        isDesktopMode={isDesktopMode}
       />
 
       <FloatingButton
@@ -593,6 +612,9 @@ const styles = StyleSheet.create({
   navBtnDisabled: {
     opacity: 0.4,
   },
+  modeToggleBtn: {
+    marginLeft: 2,
+  },
   urlBar: {
     flex: 1,
     flexDirection: "row",
@@ -661,6 +683,12 @@ const homeThemedStyles = createThemedStyles((colors, isDark) => ({
   urlInput: { color: colors.text },
   urlText: { color: colors.textSecondary },
   brandText: { color: colors.primary },
+  modeToggleBtnActive: {
+    backgroundColor: isDark
+      ? "rgba(155,126,217,0.2)"
+      : "rgba(155,126,217,0.15)",
+    borderRadius: 8,
+  },
 }));
 
 export default HomeScreen;
