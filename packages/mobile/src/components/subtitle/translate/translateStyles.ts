@@ -71,6 +71,20 @@ export const createTranslateStyles = (colors: ThemeColors) =>
       fontSize: 10,
       fontWeight: "500",
     },
+    // Settings badge
+    settingsBadge: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 3,
+      backgroundColor: colors.surfaceElevated,
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 4,
+    },
+    settingsBadgeText: {
+      color: colors.textMuted,
+      fontSize: 9,
+    },
     // Expanded content
     translationExpanded: {
       borderTopWidth: 1,

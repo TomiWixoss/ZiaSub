@@ -149,6 +149,33 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
     return preset?.nameVi || preset?.name || null;
   };
 
+  // Format batch settings info
+  const getBatchSettingsInfo = (item: SavedTranslation): string | null => {
+    const bs = item.batchSettings;
+    if (!bs) return null;
+
+    const parts: string[] = [];
+    if (bs.maxVideoDuration) {
+      const mins = Math.floor(bs.maxVideoDuration / 60);
+      parts.push(`${mins}p`);
+    }
+    if (bs.batchOffset !== undefined) {
+      parts.push(`±${bs.batchOffset}s`);
+    }
+    if (
+      !bs.streamingMode &&
+      bs.maxConcurrentBatches &&
+      bs.maxConcurrentBatches > 1
+    ) {
+      parts.push(`x${bs.maxConcurrentBatches}`);
+    }
+    if (bs.streamingMode) {
+      parts.push("stream");
+    }
+
+    return parts.length > 0 ? parts.join(" • ") : null;
+  };
+
   if (translations.length === 0) return null;
 
   const getProgressPercent = (item: SavedTranslation) => {
@@ -227,6 +254,7 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
                         flexDirection: "row",
                         alignItems: "center",
                         flexWrap: "wrap",
+                        gap: 4,
                       }}
                     >
                       <Text style={styles.translationConfig}>
@@ -241,6 +269,18 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
                           />
                           <Text style={styles.presetBadgeText}>
                             {getPresetName(item.presetId)}
+                          </Text>
+                        </View>
+                      )}
+                      {getBatchSettingsInfo(item) && (
+                        <View style={styles.settingsBadge}>
+                          <MaterialCommunityIcons
+                            name="cog-outline"
+                            size={10}
+                            color={colors.textMuted}
+                          />
+                          <Text style={styles.settingsBadgeText}>
+                            {getBatchSettingsInfo(item)}
                           </Text>
                         </View>
                       )}
