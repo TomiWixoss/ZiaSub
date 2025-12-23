@@ -63,6 +63,9 @@ class NotificationService {
           vibrationPattern: [0, 250, 250, 250],
           lightColor: "#FF231F7C",
           sound: "default",
+          lockscreenVisibility:
+            Notifications.AndroidNotificationVisibility.PUBLIC,
+          bypassDnd: false,
         });
       }
 
