@@ -4,6 +4,7 @@ import {
   StyleSheet,
   Text as RNText,
   TouchableOpacity,
+  Switch,
 } from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -56,6 +57,15 @@ const SubtitleSection: React.FC<SubtitleSectionProps> = ({
     value: number
   ) => {
     const newSettings = { ...subtitleSettings, [key]: value };
+    onSubtitleChange(newSettings);
+    saveSubtitleSettings(newSettings);
+  };
+
+  const toggleDesktopBackground = () => {
+    const newSettings = {
+      ...subtitleSettings,
+      desktopShowBackground: !subtitleSettings.desktopShowBackground,
+    };
     onSubtitleChange(newSettings);
     saveSubtitleSettings(newSettings);
   };
@@ -192,6 +202,40 @@ const SubtitleSection: React.FC<SubtitleSectionProps> = ({
           thumbTintColor={colors.primary}
         />
       </View>
+
+      {/* Desktop mode settings */}
+      <View style={[styles.settingGroup, themedStyles.desktopSection]}>
+        <View style={styles.desktopHeader}>
+          <MaterialCommunityIcons
+            name="monitor"
+            size={18}
+            color={colors.primary}
+          />
+          <Text style={themedStyles.desktopTitle}>
+            {t("settings.subtitle.desktopMode")}
+          </Text>
+        </View>
+        <View style={styles.switchRow}>
+          <View style={styles.switchInfo}>
+            <Text style={themedStyles.settingLabel}>
+              {t("settings.subtitle.showBackground")}
+            </Text>
+            <Text style={themedStyles.switchHint}>
+              {t("settings.subtitle.showBackgroundHint")}
+            </Text>
+          </View>
+          <Switch
+            value={subtitleSettings.desktopShowBackground ?? true}
+            onValueChange={toggleDesktopBackground}
+            trackColor={{ false: colors.border, true: `${colors.primary}50` }}
+            thumbColor={
+              subtitleSettings.desktopShowBackground
+                ? colors.primary
+                : colors.textMuted
+            }
+          />
+        </View>
+      </View>
     </>
   );
 };
@@ -215,6 +259,21 @@ const styles = StyleSheet.create({
     textShadowColor: "rgba(0,0,0,0.9)",
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 3,
+  },
+  desktopHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 12,
+  },
+  switchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  switchInfo: {
+    flex: 1,
+    marginRight: 12,
   },
 });
 
@@ -249,6 +308,22 @@ const subtitleThemedStyles = createThemedStyles((colors) => ({
   },
   styleButtonTextActive: {
     color: colors.primary,
+  },
+  desktopSection: {
+    marginTop: 8,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  desktopTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: colors.primary,
+  },
+  switchHint: {
+    fontSize: 12,
+    color: colors.textMuted,
+    marginTop: 2,
   },
 }));
 

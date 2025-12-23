@@ -11,6 +11,7 @@ interface FloatingButtonProps {
   onChatPress: () => void;
   onAddToQueuePress?: () => void;
   isVideoPage: boolean;
+  isDesktopMode?: boolean;
   hasSubtitles?: boolean;
   isTranslating?: boolean;
   isWaitingInQueue?: boolean;
@@ -421,6 +422,7 @@ const FloatingButton: React.FC<FloatingButtonProps> = (props) => {
     onChatPress,
     onAddToQueuePress,
     isVideoPage,
+    isDesktopMode = false,
     hasSubtitles = false,
     isTranslating = false,
     isWaitingInQueue = false,
@@ -442,7 +444,10 @@ const FloatingButton: React.FC<FloatingButtonProps> = (props) => {
   const position = floatingUISettings?.position ?? "right";
   const layout = floatingUISettings?.layout ?? "vertical";
 
-  const bottomPosition = isVideoPage ? bottomOffsetVideo : bottomOffset;
+  // Desktop mode: always use video offset (no need to raise buttons on homepage)
+  // Mobile mode: use higher offset on homepage to avoid bottom nav overlap
+  const bottomPosition =
+    isVideoPage || isDesktopMode ? bottomOffsetVideo : bottomOffset;
   const isHorizontal = layout === "horizontal";
 
   // Determine which side for primary (subtitle/chat) and secondary (settings/queue) buttons

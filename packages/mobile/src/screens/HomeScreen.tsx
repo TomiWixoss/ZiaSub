@@ -504,6 +504,7 @@ const HomeScreen = () => {
 
       <FloatingButton
         isVideoPage={isVideoPlaying}
+        isDesktopMode={isDesktopMode}
         onPress={() => setModalVisible(true)}
         onSettingsPress={() => setSettingsVisible(true)}
         onQueuePress={() => setQueueModalVisible(true)}
