@@ -234,7 +234,11 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
       onBatchSettingsChange({ ...batchSettings, presubMode: value });
   };
 
-  const handleTranslate = async (resumeTranslation?: SavedTranslation) => {
+  const handleTranslate = async (
+    resumeTranslation?: SavedTranslation,
+    retranslateBatchIndex?: number,
+    retranslateMode?: "single" | "fromHere"
+  ) => {
     // IMPORTANT: When resuming/retranslating, use saved config from translation
     // Otherwise use currently selected config
     let config: GeminiConfig | undefined;
@@ -415,7 +419,9 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
         true, // forceRetranslate
         effectiveConfig.id,
         effectiveConfig.presetId,
-        effectiveBatchSettings
+        effectiveBatchSettings,
+        retranslateBatchIndex,
+        retranslateMode
       );
 
       translationManager.startTranslation(
@@ -539,9 +545,11 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
             return;
           }
           if (!videoUrl) return;
+
+          const { queueManager } = await import("@services/queueManager");
+
           if (translationManager.isTranslating()) {
-            // Add to queue instead of blocking
-            const { queueManager } = await import("@services/queueManager");
+            // Add to queue instead of blocking (with batch retranslation info)
             await queueManager.syncDirectTranslation(
               videoUrl,
               videoTitle,
@@ -550,7 +558,9 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
               true, // forceRetranslate
               config.id,
               translation.presetId ?? config.presetId, // Use saved presetId
-              translation.batchSettings
+              translation.batchSettings,
+              batchIndex, // retranslateBatchIndex
+              "single" // retranslateMode
             );
             alert(t("common.notice"), t("queue.addedToWaitingQueue"));
             return;
@@ -561,6 +571,20 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
             const effectiveConfig = translation.presetId
               ? { ...config, presetId: translation.presetId }
               : config;
+
+            // Sync to queue BEFORE starting translation (so it shows in queue UI)
+            await queueManager.syncDirectTranslation(
+              videoUrl,
+              videoTitle,
+              videoDuration,
+              effectiveConfig.name,
+              true, // forceRetranslate
+              effectiveConfig.id,
+              effectiveConfig.presetId,
+              translation.batchSettings,
+              batchIndex, // retranslateBatchIndex
+              "single" // retranslateMode
+            );
 
             // Use translationManager to handle single batch translation
             const updatedSrt = await translationManager.translateSingleBatch(
@@ -573,6 +597,9 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
               translation.id // Pass existing translation ID to update instead of creating new
             );
 
+            // Clear batch retranslation mode from queue (mark as completed)
+            await queueManager.clearBatchRetranslateMode(videoUrl);
+
             await loadTranslations();
             onSelectTranslation(updatedSrt);
 
@@ -583,6 +610,9 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
               })
             );
           } catch (error: any) {
+            // Clear batch retranslation mode on error too
+            await queueManager.clearBatchRetranslateMode(videoUrl);
+
             if (error.message !== "Đã dừng dịch") {
               alert(
                 t("subtitleModal.translate.error"),
@@ -638,7 +668,8 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
             },
           };
 
-          handleTranslate(modifiedTranslation);
+          // Pass batch retranslation info to show in queue
+          handleTranslate(modifiedTranslation, batchIndex, "fromHere");
         },
         t("subtitleModal.translate.retranslate")
       );

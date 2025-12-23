@@ -509,6 +509,9 @@ class QueueManager {
             completedBatches: undefined,
             totalBatches: undefined,
             completedBatchRanges: undefined,
+            // Clear batch retranslation mode
+            retranslateBatchIndex: undefined,
+            retranslateMode: undefined,
           });
           this.isProcessing = false;
           this.currentProcessingItemId = null;
@@ -1433,6 +1436,7 @@ class QueueManager {
   // Add or update video in queue when translating directly
   // This syncs the queue state with direct translation
   // forceRetranslate: if true, will change completed status to translating
+  // retranslateBatchIndex & retranslateMode: for batch retranslation (single batch or fromHere)
   async syncDirectTranslation(
     videoUrl: string,
     title?: string,
@@ -1441,10 +1445,18 @@ class QueueManager {
     forceRetranslate: boolean = false,
     configId?: string,
     presetId?: string,
-    batchSettings?: any
+    batchSettings?: any,
+    retranslateBatchIndex?: number,
+    retranslateMode?: "single" | "fromHere"
   ): Promise<QueueItem> {
     const videoId = this.extractVideoId(videoUrl);
     let item = this.items.find((i) => i.videoId === videoId);
+
+    // Batch retranslation fields to include in updates
+    const batchRetranslateFields =
+      retranslateBatchIndex !== undefined
+        ? { retranslateBatchIndex, retranslateMode }
+        : { retranslateBatchIndex: undefined, retranslateMode: undefined };
 
     if (item) {
       // Video exists in queue - update status based on current state
@@ -1466,6 +1478,8 @@ class QueueManager {
             completedBatches: undefined,
             totalBatches: undefined,
             completedBatchRanges: undefined,
+            // Batch retranslation mode
+            ...batchRetranslateFields,
           });
           return this.items.find((i) => i.id === item!.id)!;
         }
@@ -1489,10 +1503,12 @@ class QueueManager {
             totalBatches: undefined,
             completedBatchRanges: undefined,
             error: undefined,
+            // Batch retranslation mode
+            ...batchRetranslateFields,
           });
         } else {
           // Only update config if not already set (preserve original config)
-          const updates: Partial<QueueItem> = {};
+          const updates: Partial<QueueItem> = { ...batchRetranslateFields };
           if (!item.configName && configName) updates.configName = configName;
           if (!item.configId && configId) updates.configId = configId;
           if (item.presetId === undefined && presetId !== undefined)
@@ -1515,6 +1531,8 @@ class QueueManager {
         presetId: presetId ?? item.presetId,
         batchSettings: batchSettings || item.batchSettings,
         error: undefined,
+        // Batch retranslation mode
+        ...batchRetranslateFields,
       });
       return this.items.find((i) => i.id === item!.id)!;
     } else {
@@ -1533,12 +1551,29 @@ class QueueManager {
         configId,
         presetId,
         batchSettings,
+        // Batch retranslation mode
+        retranslateBatchIndex,
+        retranslateMode,
       };
 
       this.items.unshift(newItem);
       await this.save();
       this.notify();
       return newItem;
+    }
+  }
+
+  // Clear batch retranslation mode from queue item (called when batch retranslation completes)
+  async clearBatchRetranslateMode(videoUrl: string): Promise<void> {
+    const videoId = this.extractVideoId(videoUrl);
+    const item = this.items.find((i) => i.videoId === videoId);
+    if (item) {
+      await this.updateItem(item.id, {
+        status: "completed",
+        retranslateBatchIndex: undefined,
+        retranslateMode: undefined,
+        completedAt: Date.now(),
+      });
     }
   }
 
