@@ -225,6 +225,15 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
         t("subtitleModal.translate.alreadyTranslating")
       );
 
+    // Check if videoDuration is available (required for correct batching)
+    // Skip check for resume translations (they have their own duration)
+    if (!videoDuration && !resumeTranslation?.videoDuration) {
+      return alert(
+        t("common.notice"),
+        t("subtitleModal.translate.waitForDuration")
+      );
+    }
+
     // Check if another video is being translated
     // Instead of blocking, add to queue and show waiting state
     if (translationManager.isTranslating()) {

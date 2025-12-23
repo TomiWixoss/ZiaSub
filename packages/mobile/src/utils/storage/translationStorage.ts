@@ -33,6 +33,8 @@ export const saveTranslation = async (
   metadata?: {
     videoDuration?: number;
     batchSettings?: BatchSettings;
+    totalBatches?: number;
+    batchStatuses?: Array<"pending" | "completed" | "error">;
   }
 ): Promise<SavedTranslation> => {
   const videoId = getVideoIdFromUrl(videoUrl);
@@ -73,6 +75,15 @@ export const saveTranslation = async (
         batchSettings:
           metadata?.batchSettings ??
           data.translations[existingIndex].batchSettings,
+        totalBatches:
+          metadata?.totalBatches ??
+          data.translations[existingIndex].totalBatches,
+        completedBatches:
+          metadata?.totalBatches ??
+          data.translations[existingIndex].completedBatches,
+        batchStatuses:
+          metadata?.batchStatuses ??
+          data.translations[existingIndex].batchStatuses,
       };
       data.activeTranslationId = existingTranslationId;
       await storageService.setTranslation(videoId, data);
@@ -90,6 +101,9 @@ export const saveTranslation = async (
     isPartial: false,
     videoDuration: metadata?.videoDuration,
     batchSettings: metadata?.batchSettings,
+    totalBatches: metadata?.totalBatches,
+    completedBatches: metadata?.totalBatches, // All batches completed
+    batchStatuses: metadata?.batchStatuses,
   };
 
   data.translations.push(newTranslation);

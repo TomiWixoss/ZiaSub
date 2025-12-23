@@ -79,6 +79,37 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
       const batchDuration = item.batchSettings?.maxVideoDuration || 600;
       const batchOffset = item.batchSettings?.batchOffset ?? 60; // Default 60s tolerance
 
+      // If we have saved totalBatches and batchStatuses, use them directly
+      // This handles cases where videoDuration might not be available
+      if (item.totalBatches && item.totalBatches > 0 && item.batchStatuses) {
+        const parsed = parseSRT(item.srtContent);
+        const batches: BatchInfo[] = [];
+
+        for (let i = 0; i < item.totalBatches; i++) {
+          const startTime = i * batchDuration;
+          const endTime =
+            duration > 0
+              ? Math.min((i + 1) * batchDuration, duration)
+              : (i + 1) * batchDuration;
+
+          // Count subtitles in this batch
+          const subtitlesInBatch = parsed.filter(
+            (sub) => sub.startTime >= startTime && sub.startTime < endTime
+          );
+
+          batches.push({
+            index: i,
+            startTime,
+            endTime,
+            subtitleCount: subtitlesInBatch.length,
+            hasContent: subtitlesInBatch.length > 0,
+            status: item.batchStatuses[i] || "completed",
+          });
+        }
+
+        return batches;
+      }
+
       if (duration <= 0) return [];
 
       // Apply tolerance: if duration <= batchDuration + batchOffset, it's a single batch

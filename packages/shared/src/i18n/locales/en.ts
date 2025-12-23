@@ -559,6 +559,7 @@ export default {
       alreadyTranslating: "This video is already being translated.",
       anotherTranslating:
         "Another video is being translated. Please wait or stop it first.",
+      waitForDuration: "Wait for video to load, then try again.",
 
       savedTranslations: "Translated",
       deleteTitle: "Delete translation",

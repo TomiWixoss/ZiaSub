@@ -239,6 +239,9 @@ class TranslationManager {
         {
           videoDuration: this.currentJob?.videoDuration,
           batchSettings: this.currentJob?.batchSettings as BatchSettings,
+          totalBatches: this.currentJob?.progress?.totalBatches,
+          batchStatuses:
+            currentBatchStatuses.length > 0 ? currentBatchStatuses : undefined,
         }
       );
 
