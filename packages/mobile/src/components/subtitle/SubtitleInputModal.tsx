@@ -136,11 +136,22 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
 
     // Check if paused
     if (queueStatus.inQueue && queueStatus.status === "paused") {
+      // Check if this is a batch retranslation paused - should NOT affect main UI
+      const queueItem = queueManager.isInQueue(videoUrl);
+      if (queueItem?.retranslateBatchIndex !== undefined) {
+        // Batch retranslation paused - don't show paused state in main UI
+        setIsPausedInQueue(false);
+        setIsWaitingInQueue(false);
+        setQueuePosition(null);
+        setPausedProgress(null);
+        return;
+      }
+
+      // Full translation paused - show paused state
       setIsPausedInQueue(true);
       setIsWaitingInQueue(false);
       setQueuePosition(null);
       // Get paused progress from queue item
-      const queueItem = queueManager.isInQueue(videoUrl);
       if (queueItem && queueItem.completedBatches && queueItem.totalBatches) {
         setPausedProgress({
           completed: queueItem.completedBatches,
@@ -208,10 +219,21 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
 
       // Check if paused
       if (queueStatus.inQueue && queueStatus.status === "paused") {
+        // Check if this is a batch retranslation paused - should NOT affect main UI
+        const queueItem = queueManager.isInQueue(videoUrl);
+        if (queueItem?.retranslateBatchIndex !== undefined) {
+          // Batch retranslation paused - don't show paused state in main UI
+          setIsPausedInQueue(false);
+          setIsWaitingInQueue(false);
+          setQueuePosition(null);
+          setPausedProgress(null);
+          return;
+        }
+
+        // Full translation paused - show paused state
         setIsPausedInQueue(true);
         setIsWaitingInQueue(false);
         setQueuePosition(null);
-        const queueItem = queueManager.isInQueue(videoUrl);
         if (queueItem && queueItem.completedBatches && queueItem.totalBatches) {
           setPausedProgress({
             completed: queueItem.completedBatches,
