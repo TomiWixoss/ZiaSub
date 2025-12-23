@@ -266,55 +266,67 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
       const currentVideoId = videoUrl ? extractVideoId(videoUrl) : null;
 
       if (jobVideoId && currentVideoId && jobVideoId === currentVideoId) {
-        setIsTranslating(job.status === "processing");
-        setBatchProgress(job.progress);
-        setKeyStatus(job.keyStatus);
-        if (job.progress) {
-          const currentBatch = job.progress.completedBatches + 1;
-          setTranslateStatus(
-            job.progress.totalBatches > 1
-              ? `Đang dịch phần ${currentBatch}/${job.progress.totalBatches}...`
-              : "Đang dịch video..."
-          );
-          queueManager.updateVideoProgress(
-            job.videoUrl,
-            {
-              completed: job.progress.completedBatches,
-              total: job.progress.totalBatches,
-            },
-            job.configName
-          );
-        }
-        onTranslationStateChangeRef.current?.(
-          job.status === "processing",
-          job.progress
-            ? {
+        // Check if this is a batch retranslation (has rangeStart and rangeEnd)
+        // Batch retranslation should NOT affect main isTranslating state
+        const isBatchRetranslation =
+          job.rangeStart !== undefined && job.rangeEnd !== undefined;
+
+        if (!isBatchRetranslation) {
+          setIsTranslating(job.status === "processing");
+          setBatchProgress(job.progress);
+          setKeyStatus(job.keyStatus);
+          if (job.progress) {
+            const currentBatch = job.progress.completedBatches + 1;
+            setTranslateStatus(
+              job.progress.totalBatches > 1
+                ? `Đang dịch phần ${currentBatch}/${job.progress.totalBatches}...`
+                : "Đang dịch video..."
+            );
+            queueManager.updateVideoProgress(
+              job.videoUrl,
+              {
                 completed: job.progress.completedBatches,
                 total: job.progress.totalBatches,
-              }
-            : null
-        );
+              },
+              job.configName
+            );
+          }
+          onTranslationStateChangeRef.current?.(
+            job.status === "processing",
+            job.progress
+              ? {
+                  completed: job.progress.completedBatches,
+                  total: job.progress.totalBatches,
+                }
+              : null
+          );
+        }
+
         if (job.status === "completed" && job.result) {
-          setTranslateStatus("Xong rồi!");
-          setKeyStatus(null);
-          setSrtContent(job.result);
-          onApplySubtitlesRef.current?.(job.result);
-          queueManager.markVideoCompleted(job.videoUrl, job.configName);
+          if (!isBatchRetranslation) {
+            setTranslateStatus("Xong rồi!");
+            setKeyStatus(null);
+            setSrtContent(job.result);
+            onApplySubtitlesRef.current?.(job.result);
+            queueManager.markVideoCompleted(job.videoUrl, job.configName);
+            if (visible)
+              alert("Thành công", "Dịch xong rồi! Phụ đề đã sẵn sàng.");
+          }
           translationManager.clearCompletedJob(job.videoUrl);
           reloadTranslationsRef.current?.();
-          if (visible)
-            alert("Thành công", "Dịch xong rồi! Phụ đề đã sẵn sàng.");
         }
         if (job.status === "error") {
-          setTranslateStatus("");
-          setKeyStatus(null);
+          if (!isBatchRetranslation) {
+            setTranslateStatus("");
+            setKeyStatus(null);
+          }
           const isUserStopped = job.error?.startsWith("Đã dừng");
-          if (!isUserStopped) {
+          if (!isUserStopped && !isBatchRetranslation) {
             queueManager.markVideoError(
               job.videoUrl,
               job.error || "Có lỗi xảy ra"
             );
-          } else {
+          } else if (!isBatchRetranslation) {
             // Check if video is being removed from queue - if so, don't mark as stopped
             if (!queueManager.isBeingRemoved(job.videoUrl)) {
               const queueItem = queueManager.isInQueue(job.videoUrl);
@@ -339,7 +351,7 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
           }
           translationManager.clearCompletedJob(job.videoUrl);
           reloadTranslationsRef.current?.();
-          if (!isUserStopped) {
+          if (!isUserStopped && !isBatchRetranslation) {
             alert("Không dịch được", job.error || "Không thể dịch video này.");
           }
         }
@@ -351,7 +363,16 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
   useEffect(() => {
     if (videoUrl) {
       const existingJob = translationManager.getJobForUrl(videoUrl);
-      if (existingJob && existingJob.status === "processing") {
+      // Check if this is a batch retranslation (has rangeStart and rangeEnd)
+      const isBatchRetranslation =
+        existingJob?.rangeStart !== undefined &&
+        existingJob?.rangeEnd !== undefined;
+
+      if (
+        existingJob &&
+        existingJob.status === "processing" &&
+        !isBatchRetranslation
+      ) {
         setIsTranslating(true);
         setBatchProgress(existingJob.progress);
         setKeyStatus(existingJob.keyStatus);

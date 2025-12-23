@@ -176,6 +176,19 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
   // Subscribe to translationManager to track batch retranslation
   useEffect(() => {
     if (!videoUrl) return;
+
+    // Check current job state immediately when component mounts
+    const currentJob = translationManager.getCurrentJob();
+    if (
+      currentJob &&
+      currentJob.videoUrl === videoUrl &&
+      currentJob.status === "processing" &&
+      currentJob.rangeStart !== undefined &&
+      currentJob.rangeEnd !== undefined
+    ) {
+      setBatchRetranslateJob(currentJob);
+    }
+
     const unsubscribe = translationManager.subscribe((job) => {
       // Check if this is a batch retranslation for current video
       if (
