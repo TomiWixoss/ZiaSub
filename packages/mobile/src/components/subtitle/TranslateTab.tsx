@@ -829,6 +829,9 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
           isPartial: true,
           completedBatches: batchIndex,
           totalBatches: totalBatches,
+          // Set rangeStart to skip already completed batches entirely (don't even call API for them)
+          rangeStart: batchStart,
+          rangeEnd: translation.videoDuration || videoDuration,
           batchSettings: translation.batchSettings || {
             maxVideoDuration: originalBatchDuration,
             maxConcurrentBatches: batchSettings?.maxConcurrentBatches || 1,

@@ -683,6 +683,22 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
 
                       <View style={styles.batchesGrid}>
                         {batches.map((batch) => {
+                          // Check if this batch is in the retranslation range
+                          const isInRetranslationRange =
+                            (batchRetranslateJob?.rangeStart !== undefined &&
+                              batch.startTime >=
+                                batchRetranslateJob.rangeStart &&
+                              (batchRetranslateJob.rangeEnd === undefined ||
+                                batch.startTime <
+                                  batchRetranslateJob.rangeEnd)) ||
+                            (pausedBatchRetranslation &&
+                              ((pausedBatchRetranslation.mode === "single" &&
+                                batch.index ===
+                                  pausedBatchRetranslation.batchIndex) ||
+                                (pausedBatchRetranslation.mode === "fromHere" &&
+                                  batch.index >=
+                                    pausedBatchRetranslation.batchIndex)));
+
                           // Check if this batch is being retranslated (actively processing)
                           const isBatchRetranslating =
                             batchRetranslateJob?.status === "processing" &&
@@ -714,12 +730,12 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
                           const isBatchWaitingFullTranslation =
                             isWaitingInQueue && batch.status !== "completed";
 
-                          // Use status from batchStatuses metadata
+                          // Batch is completed if:
+                          // 1. It has completed status AND
+                          // 2. It's NOT in the retranslation range (batches before rangeStart stay green)
                           const isCompleted =
                             batch.status === "completed" &&
-                            !isBatchRetranslating &&
-                            !isBatchRetranslationWaiting &&
-                            !isBatchPaused &&
+                            !isInRetranslationRange &&
                             !isBatchWaitingFullTranslation;
                           const isError = batch.status === "error";
                           const isProcessing = isBatchRetranslating;
@@ -736,7 +752,24 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
                           return (
                             <View
                               key={batch.index}
-                              style={styles.batchChipContainer}
+                              style={[
+                                styles.batchChipContainer,
+                                // Add highlight border for batches in retranslation range
+                                isInRetranslationRange && {
+                                  borderWidth: 2,
+                                  borderColor: isProcessing
+                                    ? colors.primary
+                                    : isPaused
+                                    ? colors.warning
+                                    : isWaiting
+                                    ? colors.primary + "80"
+                                    : colors.primary + "50",
+                                  borderRadius: 8,
+                                  borderStyle: "dashed",
+                                  padding: 2,
+                                  margin: -2,
+                                },
+                              ]}
                             >
                               <View
                                 style={[
