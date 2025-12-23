@@ -502,6 +502,8 @@ export default {
       translating: "Translating...",
       waiting: "Waiting...",
       paused: "Paused ({{completed}}/{{total}})",
+      pausedBatchSingle: "Paused part {{batch}}",
+      pausedBatchFrom: "Paused from part {{batch}}",
       completed: "Done {{date}}",
       error: "Error: {{error}}",
       retranslatingSingle: "Retranslating part {{batch}}...",

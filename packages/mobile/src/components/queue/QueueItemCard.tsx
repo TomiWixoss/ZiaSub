@@ -281,12 +281,23 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
                     })}
               </Text>
             )}
-            {isPaused && (
+            {isPaused && !isBatchRetranslation && (
               <Text style={[styles.statusText, { color: colors.warning }]}>
                 {t("queue.status.paused", {
                   completed: item.completedBatches,
                   total: item.totalBatches || "?",
                 })}
+              </Text>
+            )}
+            {isPaused && isBatchRetranslation && (
+              <Text style={[styles.statusText, { color: colors.warning }]}>
+                {item.retranslateMode === "single"
+                  ? t("queue.status.pausedBatchSingle", {
+                      batch: item.retranslateBatchIndex! + 1,
+                    })
+                  : t("queue.status.pausedBatchFrom", {
+                      batch: item.retranslateBatchIndex! + 1,
+                    })}
               </Text>
             )}
             {isWaitingInQueue && (

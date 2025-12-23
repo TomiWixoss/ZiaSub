@@ -500,6 +500,8 @@ export default {
       translating: "Đang dịch...",
       waiting: "Đang chờ...",
       paused: "Tạm dừng ({{completed}}/{{total}})",
+      pausedBatchSingle: "Tạm dừng phần {{batch}}",
+      pausedBatchFrom: "Tạm dừng từ phần {{batch}}",
       completed: "Xong {{date}}",
       error: "Lỗi: {{error}}",
       retranslatingSingle: "Đang dịch lại phần {{batch}}...",
