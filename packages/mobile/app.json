@@ -2,7 +2,7 @@
   "expo": {
     "name": "ZiaSub",
     "slug": "ziasub",
-    "version": "0.0.5",
+    "version": "0.0.6",
     "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",

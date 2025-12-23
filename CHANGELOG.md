@@ -1,5 +1,112 @@
 # Changelog
 
+## [0.0.6] - 2024-12-23
+
+### ✨ Tính năng mới
+
+- **Batch Retranslation Tracking & UI**
+
+  - Theo dõi translation ID cụ thể khi dịch lại batch để hiển thị đúng trạng thái
+  - Hiển thị badge chế độ dịch lại batch (single/fromHere) trong queue item card
+  - Thêm trạng thái "đang chờ" và "đang dịch" riêng biệt cho batch retranslation
+  - Auto-expand translation item khi batch retranslation đang active hoặc paused
+  - Thêm nút Cancel cho batch retranslation đang paused
+  - Hiển thị trạng thái "Paused part X" và "Paused from part X" cho batch retranslation
+  - Disable nút translate khi batch retranslation đang active hoặc paused
+
+- **Queue State Management cải tiến**
+
+  - Thêm trạng thái "paused" riêng biệt với "translating" trong queue
+  - Tab paused mới với icon pause-circle và badge styling
+  - Theo dõi user-paused items để ngăn auto-resume không mong muốn
+  - Hiển thị vị trí trong queue và trạng thái waiting với animation pulsing
+  - Nút Resume All để resume tất cả items đang paused
+  - Nút Clear All để xóa tất cả items đang translating
+  - Horizontal scrolling cho queue tabs trên màn hình nhỏ
+
+- **Paused Queue State UI**
+
+  - PausedFab component hiển thị trạng thái paused với progress badge
+  - WaitingFab component với pulsing animation và queue position badge
+  - Hiển thị progress (completedBatches/totalBatches) cho items đang paused
+  - Nút resume translation trong paused state
+
+- **Queue Persistence & Backup**
+
+  - Lưu translation queue vào backup/restore
+  - Thêm queueCount vào backup metadata
+  - Reset queue manager khi clear all data
+  - Giữ lại backup configuration khi clear all data
+
+- **Batch Settings Display**
+
+  - Hiển thị batch settings info trong queue item card (duration, offset, concurrent, streaming)
+  - Hiển thị batch settings trong saved translations list
+  - Hiển thị concurrent batch count (x2, x3...) khi không dùng streaming mode
+
+- **Notification Improvements**
+  - Thêm lockscreen visibility configuration (PUBLIC)
+  - Thêm bypassDnd flag để tôn trọng Do Not Disturb settings
+
+### 🐛 Sửa lỗi
+
+- **Batch Retranslation Resume**
+
+  - Sửa lỗi existingTranslationId không được truyền khi resume batch retranslation
+  - Sửa lỗi tìm sai translation khi resume (dùng translationId thay vì first translation)
+  - Cập nhật progress ngay khi batch retranslation bắt đầu
+  - Sửa thứ tự pause và abort để ngăn auto-resume không mong muốn
+
+- **Queue State Fixes**
+
+  - Sửa lỗi totalBatches bị override khi recover paused state
+  - Đổi tất cả "translating" items thành "paused" khi app restart
+  - Ngăn subscription xử lý abort errors khi item đang bị remove
+  - Clear userPausedItems khi remove item từ queue
+  - Abort active translation khi remove item từ queue
+
+- **Network Error Handling**
+
+  - Thêm isNetworkError() để detect network errors
+  - Hiển thị thông báo lỗi mạng thân thiện thay vì rotate key
+  - Đơn giản hóa error message khi tất cả API keys exhausted
+
+- **Translation State**
+  - Sửa lỗi stale closure trong queue subscription
+  - Ngăn batch retranslation ảnh hưởng đến main translation UI state
+  - Clear progress field khi resume paused batch retranslation
+  - Validate video duration trước khi bắt đầu translation
+
+### 🔧 Cải tiến
+
+- **Queue Manager Refactor**
+
+  - Thêm moveToPendingByUser method để move items mà không auto-resume
+  - Thêm removeFromQueueByUrl helper method
+  - Thêm isBeingRemoved() method để track items đang bị remove
+  - Thêm clearBatchRetranslateMode method
+  - Thêm resumeAllPaused và clearTranslating methods
+  - Thêm forceRetranslate option để re-translate completed videos
+  - Cải thiện config preservation logic
+
+- **Translation Manager**
+
+  - Lưu videoDuration và batchSettings vào saved translations
+  - Persist totalBatches và batchStatuses cho offline access
+  - Thêm skipConfirm parameter cho batch retranslation
+
+- **Storage & Cache**
+
+  - Optimize data restore với direct AsyncStorage writes
+  - Thêm reinitialize method cho StorageService
+  - Trigger app reload sau clearAllData thay vì manual refresh
+
+- **UI/UX**
+  - Pass videoTitle qua SubtitleInputModal đến TranslateTab
+  - Auto-enable queue processing khi direct translation completes
+  - Simplify saved translations header bằng cách remove inline resume button
+  - Ensure batch counts luôn defined trong paused queue items
+
 ## [0.0.5] - 2024-12-22
 
 ### ✨ Tính năng mới
