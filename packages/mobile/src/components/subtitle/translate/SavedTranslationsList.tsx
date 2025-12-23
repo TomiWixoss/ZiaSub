@@ -352,7 +352,8 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
                   {item.isPartial &&
                     onResume &&
                     !isPausedInQueue &&
-                    !isTranslating && (
+                    !isTranslating &&
+                    !batchRetranslateJob && (
                       <TouchableOpacity
                         style={styles.headerActionBtn}
                         onPress={(e) => {
@@ -484,10 +485,11 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
                                   {formatTime(batch.endTime)}
                                 </Text>
                               </View>
-                              {/* Retranslate buttons - hide when retranslating or paused */}
+                              {/* Retranslate buttons - hide when retranslating (full or batch) or paused */}
                               {onRetranslateBatch &&
                                 !batchRetranslateJob &&
-                                !pausedBatchRetranslation && (
+                                !pausedBatchRetranslation &&
+                                !isTranslating && (
                                   <View style={styles.batchActions}>
                                     <TouchableOpacity
                                       style={styles.batchActionBtn}
