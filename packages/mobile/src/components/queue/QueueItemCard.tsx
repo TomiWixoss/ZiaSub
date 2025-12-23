@@ -91,6 +91,14 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
     if (bs.batchOffset !== undefined) {
       parts.push(`±${bs.batchOffset}s`);
     }
+    // Chỉ hiện số batch cùng lúc nếu không phải streaming mode
+    if (
+      !bs.streamingMode &&
+      bs.maxConcurrentBatches &&
+      bs.maxConcurrentBatches > 1
+    ) {
+      parts.push(`x${bs.maxConcurrentBatches}`); // x2, x3 = số batch cùng lúc
+    }
     if (bs.streamingMode) {
       parts.push("stream");
     }
