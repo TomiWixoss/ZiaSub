@@ -56,14 +56,23 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
   const styles = useThemedStyles(themedStyles);
 
   const hasRealProgress = item.progress && item.progress.total > 0;
-  // Batch retranslation is actively translating even without progress
+  // Batch retranslation info
   const isBatchRetranslation = item.retranslateBatchIndex !== undefined;
+  // Batch retranslation is actively translating only if it has progress (meaning API call started)
+  // Without progress, it's waiting in queue
+  const isBatchRetranslationActive = isBatchRetranslation && hasRealProgress;
+  const isBatchRetranslationWaiting = isBatchRetranslation && !hasRealProgress;
+
   const isActivelyTranslating =
-    item.status === "translating" && (hasRealProgress || isBatchRetranslation);
+    item.status === "translating" &&
+    (hasRealProgress || isBatchRetranslationActive);
   // Paused is now a separate status
   const isPaused = item.status === "paused";
+  // Waiting in queue: either full translation waiting OR batch retranslation waiting
   const isWaitingInQueue =
-    item.status === "translating" && !hasRealProgress && !isBatchRetranslation;
+    item.status === "translating" &&
+    !hasRealProgress &&
+    !isBatchRetranslationActive;
 
   // Calculate progress percentage (only for full translation with progress, not batch retranslation)
   const progressPercent =
@@ -300,13 +309,27 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
                     })}
               </Text>
             )}
-            {isWaitingInQueue && (
+            {isWaitingInQueue && !isBatchRetranslationWaiting && (
               <Text style={[styles.statusText, { color: colors.primary }]}>
                 {queuePosition && totalInQueue
                   ? `${t(
                       "queue.status.waiting"
                     )} (${queuePosition}/${totalInQueue})`
                   : t("queue.status.waiting")}
+              </Text>
+            )}
+            {isWaitingInQueue && isBatchRetranslationWaiting && (
+              <Text style={[styles.statusText, { color: colors.primary }]}>
+                {item.retranslateMode === "single"
+                  ? t("queue.status.waitingBatchSingle", {
+                      batch: item.retranslateBatchIndex! + 1,
+                    })
+                  : t("queue.status.waitingBatchFrom", {
+                      batch: item.retranslateBatchIndex! + 1,
+                    })}
+                {queuePosition && totalInQueue
+                  ? ` (${queuePosition}/${totalInQueue})`
+                  : ""}
               </Text>
             )}
             {item.status === "completed" && (

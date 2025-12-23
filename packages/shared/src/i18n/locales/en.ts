@@ -513,6 +513,8 @@ export default {
       error: "Error: {{error}}",
       retranslatingSingle: "Retranslating part {{batch}}...",
       retranslatingFrom: "Retranslating from part {{batch}}...",
+      waitingBatchSingle: "Waiting to retranslate part {{batch}}",
+      waitingBatchFrom: "Waiting to retranslate from part {{batch}}",
     },
 
     addedToQueue: "Added",

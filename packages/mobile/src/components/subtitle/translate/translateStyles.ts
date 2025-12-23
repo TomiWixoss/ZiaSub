@@ -162,6 +162,10 @@ export const createTranslateStyles = (colors: ThemeColors) =>
       backgroundColor: colors.warning,
       borderColor: colors.warning,
     },
+    batchChipWaiting: {
+      backgroundColor: colors.primary + "80",
+      borderColor: colors.primary,
+    },
     batchChipText: {
       color: colors.textMuted,
       fontSize: 12,

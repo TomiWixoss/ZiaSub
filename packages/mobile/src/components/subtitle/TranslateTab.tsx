@@ -857,6 +857,7 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
           }}
           videoDuration={videoDuration}
           isPausedInQueue={isPausedInQueue}
+          isWaitingInQueue={isWaitingInQueue}
           isTranslating={isTranslating}
           batchRetranslateJob={batchRetranslateJob}
           pausedBatchRetranslation={pausedBatchRetranslation}
@@ -1023,7 +1024,12 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
             icon="translate"
             title={t("subtitleModal.translate.newTranslation")}
             variant="primary"
-            disabled={!videoUrl || !hasApiKey}
+            disabled={
+              !videoUrl ||
+              !hasApiKey ||
+              !!batchRetranslateJob ||
+              !!pausedBatchRetranslation
+            }
           />
         )}
       </View>

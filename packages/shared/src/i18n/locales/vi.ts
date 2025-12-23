@@ -511,6 +511,8 @@ export default {
       error: "Lỗi: {{error}}",
       retranslatingSingle: "Đang dịch lại phần {{batch}}...",
       retranslatingFrom: "Đang dịch lại từ phần {{batch}}...",
+      waitingBatchSingle: "Chờ dịch lại phần {{batch}}",
+      waitingBatchFrom: "Chờ dịch lại từ phần {{batch}}",
     },
 
     addedToQueue: "Đã thêm",
