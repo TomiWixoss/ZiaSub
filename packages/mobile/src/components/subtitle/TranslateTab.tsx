@@ -428,8 +428,17 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
         true, // forceRetranslate
         config.id,
         config.presetId,
-        batchSettings
+        batchSettings,
+        retranslateBatchIndex,
+        retranslateMode,
+        resumeTranslation?.id // savedTranslationId for batch retranslation
       );
+
+      // Track which translation is being retranslated (for fromHere mode)
+      if (retranslateBatchIndex !== undefined && resumeTranslation?.id) {
+        setRetranslatingTranslationId(resumeTranslation.id);
+      }
+
       alert(t("common.notice"), t("queue.addedToWaitingQueue"));
       return;
     }

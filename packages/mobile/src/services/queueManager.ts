@@ -113,10 +113,31 @@ class QueueManager {
 
       // When a job completes or errors, check if it was a direct translation
       if (job.status === "completed" || job.status === "error") {
+        const completedVideoId = this.extractVideoId(job.videoUrl);
         const isQueueItem = this.items.some(
           (item) =>
-            item.videoUrl === job.videoUrl && item.status === "translating"
+            item.videoId === completedVideoId && item.status === "translating"
         );
+
+        // Always check for waiting items when any translation completes
+        // This handles both direct translation and queue item completion
+        const waitingItems = this.items.filter(
+          (i) =>
+            i.status === "translating" &&
+            !this.userPausedItems.has(i.id) &&
+            i.videoId !== completedVideoId // Exclude the just-completed video
+        );
+
+        if (waitingItems.length > 0) {
+          console.log(
+            "[QueueManager] Translation done, continuing queue with",
+            waitingItems.length,
+            "waiting items"
+          );
+          // Enable auto-process to continue with remaining items
+          this.autoProcessEnabled = true;
+          setTimeout(() => this.processNextInQueue(), 1000);
+        }
 
         if (!isQueueItem) {
           // Direct translation finished
@@ -125,22 +146,6 @@ class QueueManager {
           // Clear direct translation tracking
           if (this.directTranslationVideoUrl === job.videoUrl) {
             this.directTranslationVideoUrl = null;
-          }
-
-          // If there are items in queue that were waiting, start processing them
-          // This works even if autoProcessEnabled is false - we process waiting items
-          const waitingItems = this.items.filter(
-            (i) => i.status === "translating" && !this.userPausedItems.has(i.id)
-          );
-          if (waitingItems.length > 0) {
-            console.log(
-              "[QueueManager] Direct translation done, continuing queue with",
-              waitingItems.length,
-              "items"
-            );
-            // Enable auto-process to continue with remaining items
-            this.autoProcessEnabled = true;
-            setTimeout(() => this.processNextInQueue(), 1000);
           }
         }
         // Note: Queue item completion is handled by processItem's subscription
