@@ -15,17 +15,21 @@ expo-env.d.ts
 *.key
 *.mobileprovision
 
-# Android
-android/.gradle/
-android/.kotlin/
-android/build/
-android/app/build/
-local.properties
-android/local.properties
+# Native directories (CNG/Prebuild)
+/android
+/ios
 
-# iOS
-ios/Pods/
-ios/build/
+# Android (if not using CNG)
+# android/.gradle/
+# android/.kotlin/
+# android/build/
+# android/app/build/
+local.properties
+# android/local.properties
+
+# iOS (if not using CNG)
+# ios/Pods/
+# ios/build/
 
 # Metro
 .metro-health-check*
