@@ -78,6 +78,28 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
 
   const presetName = getPresetName(item.presetId);
 
+  // Format batch settings info
+  const getBatchSettingsInfo = (): string | null => {
+    const bs = item.batchSettings;
+    if (!bs) return null;
+
+    const parts: string[] = [];
+    if (bs.maxVideoDuration) {
+      const mins = Math.floor(bs.maxVideoDuration / 60);
+      parts.push(`${mins}p`); // p = phút/part
+    }
+    if (bs.batchOffset !== undefined) {
+      parts.push(`±${bs.batchOffset}s`);
+    }
+    if (bs.streamingMode) {
+      parts.push("stream");
+    }
+
+    return parts.length > 0 ? parts.join(" • ") : null;
+  };
+
+  const batchSettingsInfo = getBatchSettingsInfo();
+
   // Get status color and icon
   const getStatusStyle = () => {
     if (isActivelyTranslating)
@@ -154,7 +176,7 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
             {item.title}
           </Text>
 
-          {(item.configName || presetName) && (
+          {(item.configName || presetName || batchSettingsInfo) && (
             <View style={styles.configRow}>
               {item.configName && (
                 <Text style={styles.configText} numberOfLines={1}>
@@ -170,6 +192,18 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
                   />
                   <Text style={styles.presetBadgeText} numberOfLines={1}>
                     {presetName}
+                  </Text>
+                </View>
+              )}
+              {batchSettingsInfo && (
+                <View style={styles.settingsBadge}>
+                  <MaterialCommunityIcons
+                    name="cog-outline"
+                    size={10}
+                    color={colors.textMuted}
+                  />
+                  <Text style={styles.settingsBadgeText} numberOfLines={1}>
+                    {batchSettingsInfo}
                   </Text>
                 </View>
               )}
@@ -432,6 +466,19 @@ const themedStyles = createThemedStyles((colors) => ({
     color: colors.primary,
     fontSize: 9,
     fontWeight: "500" as const,
+  },
+  settingsBadge: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    backgroundColor: colors.surfaceLight,
+    borderRadius: 4,
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    gap: 2,
+  },
+  settingsBadgeText: {
+    color: colors.textMuted,
+    fontSize: 9,
   },
   footer: {
     marginTop: 4,
