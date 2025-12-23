@@ -23,7 +23,7 @@ import {
   getApiKeys,
 } from "@utils/storage";
 import { translationManager } from "@services/translationManager";
-import { parseTime } from "@utils/videoUtils";
+import { parseTime, extractVideoId } from "@utils/videoUtils";
 import { parseSRT } from "@utils/srtParser";
 import { PRESET_PROMPTS, type PresetPromptType } from "@constants/defaults";
 import Button3D from "../common/Button3D";
@@ -177,22 +177,27 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
   useEffect(() => {
     if (!videoUrl) return;
 
+    const currentVideoId = extractVideoId(videoUrl);
+
     // Check current job state immediately when component mounts
     const currentJob = translationManager.getCurrentJob();
-    if (
-      currentJob &&
-      currentJob.videoUrl === videoUrl &&
-      currentJob.status === "processing" &&
-      currentJob.rangeStart !== undefined &&
-      currentJob.rangeEnd !== undefined
-    ) {
-      setBatchRetranslateJob(currentJob);
+    if (currentJob) {
+      const jobVideoId = extractVideoId(currentJob.videoUrl);
+      if (
+        jobVideoId === currentVideoId &&
+        currentJob.status === "processing" &&
+        currentJob.rangeStart !== undefined &&
+        currentJob.rangeEnd !== undefined
+      ) {
+        setBatchRetranslateJob(currentJob);
+      }
     }
 
     const unsubscribe = translationManager.subscribe((job) => {
+      const jobVideoId = extractVideoId(job.videoUrl);
       // Check if this is a batch retranslation for current video
       if (
-        job.videoUrl === videoUrl &&
+        jobVideoId === currentVideoId &&
         job.rangeStart !== undefined &&
         job.rangeEnd !== undefined
       ) {

@@ -157,6 +157,15 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
     setPausedProgress(null);
 
     if (queueStatus.inQueue && queueStatus.status === "translating") {
+      // Check if this is a batch retranslation - should NOT show as waiting
+      const queueItem = queueManager.isInQueue(videoUrl);
+      if (queueItem?.retranslateBatchIndex !== undefined) {
+        // Batch retranslation - don't show waiting state
+        setIsWaitingInQueue(false);
+        setQueuePosition(null);
+        return;
+      }
+
       // Video is in translating queue - check if it's actually being translated
       const currentJob = translationManager.getCurrentJob();
       const currentVideoId = extractVideoId(videoUrl);
@@ -219,6 +228,15 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
       setPausedProgress(null);
 
       if (queueStatus.inQueue && queueStatus.status === "translating") {
+        // Check if this is a batch retranslation - should NOT show as waiting
+        const queueItem = queueManager.isInQueue(videoUrl);
+        if (queueItem?.retranslateBatchIndex !== undefined) {
+          // Batch retranslation - don't show waiting state
+          setIsWaitingInQueue(false);
+          setQueuePosition(null);
+          return;
+        }
+
         const currentJob = translationManager.getCurrentJob();
         const currentVideoId = extractVideoId(videoUrl);
         const jobVideoId = currentJob
