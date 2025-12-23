@@ -617,7 +617,13 @@ export default {
       pauseRetranslate: "Tạm dừng",
       resumeBatchSingle: "Tiếp tục phần {{batch}}",
       resumeBatchFrom: "Tiếp tục từ phần {{batch}}",
+      resumeRetranslate: "Tiếp tục",
       cancelBatchRetranslate: "Hủy dịch lại",
+      retranslatingSingle: "Đang dịch lại phần {{batch}}...",
+      retranslatingFrom: "Đang dịch lại từ phần {{batch}}...",
+      pausedBatchSingle: "Tạm dừng phần {{batch}}",
+      pausedBatchFrom: "Tạm dừng từ phần {{batch}}",
+      waitingBatch: "Đang chờ dịch lại...",
 
       // Batch viewer
       batchList: "Các phần đã dịch",

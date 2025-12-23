@@ -92,6 +92,8 @@ export interface TranslationJob {
   // Batch retranslation mode
   retranslateBatchIndex?: number;
   retranslateMode?: "single" | "fromHere";
+  // Flag to indicate this is a batch retranslation (not full video translation)
+  isBatchRetranslation?: boolean;
 }
 
 // ============================================

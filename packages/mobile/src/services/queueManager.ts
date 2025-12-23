@@ -1177,14 +1177,12 @@ class QueueManager {
     );
     if (pausedItem) return pausedItem;
 
-    // Check for translating batch retranslation that's waiting (no active job)
-    // This happens after user clicks "Resume" in queue but hasn't started actual translation
+    // Check for translating batch retranslation (waiting or active)
     const translatingItem = this.items.find(
       (i) =>
         i.videoId === videoId &&
         i.status === "translating" &&
-        i.retranslateBatchIndex !== undefined &&
-        !i.progress // No progress means not actively translating
+        i.retranslateBatchIndex !== undefined
     );
     return translatingItem || null;
   }

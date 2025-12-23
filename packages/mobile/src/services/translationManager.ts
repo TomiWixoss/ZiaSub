@@ -499,6 +499,7 @@ class TranslationManager {
       batchSettings: undefined,
       completedBatchRanges: [],
       existingTranslationId,
+      isBatchRetranslation: true, // Flag to indicate this is a batch retranslation
     };
     this.notify();
 

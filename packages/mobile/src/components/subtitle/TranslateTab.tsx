@@ -179,10 +179,11 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
     }
   }, [visible, videoUrl, loadTranslations]);
 
-  // Check for paused/waiting batch retranslation from queue
+  // Check for paused/waiting/active batch retranslation from queue
   useEffect(() => {
     if (!videoUrl) {
       setPausedBatchRetranslation(null);
+      setBatchRetranslateJob(null);
       return;
     }
 
@@ -194,19 +195,59 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
 
       const checkBatchRetranslation = () => {
         if (!isMounted) return;
-        // Use getBatchRetranslationInfo to get both paused and waiting-to-resume items
+        // Use getBatchRetranslationInfo to get paused, waiting, or active batch retranslation
         const batchItem = queueManager.getBatchRetranslationInfo(videoUrl);
         if (
           batchItem &&
           batchItem.retranslateBatchIndex !== undefined &&
           batchItem.retranslateMode
         ) {
-          setPausedBatchRetranslation({
-            batchIndex: batchItem.retranslateBatchIndex,
-            mode: batchItem.retranslateMode,
-          });
+          if (batchItem.status === "paused") {
+            // Paused state
+            setPausedBatchRetranslation({
+              batchIndex: batchItem.retranslateBatchIndex,
+              mode: batchItem.retranslateMode,
+            });
+            setBatchRetranslateJob(null);
+          } else if (batchItem.status === "translating") {
+            // Active or waiting state - create a fake job to show UI
+            setPausedBatchRetranslation(null);
+            const batchDuration =
+              batchItem.batchSettings?.maxVideoDuration || 600;
+            setBatchRetranslateJob({
+              id: batchItem.id,
+              videoUrl: batchItem.videoUrl,
+              configName: batchItem.configName || "",
+              status: batchItem.progress ? "processing" : "pending",
+              progress: batchItem.progress
+                ? {
+                    currentBatch: batchItem.progress.completed + 1,
+                    totalBatches: batchItem.progress.total,
+                    completedBatches: batchItem.progress.completed,
+                    status: "processing",
+                    batchStatuses: [],
+                  }
+                : null,
+              keyStatus: null,
+              result: null,
+              error: null,
+              startedAt: batchItem.startedAt || Date.now(),
+              completedAt: null,
+              partialResult: null,
+              rangeStart: batchItem.retranslateBatchIndex * batchDuration,
+              rangeEnd:
+                batchItem.retranslateMode === "single"
+                  ? (batchItem.retranslateBatchIndex + 1) * batchDuration
+                  : batchItem.duration,
+            });
+          }
         } else {
           setPausedBatchRetranslation(null);
+          // Only clear batchRetranslateJob if there's no active translation
+          const currentJob = translationManager.getCurrentJob();
+          if (!currentJob || currentJob.status !== "processing") {
+            setBatchRetranslateJob(null);
+          }
         }
       };
 
@@ -237,11 +278,15 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
     const currentJob = translationManager.getCurrentJob();
     if (currentJob) {
       const jobVideoId = extractVideoId(currentJob.videoUrl);
+      // Check if this is a batch retranslation (has isBatchRetranslation flag or rangeStart/rangeEnd)
+      const isBatchJob =
+        currentJob.isBatchRetranslation ||
+        (currentJob.rangeStart !== undefined &&
+          currentJob.rangeEnd !== undefined);
       if (
         jobVideoId === currentVideoId &&
         currentJob.status === "processing" &&
-        currentJob.rangeStart !== undefined &&
-        currentJob.rangeEnd !== undefined
+        isBatchJob
       ) {
         setBatchRetranslateJob(currentJob);
       }
@@ -250,11 +295,10 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
     const unsubscribe = translationManager.subscribe((job) => {
       const jobVideoId = extractVideoId(job.videoUrl);
       // Check if this is a batch retranslation for current video
-      if (
-        jobVideoId === currentVideoId &&
-        job.rangeStart !== undefined &&
-        job.rangeEnd !== undefined
-      ) {
+      const isBatchJob =
+        job.isBatchRetranslation ||
+        (job.rangeStart !== undefined && job.rangeEnd !== undefined);
+      if (jobVideoId === currentVideoId && isBatchJob) {
         if (job.status === "processing") {
           setBatchRetranslateJob(job);
           // Clear paused state when job starts
@@ -1039,18 +1083,13 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
             title={t("subtitleModal.translate.stopTranslation")}
             variant="destructive"
           />
-        ) : (
+        ) : batchRetranslateJob || pausedBatchRetranslation ? null : ( // Batch retranslation in progress or paused - show nothing here, UI is in SavedTranslationsList
           <Button3D
             onPress={() => handleTranslate()}
             icon="translate"
             title={t("subtitleModal.translate.newTranslation")}
             variant="primary"
-            disabled={
-              !videoUrl ||
-              !hasApiKey ||
-              !!batchRetranslateJob ||
-              !!pausedBatchRetranslation
-            }
+            disabled={!videoUrl || !hasApiKey}
           />
         )}
       </View>

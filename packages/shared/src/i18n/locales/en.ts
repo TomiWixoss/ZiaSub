@@ -617,7 +617,13 @@ export default {
       pauseRetranslate: "Pause",
       resumeBatchSingle: "Resume part {{batch}}",
       resumeBatchFrom: "Resume from part {{batch}}",
+      resumeRetranslate: "Resume",
       cancelBatchRetranslate: "Cancel retranslation",
+      retranslatingSingle: "Retranslating part {{batch}}...",
+      retranslatingFrom: "Retranslating from part {{batch}}...",
+      pausedBatchSingle: "Paused part {{batch}}",
+      pausedBatchFrom: "Paused from part {{batch}}",
+      waitingBatch: "Waiting to retranslate...",
 
       // Batch viewer
       batchList: "Translation batches",
