@@ -834,10 +834,10 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
           onRetranslateBatch={handleRetranslateBatch}
           onStopBatchRetranslate={async () => {
             if (videoUrl) {
-              // Abort translation and pause in queue
-              await translationManager.abortTranslation(videoUrl);
+              // Pause in queue FIRST to prevent auto-resume, then abort translation
               const { queueManager } = await import("@services/queueManager");
               await queueManager.pauseBatchRetranslation(videoUrl);
+              await translationManager.abortTranslation(videoUrl);
             }
           }}
           onResumeBatchRetranslate={async () => {

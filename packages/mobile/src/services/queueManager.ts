@@ -583,11 +583,13 @@ class QueueManager {
 
           // Check if this was a user-initiated stop - if so, stopTranslation already handled it
           const wasUserStopped = this.userStoppedItemId === currentItemId;
-          if (wasUserStopped) {
-            // User stopped - stopTranslation() already handled the state update and processNextInQueue
-            // Just cleanup subscription and return - DON'T reset isProcessing here
-            // stopTranslation will handle isProcessing reset after it finishes
+          // Check if user paused this item (e.g., batch retranslation pause)
+          const wasUserPaused = this.userPausedItems.has(currentItemId);
+          if (wasUserStopped || wasUserPaused) {
+            // User stopped/paused - don't process error, just cleanup
             safeUnsubscribe();
+            this.isProcessing = false;
+            this.currentProcessingItemId = null;
             return;
           }
 
