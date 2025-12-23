@@ -228,17 +228,40 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
     return parts.length > 0 ? parts.join(" • ") : null;
   };
 
-  // Auto-expand first translation when there's a batch retranslation in progress or paused
+  // Auto-expand the translation being retranslated when there's a batch retranslation in progress or paused
   // Must be before early return to maintain hooks order
   React.useEffect(() => {
     if (
-      (batchRetranslateJob || pausedBatchRetranslation) &&
+      (batchRetranslateJob ||
+        pausedBatchRetranslation ||
+        retranslatingTranslationId) &&
       translations.length > 0 &&
       !expandedId
     ) {
+      // Find the translation being retranslated
+      const targetId =
+        retranslatingTranslationId ||
+        batchRetranslateJob?.existingTranslationId ||
+        pausedBatchRetranslation?.translationId;
+
+      if (targetId) {
+        // Expand the specific translation being retranslated
+        const targetTranslation = translations.find((t) => t.id === targetId);
+        if (targetTranslation) {
+          setExpandedId(targetId);
+          return;
+        }
+      }
+      // Fallback to first translation if target not found
       setExpandedId(translations[0].id);
     }
-  }, [batchRetranslateJob, pausedBatchRetranslation, translations, expandedId]);
+  }, [
+    batchRetranslateJob,
+    pausedBatchRetranslation,
+    retranslatingTranslationId,
+    translations,
+    expandedId,
+  ]);
 
   if (translations.length === 0) return null;
 
@@ -268,15 +291,25 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
         {t("subtitleModal.translate.savedTranslations")}
       </Text>
       <View style={styles.translationsList}>
-        {translations.map((item) => {
+        {translations.map((item, index) => {
           const progressPercent = getProgressPercent(item);
           const isExpanded = expandedId === item.id;
           const batches = isExpanded ? getBatchesInfo(item) : [];
           // Show batch retranslation status only for the translation being retranslated
-          const isThisTranslationBeingRetranslated =
-            retranslatingTranslationId === item.id ||
-            batchRetranslateJob?.existingTranslationId === item.id ||
-            pausedBatchRetranslation?.translationId === item.id;
+          // If no specific translation ID is tracked, fallback to first translation (index 0)
+          const hasBatchRetranslation = !!(
+            batchRetranslateJob || pausedBatchRetranslation
+          );
+          const hasSpecificTranslationId = !!(
+            retranslatingTranslationId ||
+            batchRetranslateJob?.existingTranslationId ||
+            pausedBatchRetranslation?.translationId
+          );
+          const isThisTranslationBeingRetranslated = hasSpecificTranslationId
+            ? retranslatingTranslationId === item.id ||
+              batchRetranslateJob?.existingTranslationId === item.id ||
+              pausedBatchRetranslation?.translationId === item.id
+            : hasBatchRetranslation && index === 0; // Fallback to first translation
 
           return (
             <View

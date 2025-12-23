@@ -551,8 +551,14 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
         effectiveConfig.presetId,
         effectiveBatchSettings,
         retranslateBatchIndex,
-        retranslateMode
+        retranslateMode,
+        resumeTranslation?.id // savedTranslationId - track which translation is being retranslated
       );
+
+      // Track which translation is being retranslated (for fromHere mode)
+      if (retranslateBatchIndex !== undefined && resumeTranslation?.id) {
+        setRetranslatingTranslationId(resumeTranslation.id);
+      }
 
       translationManager.startTranslation(
         videoUrl,

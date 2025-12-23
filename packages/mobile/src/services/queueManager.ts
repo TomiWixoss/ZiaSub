@@ -1730,6 +1730,7 @@ class QueueManager {
         // Batch retranslation mode
         retranslateBatchIndex,
         retranslateMode,
+        savedTranslationId,
       };
 
       this.items.unshift(newItem);
