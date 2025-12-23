@@ -185,6 +185,12 @@ class GeminiKeyManager {
           } lỗi: ${errorCode} - ${errorMsg}`
         );
 
+        // Kiểm tra lỗi mạng - không cần thử key khác
+        if (isNetworkError(error)) {
+          this.notifyStatus(`❌ Lỗi kết nối mạng`);
+          throw new Error("Không có kết nối mạng. Vui lòng kiểm tra lại.");
+        }
+
         // Nếu là lỗi có thể retry (429, 500, 503), thử key tiếp theo
         if (isRetryableError(error)) {
           triedKeys++;
@@ -235,4 +241,18 @@ export function isRetryableError(error: any): boolean {
   const status = error?.status || error?.code;
   // 429: Rate limit, 500: Server error, 503: Overloaded
   return [429, 500, 503].includes(status);
+}
+
+/**
+ * Check if error is network related
+ */
+export function isNetworkError(error: any): boolean {
+  const message = error?.message?.toLowerCase() || "";
+  return (
+    message.includes("network request failed") ||
+    message.includes("network error") ||
+    message.includes("failed to fetch") ||
+    message.includes("no internet") ||
+    (error?.name === "TypeError" && message.includes("network"))
+  );
 }
