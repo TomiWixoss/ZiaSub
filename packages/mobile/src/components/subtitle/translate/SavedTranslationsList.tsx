@@ -607,6 +607,75 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
                                   </TouchableOpacity>
                                 )}
 
+                              {/* Cancel button when processing */}
+                              {batchRetranslateJob?.status === "processing" &&
+                                onCancelBatchRetranslate && (
+                                  <TouchableOpacity
+                                    style={{
+                                      flexDirection: "row",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      gap: 6,
+                                      paddingVertical: 8,
+                                      paddingHorizontal: 12,
+                                      borderRadius: 6,
+                                      backgroundColor: colors.error,
+                                    }}
+                                    onPress={onCancelBatchRetranslate}
+                                  >
+                                    <MaterialCommunityIcons
+                                      name="close"
+                                      size={16}
+                                      color="#fff"
+                                    />
+                                    <Text
+                                      style={{
+                                        color: "#fff",
+                                        fontSize: 12,
+                                        fontWeight: "600",
+                                      }}
+                                    >
+                                      {t("common.cancel")}
+                                    </Text>
+                                  </TouchableOpacity>
+                                )}
+
+                              {/* Cancel button when waiting in queue */}
+                              {batchRetranslateJob &&
+                                batchRetranslateJob.status !== "processing" &&
+                                !pausedBatchRetranslation &&
+                                onCancelBatchRetranslate && (
+                                  <TouchableOpacity
+                                    style={{
+                                      flex: 1,
+                                      flexDirection: "row",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      gap: 6,
+                                      paddingVertical: 8,
+                                      paddingHorizontal: 12,
+                                      borderRadius: 6,
+                                      backgroundColor: colors.error,
+                                    }}
+                                    onPress={onCancelBatchRetranslate}
+                                  >
+                                    <MaterialCommunityIcons
+                                      name="close"
+                                      size={16}
+                                      color="#fff"
+                                    />
+                                    <Text
+                                      style={{
+                                        color: "#fff",
+                                        fontSize: 12,
+                                        fontWeight: "600",
+                                      }}
+                                    >
+                                      {t("common.cancel")}
+                                    </Text>
+                                  </TouchableOpacity>
+                                )}
+
                               {/* Resume button when paused */}
                               {pausedBatchRetranslation &&
                                 !batchRetranslateJob &&

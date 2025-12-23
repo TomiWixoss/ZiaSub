@@ -532,6 +532,7 @@ export default {
     waitingInQueue: "Waiting in queue...",
     waitingPosition: "Waiting (position #{{position}})",
     cancelWaiting: "Cancel",
+    cancelTranslating: "Cancel",
     cancelPaused: "Cancel",
     paused: "Paused",
     pausedWithProgress: "Paused ({{completed}}/{{total}})",

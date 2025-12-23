@@ -531,6 +531,7 @@ export default {
     waitingInQueue: "Đang chờ trong hàng đợi...",
     waitingPosition: "Đang chờ (vị trí #{{position}})",
     cancelWaiting: "Hủy chờ",
+    cancelTranslating: "Hủy dịch",
     cancelPaused: "Hủy",
     paused: "Đã tạm dừng",
     pausedWithProgress: "Đã tạm dừng ({{completed}}/{{total}})",

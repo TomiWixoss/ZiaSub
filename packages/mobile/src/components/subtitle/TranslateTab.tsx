@@ -962,9 +962,15 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
           }}
           onCancelBatchRetranslate={async () => {
             if (videoUrl) {
-              // Clear batch retranslation mode from queue
               const { queueManager } = await import("@services/queueManager");
+              // If currently processing, abort translation first
+              if (batchRetranslateJob?.status === "processing") {
+                await translationManager.abortTranslation(videoUrl);
+              }
+              // Clear batch retranslation mode from queue
               await queueManager.clearBatchRetranslateMode(videoUrl);
+              // Clear retranslating translation ID
+              setRetranslatingTranslationId(null);
             }
           }}
           videoDuration={videoDuration}
@@ -1125,26 +1131,38 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
             )}
           </View>
         ) : isTranslating && !batchRetranslateJob ? (
-          // Only show stop button for full video translation, not batch retranslation
-          <Button3D
-            onPress={async () => {
-              if (videoUrl) {
-                // Use queueManager to stop translation properly
-                // This ensures queue state is updated and next video can be processed
-                const { queueManager } = await import("@services/queueManager");
-                const queueItem = queueManager.isInQueue(videoUrl);
-                if (queueItem && queueItem.status === "translating") {
-                  await queueManager.stopTranslation(queueItem.id);
-                } else {
-                  // Fallback: direct abort if not in queue
-                  await translationManager.abortTranslation(videoUrl);
+          // Show stop + cancel buttons for full video translation
+          <View style={{ gap: 8 }}>
+            <Button3D
+              onPress={async () => {
+                if (videoUrl) {
+                  // Use queueManager to stop translation properly
+                  // This ensures queue state is updated and next video can be processed
+                  const { queueManager } = await import(
+                    "@services/queueManager"
+                  );
+                  const queueItem = queueManager.isInQueue(videoUrl);
+                  if (queueItem && queueItem.status === "translating") {
+                    await queueManager.stopTranslation(queueItem.id);
+                  } else {
+                    // Fallback: direct abort if not in queue
+                    await translationManager.abortTranslation(videoUrl);
+                  }
                 }
-              }
-            }}
-            icon="stop"
-            title={t("subtitleModal.translate.stopTranslation")}
-            variant="destructive"
-          />
+              }}
+              icon="stop"
+              title={t("subtitleModal.translate.stopTranslation")}
+              variant="warning"
+            />
+            {onCancelQueue && (
+              <Button3D
+                onPress={onCancelQueue}
+                title={t("queue.cancelTranslating")}
+                variant="destructive"
+                size="small"
+              />
+            )}
+          </View>
         ) : (
           <Button3D
             onPress={() => handleTranslate()}

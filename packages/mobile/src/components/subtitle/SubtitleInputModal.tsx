@@ -285,15 +285,20 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
     return () => unsubscribe();
   }, [videoUrl]); // Only depend on videoUrl, not checkQueueStatus
 
-  // Handle cancel waiting in queue - move to pending instead of removing
+  // Handle cancel waiting/translating in queue - abort and remove from queue
   const handleCancelQueue = useCallback(async () => {
     if (videoUrl) {
       const queueItem = queueManager.isInQueue(videoUrl);
       if (queueItem) {
-        // Use moveToPendingByUser to prevent auto-resume
-        await queueManager.moveToPendingByUser(queueItem.id);
+        // If currently translating, abort first
+        if (queueItem.status === "translating") {
+          await translationManager.abortTranslation(videoUrl);
+        }
+        // Remove from queue completely
+        await queueManager.removeFromQueue(queueItem.id);
       }
       setIsWaitingInQueue(false);
+      setIsTranslating(false);
       setQueuePosition(null);
     }
   }, [videoUrl]);
