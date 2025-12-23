@@ -493,6 +493,11 @@ export default {
       resumeConfirm:
         '"{{title}}" đã dịch {{completed}}/{{total}} phần. Tiếp tục dịch?',
       resume: "Dịch tiếp",
+      resumeBatchTitle: "Tiếp tục dịch lại",
+      resumeBatchSingleConfirm:
+        'Tiếp tục dịch lại phần {{batch}} của "{{title}}"?',
+      resumeBatchFromConfirm:
+        'Tiếp tục dịch lại từ phần {{batch}} của "{{title}}"?',
     },
 
     status: {

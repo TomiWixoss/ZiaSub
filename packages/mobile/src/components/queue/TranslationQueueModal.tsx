@@ -196,6 +196,36 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
     );
   };
   const handleResumeTranslation = (item: QueueItem) => {
+    // Check if this is a batch retranslation paused
+    if (item.retranslateBatchIndex !== undefined) {
+      // Batch retranslation - need to resume differently
+      confirm(
+        t("queue.dialogs.resumeBatchTitle"),
+        item.retranslateMode === "single"
+          ? t("queue.dialogs.resumeBatchSingleConfirm", {
+              title: item.title,
+              batch: item.retranslateBatchIndex + 1,
+            })
+          : t("queue.dialogs.resumeBatchFromConfirm", {
+              title: item.title,
+              batch: item.retranslateBatchIndex + 1,
+            }),
+        async () => {
+          // Resume batch retranslation - just move back to translating status
+          // The actual translation will be triggered when user opens the video
+          const result = await queueManager.resumeBatchRetranslation(
+            item.videoUrl
+          );
+          if (!result.success) {
+            alert(t("common.error"), t("errors.generic"));
+          }
+        },
+        t("queue.dialogs.resume")
+      );
+      return;
+    }
+
+    // Normal full translation resume
     confirm(
       t("queue.dialogs.resumeTitle"),
       t("queue.dialogs.resumeConfirm", {

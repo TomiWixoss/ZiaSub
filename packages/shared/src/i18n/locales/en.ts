@@ -495,6 +495,11 @@ export default {
       resumeConfirm:
         '"{{title}}" has {{completed}}/{{total}} parts done. Continue translating?',
       resume: "Resume",
+      resumeBatchTitle: "Resume retranslation",
+      resumeBatchSingleConfirm:
+        'Resume retranslating part {{batch}} of "{{title}}"?',
+      resumeBatchFromConfirm:
+        'Resume retranslating from part {{batch}} of "{{title}}"?',
     },
 
     status: {

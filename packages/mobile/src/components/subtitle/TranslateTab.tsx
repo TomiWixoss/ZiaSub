@@ -179,37 +179,38 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
     }
   }, [visible, videoUrl, loadTranslations]);
 
-  // Check for paused batch retranslation from queue
+  // Check for paused/waiting batch retranslation from queue
   useEffect(() => {
     if (!videoUrl) {
       setPausedBatchRetranslation(null);
       return;
     }
 
-    const checkPausedBatch = async () => {
+    const checkBatchRetranslation = async () => {
       const { queueManager } = await import("@services/queueManager");
-      const pausedItem = queueManager.getPausedBatchRetranslation(videoUrl);
+      // Use getBatchRetranslationInfo to get both paused and waiting-to-resume items
+      const batchItem = queueManager.getBatchRetranslationInfo(videoUrl);
       if (
-        pausedItem &&
-        pausedItem.retranslateBatchIndex !== undefined &&
-        pausedItem.retranslateMode
+        batchItem &&
+        batchItem.retranslateBatchIndex !== undefined &&
+        batchItem.retranslateMode
       ) {
         setPausedBatchRetranslation({
-          batchIndex: pausedItem.retranslateBatchIndex,
-          mode: pausedItem.retranslateMode,
+          batchIndex: batchItem.retranslateBatchIndex,
+          mode: batchItem.retranslateMode,
         });
       } else {
         setPausedBatchRetranslation(null);
       }
     };
 
-    checkPausedBatch();
+    checkBatchRetranslation();
 
-    // Subscribe to queue changes to update paused state
+    // Subscribe to queue changes to update state
     const setupSubscription = async () => {
       const { queueManager } = await import("@services/queueManager");
       return queueManager.subscribe(() => {
-        checkPausedBatch();
+        checkBatchRetranslation();
       });
     };
 
