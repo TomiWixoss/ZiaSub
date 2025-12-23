@@ -711,7 +711,7 @@ class QueueManager {
     this.notify();
   }
 
-  // Move to pending (re-queue)
+  // Move to pending (re-queue) - clear old config so it uses new config when translated
   async moveToPending(itemId: string): Promise<void> {
     // Clear from user paused items
     this.userPausedItems.delete(itemId);
@@ -722,10 +722,21 @@ class QueueManager {
       progress: undefined,
       startedAt: undefined,
       completedAt: undefined,
+      // Clear config so it uses new config when translated again
+      configId: undefined,
+      configName: undefined,
+      presetId: undefined,
+      batchSettings: undefined,
+      // Clear partial data
+      partialSrt: undefined,
+      completedBatches: undefined,
+      totalBatches: undefined,
+      completedBatchRanges: undefined,
     });
   }
 
   // Move to pending and mark as user-paused (won't auto-resume)
+  // Keep config so it can resume with same settings
   async moveToPendingByUser(itemId: string): Promise<void> {
     // Add to user paused items to prevent auto-resume
     this.userPausedItems.add(itemId);
@@ -736,6 +747,7 @@ class QueueManager {
       progress: undefined,
       startedAt: undefined,
       completedAt: undefined,
+      // Keep config for resume - don't clear configId, configName, presetId, batchSettings
     });
   }
 
@@ -1416,17 +1428,35 @@ class QueueManager {
       }
       if (item.status === "translating") {
         // Already in translating queue
-        // Only update config if not already set (preserve original config)
-        const updates: Partial<QueueItem> = {};
-        if (!item.configName && configName) updates.configName = configName;
-        if (!item.configId && configId) updates.configId = configId;
-        if (item.presetId === undefined && presetId !== undefined)
-          updates.presetId = presetId;
-        if (!item.batchSettings && batchSettings)
-          updates.batchSettings = batchSettings;
+        if (forceRetranslate) {
+          // User wants to re-translate with new config - update all config info
+          // Reset startedAt to ensure proper ordering
+          await this.updateItem(item.id, {
+            startedAt: Date.now(),
+            configName: configName || item.configName,
+            configId: configId || item.configId,
+            presetId: presetId ?? item.presetId,
+            batchSettings: batchSettings || item.batchSettings,
+            // Clear partial data for fresh translation
+            partialSrt: undefined,
+            completedBatches: undefined,
+            totalBatches: undefined,
+            completedBatchRanges: undefined,
+            error: undefined,
+          });
+        } else {
+          // Only update config if not already set (preserve original config)
+          const updates: Partial<QueueItem> = {};
+          if (!item.configName && configName) updates.configName = configName;
+          if (!item.configId && configId) updates.configId = configId;
+          if (item.presetId === undefined && presetId !== undefined)
+            updates.presetId = presetId;
+          if (!item.batchSettings && batchSettings)
+            updates.batchSettings = batchSettings;
 
-        if (Object.keys(updates).length > 0) {
-          await this.updateItem(item.id, updates);
+          if (Object.keys(updates).length > 0) {
+            await this.updateItem(item.id, updates);
+          }
         }
         return this.items.find((i) => i.id === item!.id)!;
       }
