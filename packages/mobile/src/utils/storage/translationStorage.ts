@@ -29,7 +29,11 @@ export const saveTranslation = async (
   srtContent: string,
   configName: string,
   existingTranslationId?: string,
-  presetId?: string
+  presetId?: string,
+  metadata?: {
+    videoDuration?: number;
+    batchSettings?: BatchSettings;
+  }
 ): Promise<SavedTranslation> => {
   const videoId = getVideoIdFromUrl(videoUrl);
 
@@ -63,6 +67,12 @@ export const saveTranslation = async (
         presetId,
         isPartial: false,
         updatedAt: Date.now(),
+        videoDuration:
+          metadata?.videoDuration ??
+          data.translations[existingIndex].videoDuration,
+        batchSettings:
+          metadata?.batchSettings ??
+          data.translations[existingIndex].batchSettings,
       };
       data.activeTranslationId = existingTranslationId;
       await storageService.setTranslation(videoId, data);
@@ -78,6 +88,8 @@ export const saveTranslation = async (
     configName,
     presetId,
     isPartial: false,
+    videoDuration: metadata?.videoDuration,
+    batchSettings: metadata?.batchSettings,
   };
 
   data.translations.push(newTranslation);

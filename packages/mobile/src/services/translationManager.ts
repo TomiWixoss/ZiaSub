@@ -235,7 +235,11 @@ class TranslationManager {
         result,
         config.name,
         resumeData?.existingTranslationId,
-        config.presetId
+        config.presetId,
+        {
+          videoDuration: this.currentJob?.videoDuration,
+          batchSettings: this.currentJob?.batchSettings as BatchSettings,
+        }
       );
 
       if (this.currentJob && this.currentJob.id === jobId && !this.isAborted) {
@@ -538,7 +542,10 @@ class TranslationManager {
         updatedSrt,
         config.name,
         existingTranslationId,
-        config.presetId
+        config.presetId,
+        {
+          videoDuration,
+        }
       );
 
       if (this.currentJob && this.currentJob.id === jobId && !this.isAborted) {
