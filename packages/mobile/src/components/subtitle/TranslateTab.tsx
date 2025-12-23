@@ -823,15 +823,16 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
         }
 
         // Create modified translation for resume
+        // NOTE: Don't set rangeStart here - let Gemini calculate all batches but skip completed ones
+        // This ensures totalBatches stays correct (4 instead of 3)
         const modifiedTranslation: SavedTranslation = {
           ...translation,
           srtContent: partialSrt,
           isPartial: true,
           completedBatches: batchIndex,
           totalBatches: totalBatches,
-          // Set rangeStart to skip already completed batches entirely (don't even call API for them)
-          rangeStart: batchStart,
-          rangeEnd: translation.videoDuration || videoDuration,
+          // Don't set rangeStart/rangeEnd - use completedBatchRanges to skip instead
+          // This preserves the original totalBatches count
           batchSettings: translation.batchSettings || {
             maxVideoDuration: originalBatchDuration,
             maxConcurrentBatches: batchSettings?.maxConcurrentBatches || 1,
