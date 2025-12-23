@@ -205,10 +205,9 @@ class GeminiKeyManager {
     // Đã thử hết tất cả keys
     if (triedKeys >= this.keys.length) {
       this.notifyStatus(`❌ Đã thử hết ${this.keys.length} key`);
+      // Chỉ hiện thông báo đơn giản, không chèn lỗi chi tiết
       throw new Error(
-        `Đã thử hết ${this.keys.length} key nhưng không được. Lỗi: ${
-          lastError?.message || "Không rõ"
-        }`
+        `Đã thử hết ${this.keys.length} key nhưng không dịch được. Vui lòng thử lại sau hoặc thêm key mới.`
       );
     }
 
