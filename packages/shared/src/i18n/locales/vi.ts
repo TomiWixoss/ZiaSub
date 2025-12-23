@@ -502,6 +502,8 @@ export default {
       paused: "Tạm dừng ({{completed}}/{{total}})",
       completed: "Xong {{date}}",
       error: "Lỗi: {{error}}",
+      retranslatingSingle: "Đang dịch lại phần {{batch}}...",
+      retranslatingFrom: "Đang dịch lại từ phần {{batch}}...",
     },
 
     addedToQueue: "Đã thêm",

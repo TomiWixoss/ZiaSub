@@ -56,11 +56,14 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
   const styles = useThemedStyles(themedStyles);
 
   const hasRealProgress = item.progress && item.progress.total > 0;
+  // Batch retranslation is actively translating even without progress
+  const isBatchRetranslation = item.retranslateBatchIndex !== undefined;
   const isActivelyTranslating =
-    item.status === "translating" && hasRealProgress;
+    item.status === "translating" && (hasRealProgress || isBatchRetranslation);
   // Paused is now a separate status
   const isPaused = item.status === "paused";
-  const isWaitingInQueue = item.status === "translating" && !hasRealProgress;
+  const isWaitingInQueue =
+    item.status === "translating" && !hasRealProgress && !isBatchRetranslation;
 
   // Calculate progress percentage
   const progressPercent = isActivelyTranslating
@@ -258,10 +261,21 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
                 {t("queue.status.added", { date: formatDate(item.addedAt) })}
               </Text>
             )}
-            {isActivelyTranslating && (
+            {isActivelyTranslating && !isBatchRetranslation && (
               <Text style={[styles.statusText, { color: colors.primary }]}>
                 {t("queue.status.translating")} ({item.progress!.completed}/
                 {item.progress!.total})
+              </Text>
+            )}
+            {isActivelyTranslating && isBatchRetranslation && (
+              <Text style={[styles.statusText, { color: colors.primary }]}>
+                {item.retranslateMode === "single"
+                  ? t("queue.status.retranslatingSingle", {
+                      batch: item.retranslateBatchIndex! + 1,
+                    })
+                  : t("queue.status.retranslatingFrom", {
+                      batch: item.retranslateBatchIndex! + 1,
+                    })}
               </Text>
             )}
             {isPaused && (
