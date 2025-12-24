@@ -297,16 +297,16 @@ export const INJECTED_JAVASCRIPT_DESKTOP = `
     let lastTime = -1;
     let lastSubtitle = '';
     let rafId = null;
+    let parentCheckId = null;
     let isPolling = false;
+    let isPortrait = window.innerHeight > window.innerWidth;
     
-    // Subtitle style settings
+    // Subtitle style settings (same as mobile)
     let subtitleFontSize = 15;
     let subtitleFontWeight = 'bold';
     let subtitleFontStyle = 'normal';
     let portraitBottom = 100;
     let landscapeBottom = 8;
-    let desktopShowBackground = true;
-    let desktopBottom = 60;
 
     const throttle = (fn, delay) => {
       let last = 0;
@@ -337,23 +337,27 @@ export const INJECTED_JAVASCRIPT_DESKTOP = `
       const textStroke = '-webkit-text-stroke:0.8px #000;paint-order:stroke fill;';
       const textShadow = 'text-shadow:0 0 2px #000,-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000,0 -1px 0 #000,0 1px 0 #000,-1px 0 0 #000,1px 0 0 #000;';
       
-      const isFullscreen = document.fullscreenElement || document.webkitFullscreenElement;
-      // Use landscapeBottom for fullscreen, desktopBottom for normal view
-      const bottomPos = isFullscreen ? landscapeBottom : desktopBottom;
+      // Same logic as mobile: background in portrait, no background in landscape/fullscreen
+      const bgStyle = isPortrait 
+        ? 'background:rgba(0,0,0,0.7);padding:8px 16px;border-radius:8px;' 
+        : '';
       
-      // Background style based on setting
-      const bgStyle = desktopShowBackground ? 'background:rgba(0,0,0,0.7);padding:8px 16px;border-radius:8px;' : '';
+      const bottomPos = isPortrait ? portraitBottom : landscapeBottom;
       
-      subtitleLayer.style.cssText = 'position:absolute;bottom:' + bottomPos + 'px;left:5%;right:5%;max-width:90%;margin:0 auto;text-align:center;color:#FFF;font-size:' + subtitleFontSize + 'px;font-weight:' + weight + ';font-style:' + subtitleFontStyle + ';font-family:system-ui,sans-serif;' + textStroke + textShadow + bgStyle + 'pointer-events:none;z-index:2147483647;display:' + (lastSubtitle ? 'block' : 'none') + ';line-height:1.5;white-space:pre-line;';
+      // Use fixed position in portrait mode to prevent scrolling with page
+      // Use absolute position in fullscreen mode (attached to fullscreen element)
+      const positionType = isPortrait ? 'fixed' : 'absolute';
+      subtitleLayer.style.cssText = 'position:' + positionType + ';bottom:' + bottomPos + 'px;left:5%;right:5%;max-width:90%;margin:0 auto;text-align:center;color:#FFF;font-size:' + subtitleFontSize + 'px;font-weight:' + weight + ';font-style:' + subtitleFontStyle + ';font-family:system-ui,sans-serif;' + textStroke + textShadow + bgStyle + 'pointer-events:none;z-index:2147483647;display:' + (lastSubtitle ? 'block' : 'none') + ';line-height:1.5;white-space:pre-line;transform:translateZ(0);backface-visibility:hidden;contain:layout style paint';
     }
 
-    function ensureSubtitleInPlayer() {
+    function ensureSubtitleInFullscreen() {
+      const fs = document.fullscreenElement || document.webkitFullscreenElement;
       const layer = initSubtitleLayer();
-      // Desktop YouTube uses #movie_player as the main container
-      const player = document.querySelector('#movie_player') || document.fullscreenElement || document.webkitFullscreenElement || document.body;
-      if (layer.parentElement !== player) {
-        player.appendChild(layer);
+      const target = fs || document.body;
+      if (layer.parentElement !== target) {
+        target.appendChild(layer);
         updateSubtitleStyle();
+        // Restore subtitle text
         if (lastSubtitle) {
           layer.textContent = lastSubtitle;
           layer.style.display = 'block';
@@ -364,11 +368,13 @@ export const INJECTED_JAVASCRIPT_DESKTOP = `
     function getVideo() {
       // Desktop YouTube uses video.html5-main-video
       const currentVideo = document.querySelector('video.html5-main-video') || document.querySelector('video');
+      // If video element changed (quality change, etc.), reset lastTime to force resync
       if (currentVideo && cachedVideo !== currentVideo) {
         cachedVideo = currentVideo;
-        lastTime = -1;
-        lastDurationSent = 0;
-        ensureSubtitleInPlayer();
+        lastTime = -1; // Force resync subtitle
+        lastDurationSent = 0; // Force resend duration
+        // Re-attach subtitle layer when video changes (quality change in fullscreen)
+        ensureSubtitleInFullscreen();
       }
       return cachedVideo;
     }
@@ -606,10 +612,8 @@ export const INJECTED_JAVASCRIPT_DESKTOP = `
           subtitleFontSize = d.payload.fontSize || 15;
           subtitleFontWeight = d.payload.fontWeight || 'bold';
           subtitleFontStyle = d.payload.fontStyle || 'normal';
-          portraitBottom = d.payload.portraitBottom || 12;
+          portraitBottom = d.payload.portraitBottom || 100;
           landscapeBottom = d.payload.landscapeBottom || 8;
-          desktopShowBackground = d.payload.desktopShowBackground !== false;
-          desktopBottom = d.payload.desktopBottom || 60;
           updateSubtitleStyle();
         } else if (d.type === 'setTranslatedVideos') {
           if (Array.isArray(d.payload)) {
@@ -650,34 +654,65 @@ export const INJECTED_JAVASCRIPT_DESKTOP = `
     document.addEventListener('message', handleMessage, { passive: true });
     window.addEventListener('message', handleMessage, { passive: true });
 
+    let fullscreenObserver = null;
+
     function handleFullscreenChange() {
-      const layer = initSubtitleLayer();
       const fs = document.fullscreenElement || document.webkitFullscreenElement;
-      const player = document.querySelector('#movie_player');
+      const layer = initSubtitleLayer();
+      
+      // Disconnect previous observer
+      if (fullscreenObserver) {
+        fullscreenObserver.disconnect();
+        fullscreenObserver = null;
+      }
       
       if (fs) {
         fs.appendChild(layer);
+        isPortrait = false;
+        updateSubtitleStyle();
+        // Restore subtitle
+        if (lastSubtitle) {
+          layer.textContent = lastSubtitle;
+          layer.style.display = 'block';
+        }
         window.ReactNativeWebView.postMessage('{"type":"fullscreen_open"}');
-      } else if (player) {
-        player.appendChild(layer);
-        window.ReactNativeWebView.postMessage('{"type":"fullscreen_close"}');
+        
+        // Observe fullscreen element for DOM changes (quality change causes DOM rebuild)
+        fullscreenObserver = new MutationObserver(throttle(() => {
+          ensureSubtitleInFullscreen();
+        }, 100));
+        fullscreenObserver.observe(fs, { childList: true, subtree: true });
       } else {
         document.body.appendChild(layer);
+        isPortrait = window.innerHeight > window.innerWidth;
+        updateSubtitleStyle();
         window.ReactNativeWebView.postMessage('{"type":"fullscreen_close"}');
-      }
-      updateSubtitleStyle();
-      if (lastSubtitle) {
-        layer.textContent = lastSubtitle;
-        layer.style.display = 'block';
       }
     }
 
     document.addEventListener('fullscreenchange', handleFullscreenChange, { passive: true });
     document.addEventListener('webkitfullscreenchange', handleFullscreenChange, { passive: true });
 
+    function handleOrientationChange() {
+      const newIsPortrait = window.innerHeight > window.innerWidth;
+      if (newIsPortrait !== isPortrait) {
+        isPortrait = newIsPortrait;
+        updateSubtitleStyle();
+      }
+    }
+
+    window.addEventListener('resize', throttle(handleOrientationChange, 100), { passive: true });
+    window.addEventListener('orientationchange', handleOrientationChange, { passive: true });
+
+    // Check subtitle layer position more frequently (every 500ms)
+    parentCheckId = setInterval(() => {
+      ensureSubtitleInFullscreen();
+    }, 500);
+
     window.addEventListener('beforeunload', () => {
       isPolling = false;
       if (rafId) cancelAnimationFrame(rafId);
+      if (parentCheckId) clearInterval(parentCheckId);
     }, { passive: true });
 
     initSubtitleLayer();
@@ -689,8 +724,8 @@ export const INJECTED_JAVASCRIPT_DESKTOP = `
       window.addEventListener('load', () => setTimeout(markVideos, 500), { once: true });
     }
     
+    // Also periodically check for new videos
     setInterval(markVideos, 2000);
-    setInterval(ensureSubtitleInPlayer, 500);
   })();
   true;
 `;

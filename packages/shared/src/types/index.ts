@@ -14,8 +14,6 @@ export interface SubtitleSettings {
   fontStyle: "normal" | "italic";
   portraitBottom: number;
   landscapeBottom: number;
-  desktopShowBackground: boolean; // Hiện nền phụ đề ở chế độ desktop
-  desktopBottom: number; // Vị trí phụ đề ở chế độ desktop (px từ dưới)
 }
 
 // ============================================

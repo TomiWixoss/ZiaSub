@@ -255,11 +255,6 @@ export default {
       italic: "Nghiêng",
       positionPortrait: "Vị trí (dọc): {{value}}px từ dưới",
       positionLandscape: "Vị trí (ngang/fullscreen): {{value}}px từ dưới",
-      desktopMode: "Chế độ Desktop",
-      showBackground: "Hiện nền phụ đề",
-      showBackgroundHint:
-        "Hiện nền đen mờ phía sau phụ đề khi xem ở chế độ desktop",
-      desktopPosition: "Vị trí phụ đề: {{value}}px từ dưới",
     },
 
     // Batch Translation

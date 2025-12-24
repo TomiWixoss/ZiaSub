@@ -17,8 +17,6 @@ export const DEFAULT_SUBTITLE_SETTINGS: SubtitleSettings = {
   fontStyle: "normal",
   portraitBottom: 100,
   landscapeBottom: 8,
-  desktopShowBackground: true, // Mặc định hiện nền ở desktop mode
-  desktopBottom: 60, // Mặc định 60px từ dưới ở desktop mode
 };
 
 // ============================================
