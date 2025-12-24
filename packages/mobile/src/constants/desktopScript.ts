@@ -3,6 +3,295 @@
 
 export const INJECTED_JAVASCRIPT_DESKTOP = `
   (function() {
+    // Inject responsive CSS for desktop YouTube on mobile webview
+    function injectResponsiveCSS() {
+      if (document.getElementById('ziasub-responsive-css')) return;
+      const style = document.createElement('style');
+      style.id = 'ziasub-responsive-css';
+      style.textContent = \`
+        /* Force responsive layout for desktop YouTube on mobile */
+        /* Global overflow fix */
+        html, body {
+          overflow-x: hidden !important;
+          max-width: 100vw !important;
+          width: 100vw !important;
+        }
+        
+        /* Guide menu - make it overlay instead of pushing content */
+        #guide, ytd-mini-guide-renderer, tp-yt-app-drawer {
+          position: fixed !important;
+          z-index: 9999 !important;
+        }
+        
+        /* Main app container */
+        ytd-app {
+          margin-left: 0 !important;
+          width: 100vw !important;
+          max-width: 100vw !important;
+        }
+        
+        #page-manager {
+          margin-left: 0 !important;
+          padding-left: 0 !important;
+          width: 100% !important;
+        }
+        
+        /* Watch page layout */
+        ytd-watch-flexy {
+          flex-direction: column !important;
+          width: 100% !important;
+          min-width: 0 !important;
+          padding: 0 !important;
+          max-width: 100vw !important;
+        }
+        
+        ytd-watch-flexy[theater], ytd-watch-flexy[fullscreen] {
+          max-width: 100vw !important;
+        }
+        
+        ytd-watch-flexy #columns {
+          flex-direction: column !important;
+          width: 100% !important;
+          min-width: 0 !important;
+          max-width: 100vw !important;
+        }
+        
+        ytd-watch-flexy #primary {
+          width: 100% !important;
+          min-width: 0 !important;
+          padding: 0 !important;
+          margin: 0 !important;
+          max-width: 100vw !important;
+        }
+        
+        ytd-watch-flexy #primary-inner {
+          width: 100% !important;
+          min-width: 0 !important;
+          padding: 0 !important;
+          max-width: 100vw !important;
+        }
+        
+        ytd-watch-flexy #secondary {
+          width: 100% !important;
+          min-width: 0 !important;
+          padding: 8px !important;
+          margin: 0 !important;
+          max-width: 100vw !important;
+        }
+        
+        /* Video player */
+        #player-container-outer, 
+        #player-container-inner, 
+        #player-container,
+        #player-wide-container,
+        #full-bleed-container {
+          width: 100% !important;
+          min-width: 0 !important;
+          max-width: 100vw !important;
+          margin: 0 !important;
+          padding: 0 !important;
+        }
+        
+        #movie_player, .html5-video-player {
+          width: 100% !important;
+          min-width: 0 !important;
+          max-width: 100vw !important;
+        }
+        
+        video.html5-main-video {
+          width: 100% !important;
+          min-width: 0 !important;
+          left: 0 !important;
+          max-width: 100vw !important;
+        }
+        
+        /* Video info below player */
+        #above-the-fold, #below {
+          width: 100% !important;
+          min-width: 0 !important;
+          padding: 8px 12px !important;
+          max-width: 100vw !important;
+          box-sizing: border-box !important;
+        }
+        
+        /* Title */
+        h1.ytd-watch-metadata, 
+        #title h1,
+        ytd-watch-metadata h1,
+        yt-formatted-string.ytd-watch-metadata {
+          font-size: 15px !important;
+          line-height: 1.3 !important;
+          word-break: break-word !important;
+        }
+        
+        /* Channel and actions row */
+        #top-row.ytd-watch-metadata {
+          flex-wrap: wrap !important;
+          gap: 8px !important;
+        }
+        
+        #owner {
+          width: 100% !important;
+          min-width: 0 !important;
+        }
+        
+        /* Action buttons - wrap on multiple lines */
+        ytd-watch-metadata #actions {
+          width: 100% !important;
+          flex-wrap: wrap !important;
+          gap: 4px !important;
+          justify-content: flex-start !important;
+        }
+        
+        /* Description */
+        #description.ytd-watch-metadata,
+        ytd-text-inline-expander {
+          width: 100% !important;
+          min-width: 0 !important;
+          font-size: 13px !important;
+          max-width: 100vw !important;
+        }
+        
+        /* Comments */
+        ytd-comments#comments {
+          width: 100% !important;
+          min-width: 0 !important;
+          padding: 0 8px !important;
+          max-width: 100vw !important;
+        }
+        
+        /* Related videos sidebar */
+        ytd-watch-next-secondary-results-renderer {
+          width: 100% !important;
+          min-width: 0 !important;
+          max-width: 100vw !important;
+        }
+        
+        ytd-compact-video-renderer {
+          width: 100% !important;
+          min-width: 0 !important;
+          max-width: 100vw !important;
+        }
+        
+        /* Header */
+        #masthead-container, ytd-masthead {
+          width: 100vw !important;
+          min-width: 0 !important;
+          max-width: 100vw !important;
+        }
+        
+        #container.ytd-masthead {
+          padding: 0 8px !important;
+          max-width: 100vw !important;
+          box-sizing: border-box !important;
+        }
+        
+        ytd-masthead #end {
+          flex-shrink: 1 !important;
+          min-width: 0 !important;
+        }
+        
+        /* Search */
+        #center.ytd-masthead {
+          flex: 1 !important;
+          min-width: 0 !important;
+          max-width: 50% !important;
+        }
+        
+        /* Homepage - center content */
+        ytd-browse[page-subtype="home"] {
+          width: 100% !important;
+          max-width: 100vw !important;
+        }
+        
+        ytd-browse[page-subtype="home"] #contents.ytd-rich-grid-renderer {
+          display: flex !important;
+          flex-direction: column !important;
+          align-items: center !important;
+          width: 100% !important;
+          max-width: 100vw !important;
+        }
+        
+        ytd-rich-grid-renderer {
+          --ytd-rich-grid-items-per-row: 1 !important;
+          width: 100% !important;
+          min-width: 0 !important;
+          padding: 12px !important;
+          max-width: 100vw !important;
+          margin: 0 auto !important;
+          box-sizing: border-box !important;
+        }
+        
+        ytd-rich-grid-renderer #contents {
+          display: flex !important;
+          flex-direction: column !important;
+          align-items: center !important;
+          width: 100% !important;
+        }
+        
+        ytd-rich-item-renderer {
+          width: 100% !important;
+          max-width: 100vw !important;
+          min-width: 0 !important;
+          margin: 0 auto 16px auto !important;
+        }
+        
+        ytd-rich-grid-row {
+          width: 100% !important;
+          min-width: 0 !important;
+          max-width: 100vw !important;
+          display: flex !important;
+          justify-content: center !important;
+        }
+        
+        ytd-rich-grid-row #contents {
+          width: 100% !important;
+          justify-content: center !important;
+        }
+        
+        /* Shorts shelf horizontal scroll */
+        ytd-rich-shelf-renderer[is-shorts] {
+          width: 100% !important;
+          overflow-x: auto !important;
+          max-width: 100vw !important;
+        }
+        
+        /* Search results */
+        ytd-search ytd-two-column-search-results-renderer {
+          width: 100% !important;
+          min-width: 0 !important;
+          max-width: 100vw !important;
+        }
+        
+        ytd-search #contents {
+          width: 100% !important;
+          min-width: 0 !important;
+          padding: 0 8px !important;
+          max-width: 100vw !important;
+          box-sizing: border-box !important;
+        }
+        
+        /* Fix two column layout */
+        ytd-two-column-browse-results-renderer {
+          width: 100% !important;
+          max-width: 100vw !important;
+        }
+        
+        ytd-two-column-browse-results-renderer #primary {
+          width: 100% !important;
+          max-width: 100vw !important;
+          margin: 0 auto !important;
+        }
+      \`;
+      document.head.appendChild(style);
+    }
+    
+    // Inject CSS immediately and on DOM ready
+    injectResponsiveCSS();
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', injectResponsiveCSS);
+    }
+
     let subtitleLayer = null;
     let cachedVideo = null;
     let lastTime = -1;
