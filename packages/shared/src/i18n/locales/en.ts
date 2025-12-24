@@ -533,8 +533,7 @@ export default {
     currentlyTranslating: "This video is being translated.",
     addedToWaitingQueue:
       "Added to queue. Video will be translated when current one finishes.",
-    waitingForVideoData:
-      "Loading video info or ad is playing, please try again later.",
+    waitingForVideoData: "Loading video info, please try again later.",
     waitingInQueue: "Waiting in queue...",
     waitingPosition: "Waiting (position #{{position}})",
     cancelWaiting: "Cancel",
@@ -709,6 +708,11 @@ export default {
   faq: {
     title: "Frequently Asked Questions",
     madeBy: "Made by",
+    adWarning: {
+      question: "Why shouldn't I translate during ads?",
+      answer:
+        "When an ad is playing, the video duration shown is the ad's duration, not the actual video.\n\nIf you start translation at this time, the app will get wrong duration info and translate incorrectly.\n\nWait for the ad to finish or tap Skip Ad before translating.",
+    },
     videoError: {
       question: "Video shows playback error?",
       answer:

@@ -39,6 +39,12 @@ interface FAQItem {
 
 const FAQ_ITEMS: FAQItem[] = [
   {
+    id: "ad_warning",
+    questionKey: "faq.adWarning.question",
+    answerKey: "faq.adWarning.answer",
+    icon: "advertisements-off",
+  },
+  {
     id: "video_error",
     questionKey: "faq.videoError.question",
     answerKey: "faq.videoError.answer",

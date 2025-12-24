@@ -88,45 +88,6 @@ export const INJECTED_JAVASCRIPT = `
 
     let lastDurationSent = 0;
     
-    // Check if ad is currently playing
-    function isAdPlaying() {
-      const player = document.querySelector('#movie_player, .html5-video-player');
-      if (player) {
-        const classList = player.classList;
-        if (classList.contains('ad-showing') || classList.contains('ad-interrupting') || classList.contains('ad-created')) {
-          return true;
-        }
-      }
-      // Fallback: check for ad overlay elements
-      if (document.querySelector('.ytp-ad-player-overlay, .ytp-ad-skip-button-container')) {
-        return true;
-      }
-      return false;
-    }
-    
-    // Auto skip ads when skip button is available
-    function trySkipAd() {
-      // Try multiple selectors for skip button
-      const selectors = [
-        '.ytp-ad-skip-button-modern',
-        '.ytp-ad-skip-button',
-        '.ytp-skip-ad-button',
-        'button.ytp-ad-skip-button-modern',
-        '.ytp-ad-skip-button-container button',
-        '.ytp-ad-skip-ad-slot button'
-      ];
-      for (const sel of selectors) {
-        const btn = document.querySelector(sel);
-        if (btn) {
-          // Try both click methods
-          btn.click();
-          // Also dispatch click event in case .click() doesn't work
-          btn.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
-          return true;
-        }
-      }
-      return false;
-    }
     
     function startTimePolling() {
       if (isPolling) return;
@@ -142,15 +103,10 @@ export const INJECTED_JAVASCRIPT = `
           lastPollTime = timestamp;
           const video = getVideo();
           if (video) {
-            // Check for ads and try to skip
-            if (isAdPlaying()) {
-              trySkipAd();
-            } else {
-              // Only send duration when ad is NOT playing
-              if (video.duration && !isNaN(video.duration) && video.duration !== lastDurationSent) {
-                lastDurationSent = video.duration;
-                window.ReactNativeWebView.postMessage('{"type":"videoDuration","payload":' + video.duration + '}');
-              }
+            // Send duration
+            if (video.duration && !isNaN(video.duration) && video.duration !== lastDurationSent) {
+              lastDurationSent = video.duration;
+              window.ReactNativeWebView.postMessage('{"type":"videoDuration","payload":' + video.duration + '}');
             }
             
             if (!video.paused) {

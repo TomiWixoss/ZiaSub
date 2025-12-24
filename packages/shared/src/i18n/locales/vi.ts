@@ -531,8 +531,7 @@ export default {
     currentlyTranslating: "Video này đang được dịch.",
     addedToWaitingQueue:
       "Đã thêm vào hàng đợi. Video sẽ được dịch khi video hiện tại hoàn thành.",
-    waitingForVideoData:
-      "Đang tải thông tin video hoặc đang có quảng cáo, vui lòng thử lại sau.",
+    waitingForVideoData: "Đang tải thông tin video, vui lòng thử lại sau.",
     waitingInQueue: "Đang chờ trong hàng đợi...",
     waitingPosition: "Đang chờ (vị trí #{{position}})",
     cancelWaiting: "Hủy chờ",
@@ -581,8 +580,7 @@ export default {
       notSelectedMessage: "Chọn kiểu dịch trước nhé.",
       alreadyTranslating: "Video này đang dịch rồi.",
       anotherTranslating: "Đang dịch video khác, vui lòng đợi hoặc dừng trước.",
-      waitForDuration:
-        "Đợi video load xong hoặc hết quảng cáo rồi bấm lại nhé.",
+      waitForDuration: "Đợi video load xong rồi bấm lại nhé.",
 
       savedTranslations: "Đã dịch",
       deleteTitle: "Xóa bản dịch",
@@ -708,6 +706,11 @@ export default {
   faq: {
     title: "Câu hỏi thường gặp",
     madeBy: "Phát triển bởi",
+    adWarning: {
+      question: "Tại sao không nên bấm dịch khi có quảng cáo?",
+      answer:
+        "Khi video đang chạy quảng cáo, độ dài video hiển thị là độ dài của quảng cáo chứ không phải video chính.\n\nNếu bấm dịch lúc này, app sẽ lấy sai thông tin độ dài video và dịch không đúng.\n\nHãy đợi quảng cáo kết thúc hoặc bấm Skip Ad trước khi dịch.",
+    },
     videoError: {
       question: "Video báo lỗi không xem được?",
       answer:
