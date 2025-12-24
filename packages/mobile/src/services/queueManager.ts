@@ -676,12 +676,48 @@ class QueueManager {
         const isPresubMode = queueBatchSettings.presubMode ?? false;
         const presubDuration = queueBatchSettings.presubDuration ?? 120;
 
-        // Calculate batchStart and batchEnd considering presub mode
-        // In presub mode: batch 0 = 0 to presubDuration, batch 1+ = presubDuration + (index-1)*batchDuration
+        // Get existing translation SRT - use savedTranslationId if available
+        const videoData = await getVideoTranslations(item.videoUrl);
+        let existingTranslation = item.savedTranslationId
+          ? videoData?.translations?.find(
+              (t) => t.id === item.savedTranslationId
+            )
+          : videoData?.translations?.[0];
+
+        if (!existingTranslation) {
+          // Fallback to first translation
+          existingTranslation = videoData?.translations?.[0];
+        }
+
+        if (!existingTranslation) {
+          throw new Error("Không tìm thấy bản dịch để dịch lại");
+        }
+
+        // Check if the translation has time range
+        const translationRangeStart = existingTranslation.rangeStart ?? 0;
+        const translationRangeEnd =
+          existingTranslation.rangeEnd ??
+          existingTranslation.videoDuration ??
+          item.duration ??
+          0;
+        const isTimeRangeTranslation =
+          existingTranslation.rangeStart !== undefined ||
+          existingTranslation.rangeEnd !== undefined;
+
+        // Calculate batchStart and batchEnd considering time range AND presub mode
         let batchStart: number;
         let batchEnd: number;
 
-        if (isPresubMode) {
+        if (isTimeRangeTranslation) {
+          // Time range translation: batches are relative to translationRangeStart
+          batchStart =
+            translationRangeStart + item.retranslateBatchIndex * batchDuration;
+          batchEnd = Math.min(
+            translationRangeStart +
+              (item.retranslateBatchIndex + 1) * batchDuration,
+            translationRangeEnd
+          );
+        } else if (isPresubMode) {
           if (item.retranslateBatchIndex === 0) {
             batchStart = 0;
             batchEnd = Math.min(presubDuration, item.duration || Infinity);
@@ -699,23 +735,6 @@ class QueueManager {
             (item.retranslateBatchIndex + 1) * batchDuration,
             item.duration || Infinity
           );
-        }
-
-        // Get existing translation SRT - use savedTranslationId if available
-        const videoData = await getVideoTranslations(item.videoUrl);
-        let existingTranslation = item.savedTranslationId
-          ? videoData?.translations?.find(
-              (t) => t.id === item.savedTranslationId
-            )
-          : videoData?.translations?.[0];
-
-        if (!existingTranslation) {
-          // Fallback to first translation
-          existingTranslation = videoData?.translations?.[0];
-        }
-
-        if (!existingTranslation) {
-          throw new Error("Không tìm thấy bản dịch để dịch lại");
         }
 
         // Update progress immediately to show "đang dịch" instead of "đang chờ"

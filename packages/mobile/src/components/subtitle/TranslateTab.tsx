@@ -234,11 +234,42 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
             const presubDuration =
               batchItem.batchSettings?.presubDuration ?? 120;
 
-            // Calculate rangeStart and rangeEnd considering presub mode
+            // Find the translation being retranslated to get its time range info
+            const targetTranslation = batchItem.savedTranslationId
+              ? savedTranslations.find(
+                  (t) => t.id === batchItem.savedTranslationId
+                )
+              : savedTranslations[0];
+
+            // Check if the translation has time range
+            const translationRangeStart = targetTranslation?.rangeStart ?? 0;
+            const translationRangeEnd =
+              targetTranslation?.rangeEnd ??
+              targetTranslation?.videoDuration ??
+              batchItem.duration ??
+              0;
+            const isTimeRangeTranslation =
+              targetTranslation?.rangeStart !== undefined ||
+              targetTranslation?.rangeEnd !== undefined;
+
+            // Calculate rangeStart and rangeEnd considering time range AND presub mode
             let rangeStart: number;
             let rangeEnd: number | undefined;
 
-            if (isPresubMode) {
+            if (isTimeRangeTranslation) {
+              // Time range translation: batches are relative to translationRangeStart
+              rangeStart =
+                translationRangeStart +
+                batchItem.retranslateBatchIndex * batchDuration;
+              rangeEnd =
+                batchItem.retranslateMode === "single"
+                  ? Math.min(
+                      translationRangeStart +
+                        (batchItem.retranslateBatchIndex + 1) * batchDuration,
+                      translationRangeEnd
+                    )
+                  : batchItem.duration;
+            } else if (isPresubMode) {
               if (batchItem.retranslateBatchIndex === 0) {
                 rangeStart = 0;
                 rangeEnd =
@@ -748,6 +779,14 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
     const isPresubTranslation = translation.batchSettings?.presubMode ?? false;
     const presubDuration = translation.batchSettings?.presubDuration ?? 120;
 
+    // Time range translation: batches are relative to rangeStart
+    const translationRangeStart = translation.rangeStart ?? 0;
+    const translationRangeEnd =
+      translation.rangeEnd ?? translation.videoDuration ?? videoDuration ?? 0;
+    const isTimeRangeTranslation =
+      translation.rangeStart !== undefined ||
+      translation.rangeEnd !== undefined;
+
     const totalBatches =
       translation.totalBatches ||
       Math.ceil(
@@ -755,12 +794,20 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
           originalBatchDuration
       );
 
-    // Calculate batchStart considering presub mode
+    // Calculate batchStart considering presub mode AND time range
+    // For time range translation, batches start from rangeStart
     // In presub mode: batch 0 = 0 to presubDuration, batch 1+ = presubDuration + (index-1)*batchDuration
     let batchStart: number;
     let batchEnd: number;
 
-    if (isPresubTranslation) {
+    if (isTimeRangeTranslation) {
+      // Time range translation: batches are relative to rangeStart
+      batchStart = translationRangeStart + batchIndex * originalBatchDuration;
+      batchEnd = Math.min(
+        translationRangeStart + (batchIndex + 1) * originalBatchDuration,
+        translationRangeEnd
+      );
+    } else if (isPresubTranslation) {
       if (batchIndex === 0) {
         batchStart = 0;
         batchEnd = Math.min(
@@ -912,13 +959,20 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
         const keptSubtitles = parsed.filter((sub) => sub.endTime <= batchStart);
         const partialSrt = rebuildSrt(keptSubtitles);
 
-        // Build completed ranges considering presub mode
+        // Build completed ranges considering presub mode AND time range
         const completedRanges: Array<{ start: number; end: number }> = [];
         for (let i = 0; i < batchIndex; i++) {
           let rangeStart: number;
           let rangeEnd: number;
 
-          if (isPresubTranslation) {
+          if (isTimeRangeTranslation) {
+            // Time range translation: batches are relative to translationRangeStart
+            rangeStart = translationRangeStart + i * originalBatchDuration;
+            rangeEnd = Math.min(
+              translationRangeStart + (i + 1) * originalBatchDuration,
+              translationRangeEnd
+            );
+          } else if (isPresubTranslation) {
             if (i === 0) {
               rangeStart = 0;
               rangeEnd = Math.min(
