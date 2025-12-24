@@ -212,8 +212,8 @@ const themedStyles = createThemedStyles((colors) => ({
     borderColor: colors.primary,
   },
   batchPresub: {
-    backgroundColor: colors.warning,
-    borderColor: colors.warning,
+    backgroundColor: colors.warning + "20", // Warning with 20% opacity
+    borderColor: colors.warning, // Warning border
   },
   batchError: {
     backgroundColor: colors.error,

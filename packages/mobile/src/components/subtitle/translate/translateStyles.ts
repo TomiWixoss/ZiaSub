@@ -167,8 +167,8 @@ export const createTranslateStyles = (colors: ThemeColors) =>
       borderColor: colors.primary,
     },
     batchChipPresub: {
-      backgroundColor: colors.warning,
-      borderColor: colors.warning,
+      backgroundColor: colors.warning + "20", // Warning with 20% opacity like completed
+      borderColor: colors.warning, // Warning border
     },
     batchChipText: {
       color: colors.textMuted,
@@ -191,6 +191,12 @@ export const createTranslateStyles = (colors: ThemeColors) =>
     },
     batchChipTimeError: {
       color: colors.error,
+    },
+    batchChipTextPresub: {
+      color: colors.warning, // Warning text like completed uses success color
+    },
+    batchChipTimePresub: {
+      color: colors.warning, // Warning text
     },
     batchActions: {
       flexDirection: "row",
