@@ -442,9 +442,11 @@ export const replaceBatchInSrt = (
 /**
  * Merge multiple SRT contents with smart time offset adjustment.
  * If offsetSeconds is -1, the content already has absolute timestamps and should not be adjusted.
+ * If videoDuration is provided, subtitles exceeding it will be filtered out.
  */
 export const mergeSrtContents = (
-  srtParts: { content: string; offsetSeconds: number }[]
+  srtParts: { content: string; offsetSeconds: number }[],
+  videoDuration?: number
 ): string => {
   const allSubtitles: Array<{ start: number; end: number; text: string }> = [];
 
@@ -483,16 +485,32 @@ export const mergeSrtContents = (
 
   allSubtitles.sort((a, b) => a.start - b.start);
 
-  // Remove duplicates
+  // Remove duplicates and filter out subtitles exceeding video duration
   const uniqueSubtitles: typeof allSubtitles = [];
   for (const sub of allSubtitles) {
+    // Skip subtitles that start after video ends
+    if (videoDuration && sub.start >= videoDuration) {
+      console.log(
+        `[SRT Merge] Removing subtitle at ${sub.start}s - exceeds video duration ${videoDuration}s`
+      );
+      continue;
+    }
+
     const isDuplicate = uniqueSubtitles.some(
       (existing) =>
         Math.abs(existing.start - sub.start) < 0.5 &&
         existing.text.trim() === sub.text.trim()
     );
     if (!isDuplicate) {
-      uniqueSubtitles.push(sub);
+      // Clamp end time to video duration if needed
+      if (videoDuration && sub.end > videoDuration) {
+        uniqueSubtitles.push({
+          ...sub,
+          end: videoDuration,
+        });
+      } else {
+        uniqueSubtitles.push(sub);
+      }
     }
   }
 

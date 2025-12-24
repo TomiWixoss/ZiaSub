@@ -518,7 +518,7 @@ export const translateVideoWithGemini = async (
             (result, index, total, allCompletedIndices) => {
               // Accumulate results and merge for streaming preview
               accumulatedResults.push(result);
-              const partialSrt = mergeSrtContents([...accumulatedResults]);
+              const partialSrt = mergeSrtContents([...accumulatedResults], options?.videoDuration);
               // Build completed ranges from indices
               const completedRanges = allCompletedIndices.map(
                 (idx) => batchRanges[idx]
@@ -572,7 +572,7 @@ export const translateVideoWithGemini = async (
         });
 
         // Use accumulatedResults which includes existing partial SRT + new results
-        const mergedSrt = mergeSrtContents(accumulatedResults);
+        const mergedSrt = mergeSrtContents(accumulatedResults, options?.videoDuration);
         onChunk?.(mergedSrt);
         return mergedSrt;
       }
@@ -672,7 +672,7 @@ export const translateVideoWithGemini = async (
         });
       }
 
-      const mergedSrt = mergeSrtContents(successfulResults);
+      const mergedSrt = mergeSrtContents(successfulResults, options?.videoDuration);
       onChunk?.(mergedSrt);
       return mergedSrt;
     }
