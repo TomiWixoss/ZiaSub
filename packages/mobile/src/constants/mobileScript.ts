@@ -106,10 +106,24 @@ export const INJECTED_JAVASCRIPT = `
     
     // Auto skip ads when skip button is available
     function trySkipAd() {
-      const skipButton = document.querySelector('.ytp-ad-skip-button, .ytp-ad-skip-button-modern, .ytp-skip-ad-button');
-      if (skipButton) {
-        skipButton.click();
-        return true;
+      // Try multiple selectors for skip button
+      const selectors = [
+        '.ytp-ad-skip-button-modern',
+        '.ytp-ad-skip-button',
+        '.ytp-skip-ad-button',
+        'button.ytp-ad-skip-button-modern',
+        '.ytp-ad-skip-button-container button',
+        '.ytp-ad-skip-ad-slot button'
+      ];
+      for (const sel of selectors) {
+        const btn = document.querySelector(sel);
+        if (btn) {
+          // Try both click methods
+          btn.click();
+          // Also dispatch click event in case .click() doesn't work
+          btn.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
+          return true;
+        }
       }
       return false;
     }
