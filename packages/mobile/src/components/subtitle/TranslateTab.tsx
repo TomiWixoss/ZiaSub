@@ -230,6 +230,42 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
             setPausedBatchRetranslation(null);
             const batchDuration =
               batchItem.batchSettings?.maxVideoDuration || 600;
+            const isPresubMode = batchItem.batchSettings?.presubMode ?? false;
+            const presubDuration =
+              batchItem.batchSettings?.presubDuration ?? 120;
+
+            // Calculate rangeStart and rangeEnd considering presub mode
+            let rangeStart: number;
+            let rangeEnd: number | undefined;
+
+            if (isPresubMode) {
+              if (batchItem.retranslateBatchIndex === 0) {
+                rangeStart = 0;
+                rangeEnd =
+                  batchItem.retranslateMode === "single"
+                    ? Math.min(presubDuration, batchItem.duration || Infinity)
+                    : batchItem.duration;
+              } else {
+                rangeStart =
+                  presubDuration +
+                  (batchItem.retranslateBatchIndex - 1) * batchDuration;
+                rangeEnd =
+                  batchItem.retranslateMode === "single"
+                    ? Math.min(
+                        presubDuration +
+                          batchItem.retranslateBatchIndex * batchDuration,
+                        batchItem.duration || Infinity
+                      )
+                    : batchItem.duration;
+              }
+            } else {
+              rangeStart = batchItem.retranslateBatchIndex * batchDuration;
+              rangeEnd =
+                batchItem.retranslateMode === "single"
+                  ? (batchItem.retranslateBatchIndex + 1) * batchDuration
+                  : batchItem.duration;
+            }
+
             setBatchRetranslateJob({
               id: batchItem.id,
               videoUrl: batchItem.videoUrl,
@@ -250,11 +286,8 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
               startedAt: batchItem.startedAt || Date.now(),
               completedAt: null,
               partialResult: null,
-              rangeStart: batchItem.retranslateBatchIndex * batchDuration,
-              rangeEnd:
-                batchItem.retranslateMode === "single"
-                  ? (batchItem.retranslateBatchIndex + 1) * batchDuration
-                  : batchItem.duration,
+              rangeStart,
+              rangeEnd,
               existingTranslationId: batchItem.savedTranslationId, // Track which translation is being retranslated
             });
           }
@@ -712,6 +745,9 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
     // IMPORTANT: Use original batch settings from the translation
     const originalBatchDuration =
       translation.batchSettings?.maxVideoDuration || 600;
+    const isPresubTranslation = translation.batchSettings?.presubMode ?? false;
+    const presubDuration = translation.batchSettings?.presubDuration ?? 120;
+
     const totalBatches =
       translation.totalBatches ||
       Math.ceil(
@@ -719,11 +755,32 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
           originalBatchDuration
       );
 
-    const batchStart = batchIndex * originalBatchDuration;
-    const batchEnd = Math.min(
-      (batchIndex + 1) * originalBatchDuration,
-      translation.videoDuration || videoDuration || Infinity
-    );
+    // Calculate batchStart considering presub mode
+    // In presub mode: batch 0 = 0 to presubDuration, batch 1+ = presubDuration + (index-1)*batchDuration
+    let batchStart: number;
+    let batchEnd: number;
+
+    if (isPresubTranslation) {
+      if (batchIndex === 0) {
+        batchStart = 0;
+        batchEnd = Math.min(
+          presubDuration,
+          translation.videoDuration || videoDuration || Infinity
+        );
+      } else {
+        batchStart = presubDuration + (batchIndex - 1) * originalBatchDuration;
+        batchEnd = Math.min(
+          presubDuration + batchIndex * originalBatchDuration,
+          translation.videoDuration || videoDuration || Infinity
+        );
+      }
+    } else {
+      batchStart = batchIndex * originalBatchDuration;
+      batchEnd = Math.min(
+        (batchIndex + 1) * originalBatchDuration,
+        translation.videoDuration || videoDuration || Infinity
+      );
+    }
 
     // Helper function to execute the actual retranslation
     const executeRetranslate = async () => {
@@ -855,16 +912,35 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
         const keptSubtitles = parsed.filter((sub) => sub.endTime <= batchStart);
         const partialSrt = rebuildSrt(keptSubtitles);
 
-        // Build completed ranges
+        // Build completed ranges considering presub mode
         const completedRanges: Array<{ start: number; end: number }> = [];
         for (let i = 0; i < batchIndex; i++) {
-          completedRanges.push({
-            start: i * originalBatchDuration,
-            end: Math.min(
+          let rangeStart: number;
+          let rangeEnd: number;
+
+          if (isPresubTranslation) {
+            if (i === 0) {
+              rangeStart = 0;
+              rangeEnd = Math.min(
+                presubDuration,
+                translation.videoDuration || videoDuration || Infinity
+              );
+            } else {
+              rangeStart = presubDuration + (i - 1) * originalBatchDuration;
+              rangeEnd = Math.min(
+                presubDuration + i * originalBatchDuration,
+                translation.videoDuration || videoDuration || Infinity
+              );
+            }
+          } else {
+            rangeStart = i * originalBatchDuration;
+            rangeEnd = Math.min(
               (i + 1) * originalBatchDuration,
               translation.videoDuration || videoDuration || Infinity
-            ),
-          });
+            );
+          }
+
+          completedRanges.push({ start: rangeStart, end: rangeEnd });
         }
 
         // Create modified translation for resume

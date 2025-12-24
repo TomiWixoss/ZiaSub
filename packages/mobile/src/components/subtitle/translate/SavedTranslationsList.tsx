@@ -411,33 +411,6 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
                       <Text style={styles.translationConfig}>
                         {item.configName}
                       </Text>
-                      {/* Time range badge - show if translation has specific time range */}
-                      {(item.rangeStart !== undefined ||
-                        item.rangeEnd !== undefined) && (
-                        <View
-                          style={[
-                            styles.presetBadge,
-                            { backgroundColor: colors.primary + "20" },
-                          ]}
-                        >
-                          <MaterialCommunityIcons
-                            name="clock-time-four-outline"
-                            size={10}
-                            color={colors.primary}
-                          />
-                          <Text
-                            style={[
-                              styles.presetBadgeText,
-                              { color: colors.primary },
-                            ]}
-                          >
-                            {formatTime(item.rangeStart || 0)} -{" "}
-                            {formatTime(
-                              item.rangeEnd || item.videoDuration || 0
-                            )}
-                          </Text>
-                        </View>
-                      )}
                       {getPresetName(item.presetId) && (
                         <View style={styles.presetBadge}>
                           <MaterialCommunityIcons
@@ -462,17 +435,37 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
                           </Text>
                         </View>
                       )}
+                      {/* Time range badge - compact, only show if has time range */}
+                      {(item.rangeStart !== undefined ||
+                        item.rangeEnd !== undefined) && (
+                        <View
+                          style={[
+                            styles.settingsBadge,
+                            { backgroundColor: colors.primary + "15" },
+                          ]}
+                        >
+                          <MaterialCommunityIcons
+                            name="clock-time-four-outline"
+                            size={10}
+                            color={colors.primary}
+                          />
+                          <Text
+                            style={[
+                              styles.settingsBadgeText,
+                              { color: colors.primary },
+                            ]}
+                          >
+                            {formatTime(item.rangeStart || 0)}-
+                            {formatTime(
+                              item.rangeEnd || item.videoDuration || 0
+                            )}
+                          </Text>
+                        </View>
+                      )}
                     </View>
                     <Text style={styles.translationDate}>
                       {formatDate(item.createdAt)}
                       {item.isPartial && ` • ${progressPercent}%`}
-                      {/* Show time range in date line if has range */}
-                      {(item.rangeStart !== undefined ||
-                        item.rangeEnd !== undefined) &&
-                        !item.isPartial &&
-                        ` • ${formatTime(item.rangeStart || 0)}-${formatTime(
-                          item.rangeEnd || item.videoDuration || 0
-                        )}`}
                     </Text>
                   </View>
                 </View>

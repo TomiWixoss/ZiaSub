@@ -673,11 +673,33 @@ class QueueManager {
       if (item.retranslateBatchIndex !== undefined) {
         // Batch retranslation - need to get existing SRT and call translateSingleBatch
         const batchDuration = queueBatchSettings.maxVideoDuration || 600;
-        const batchStart = item.retranslateBatchIndex * batchDuration;
-        const batchEnd = Math.min(
-          (item.retranslateBatchIndex + 1) * batchDuration,
-          item.duration || Infinity
-        );
+        const isPresubMode = queueBatchSettings.presubMode ?? false;
+        const presubDuration = queueBatchSettings.presubDuration ?? 120;
+
+        // Calculate batchStart and batchEnd considering presub mode
+        // In presub mode: batch 0 = 0 to presubDuration, batch 1+ = presubDuration + (index-1)*batchDuration
+        let batchStart: number;
+        let batchEnd: number;
+
+        if (isPresubMode) {
+          if (item.retranslateBatchIndex === 0) {
+            batchStart = 0;
+            batchEnd = Math.min(presubDuration, item.duration || Infinity);
+          } else {
+            batchStart =
+              presubDuration + (item.retranslateBatchIndex - 1) * batchDuration;
+            batchEnd = Math.min(
+              presubDuration + item.retranslateBatchIndex * batchDuration,
+              item.duration || Infinity
+            );
+          }
+        } else {
+          batchStart = item.retranslateBatchIndex * batchDuration;
+          batchEnd = Math.min(
+            (item.retranslateBatchIndex + 1) * batchDuration,
+            item.duration || Infinity
+          );
+        }
 
         // Get existing translation SRT - use savedTranslationId if available
         const videoData = await getVideoTranslations(item.videoUrl);
