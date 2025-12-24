@@ -568,6 +568,10 @@ export default {
       detectedConfirm: "Bạn vừa sao chép nội dung phụ đề. Muốn dán vào không?",
       fixedErrors: "Đã sửa lỗi phụ đề",
       fixedErrorsMessage: "Đã tự động sửa {{count}} lỗi trong phụ đề.",
+      export: "Xuất",
+      exportSuccess: "Đã xuất file phụ đề!",
+      exportError: "Không thể xuất file.",
+      noContent: "Chưa có phụ đề để xuất.",
     },
 
     translate: {

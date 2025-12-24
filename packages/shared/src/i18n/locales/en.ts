@@ -570,6 +570,10 @@ export default {
       detectedConfirm: "You just copied subtitle content. Want to paste it?",
       fixedErrors: "Fixed subtitle errors",
       fixedErrorsMessage: "Auto-fixed {{count}} error(s) in subtitles.",
+      export: "Export",
+      exportSuccess: "Subtitle file exported!",
+      exportError: "Cannot export file.",
+      noContent: "No subtitles to export.",
     },
 
     translate: {

@@ -24,6 +24,8 @@ import type { BatchSettings, BatchProgress, TranslationJob } from "@src/types";
 import { translationManager } from "@services/translationManager";
 import { queueManager } from "@services/queueManager";
 import { extractVideoId } from "@utils/videoUtils";
+import { getActiveTranslationConfig } from "@utils/storage/geminiStorage";
+import { PRESET_PROMPTS } from "@constants/defaults";
 import { SrtTab } from "./SrtTab";
 import { TranslateTab } from "./TranslateTab";
 
@@ -95,6 +97,10 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
     total: number;
   } | null>(null);
 
+  // Config info for SRT export
+  const [activeConfigName, setActiveConfigName] = useState<string>("");
+  const [activePresetName, setActivePresetName] = useState<string>("");
+
   // Keyboard handling
   const keyboardHeight = useSharedValue(0);
 
@@ -121,6 +127,38 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
   useEffect(() => {
     onApplySubtitlesRef.current = onApplySubtitles;
   }, [onApplySubtitles]);
+
+  // Load active config info for SRT export
+  useEffect(() => {
+    const loadConfigInfo = async () => {
+      const activeConfig = await getActiveTranslationConfig();
+      if (activeConfig) {
+        setActiveConfigName(activeConfig.name);
+        // Find preset name from presetId or systemPrompt
+        const isVi = t("languages.vi") === "Tiếng Việt"; // Check current language
+        if (activeConfig.presetId) {
+          const preset = PRESET_PROMPTS.find(
+            (p) => p.id === activeConfig.presetId
+          );
+          setActivePresetName(
+            preset ? (isVi ? preset.nameVi : preset.name) : ""
+          );
+        } else {
+          const matchingPreset = PRESET_PROMPTS.find(
+            (p) => p.prompt === activeConfig.systemPrompt
+          );
+          setActivePresetName(
+            matchingPreset
+              ? isVi
+                ? matchingPreset.nameVi
+                : matchingPreset.name
+              : ""
+          );
+        }
+      }
+    };
+    if (visible) loadConfigInfo();
+  }, [visible, t]);
 
   // Check queue status for current video
   const checkQueueStatus = useCallback(() => {
@@ -607,6 +645,9 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
                 srtContent={srtContent}
                 setSrtContent={setSrtContent}
                 onLoadSubtitles={onLoadSubtitles}
+                videoTitle={videoTitle}
+                configName={activeConfigName}
+                presetName={activePresetName}
               />
             ) : (
               <TranslateTab
