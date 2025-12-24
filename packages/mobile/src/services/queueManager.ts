@@ -608,9 +608,10 @@ class QueueManager {
             job.completedBatchRanges &&
             job.completedBatchRanges.length > 0;
           if (hasPartial) {
-            // Keep partial data for resume
+            // Keep partial data for resume - set to PAUSED so it won't auto-retry
+            // User must manually resume this translation
             this.updateItem(currentItemId, {
-              status: "translating",
+              status: "paused",
               partialSrt: job.partialResult || undefined,
               completedBatches: job.completedBatchRanges?.length || 0,
               totalBatches: job.progress?.totalBatches || 0,
@@ -618,6 +619,14 @@ class QueueManager {
               progress: undefined, // Clear progress to show paused state
               error: job.error || "Có lỗi xảy ra",
             });
+            // Send paused notification with error info
+            notificationService.notifyTranslationError(
+              videoTitle,
+              `${job.error || "Có lỗi"} - Đã lưu ${
+                job.completedBatchRanges?.length || 0
+              } phần`,
+              "queue"
+            );
           } else {
             this.updateItem(currentItemId, {
               status: "error",

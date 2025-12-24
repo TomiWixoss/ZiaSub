@@ -582,16 +582,22 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
         }
       }
 
-      translationManager.startTranslation(
-        videoUrl,
-        effectiveConfig,
-        videoDuration,
-        effectiveBatchSettings,
-        rangeStart,
-        rangeEnd,
-        resumeData,
-        presubConfig
-      );
+      translationManager
+        .startTranslation(
+          videoUrl,
+          effectiveConfig,
+          videoDuration,
+          effectiveBatchSettings,
+          rangeStart,
+          rangeEnd,
+          resumeData,
+          presubConfig
+        )
+        .catch((error: any) => {
+          // Error is handled by translationManager and queueManager subscribers
+          // Just log here for debugging
+          console.log("[TranslateTab] Translation error:", error.message);
+        });
     } catch (error: any) {
       alert(
         t("subtitleModal.translate.error"),
