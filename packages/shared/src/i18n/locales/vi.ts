@@ -707,6 +707,7 @@ export default {
   // FAQ
   faq: {
     title: "Câu hỏi thường gặp",
+    madeBy: "Phát triển bởi",
     videoError: {
       question: "Video báo lỗi không xem được?",
       answer:

@@ -708,6 +708,7 @@ export default {
   // FAQ
   faq: {
     title: "Frequently Asked Questions",
+    madeBy: "Made by",
     videoError: {
       question: "Video shows playback error?",
       answer:

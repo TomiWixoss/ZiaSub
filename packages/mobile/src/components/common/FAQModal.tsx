@@ -8,6 +8,7 @@ import {
   Pressable,
   Animated,
   Dimensions,
+  Linking,
 } from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -18,6 +19,11 @@ import { useThemedStyles, createThemedStyles } from "@hooks/useThemedStyles";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 const SHEET_HEIGHT = SCREEN_HEIGHT * 0.7;
+
+const GITHUB_URL = "https://github.com/TomiWixoss/ZiaSub";
+const FACEBOOK_URL = "https://www.facebook.com/TomiSakaeAnime/";
+const ZALO_URL = "https://zalo.me/0762605309";
+const AUTHOR = "TomiSakae";
 
 interface FAQModalProps {
   visible: boolean;
@@ -112,6 +118,18 @@ const FAQModal: React.FC<FAQModalProps> = ({ visible, onClose }) => {
 
   const toggleExpand = (id: string) => {
     setExpandedId(expandedId === id ? null : id);
+  };
+
+  const handleOpenGithub = () => {
+    Linking.openURL(GITHUB_URL);
+  };
+
+  const handleOpenFacebook = () => {
+    Linking.openURL(FACEBOOK_URL);
+  };
+
+  const handleOpenZalo = () => {
+    Linking.openURL(ZALO_URL);
   };
 
   return (
@@ -226,6 +244,54 @@ const FAQModal: React.FC<FAQModalProps> = ({ visible, onClose }) => {
                 )}
               </View>
             ))}
+
+            {/* Author & GitHub */}
+            <View style={[styles.aboutSection, themedStyles.aboutSection]}>
+              <View style={styles.aboutRow}>
+                <MaterialCommunityIcons
+                  name="account"
+                  size={18}
+                  color={colors.textMuted}
+                />
+                <Text style={themedStyles.aboutLabel}>{t("faq.madeBy")}</Text>
+                <Text style={themedStyles.aboutValue}>{AUTHOR}</Text>
+              </View>
+              <View style={styles.socialRow}>
+                <TouchableOpacity
+                  style={styles.socialBtn}
+                  onPress={handleOpenGithub}
+                >
+                  <MaterialCommunityIcons
+                    name="github"
+                    size={18}
+                    color={colors.primary}
+                  />
+                  <Text style={themedStyles.socialText}>GitHub</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.socialBtn}
+                  onPress={handleOpenFacebook}
+                >
+                  <MaterialCommunityIcons
+                    name="facebook"
+                    size={18}
+                    color={colors.primary}
+                  />
+                  <Text style={themedStyles.socialText}>Facebook</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.socialBtn}
+                  onPress={handleOpenZalo}
+                >
+                  <MaterialCommunityIcons
+                    name="chat"
+                    size={18}
+                    color={colors.primary}
+                  />
+                  <Text style={themedStyles.socialText}>Zalo</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           </ScrollView>
         </Animated.View>
       </View>
@@ -302,6 +368,27 @@ const styles = StyleSheet.create({
     marginLeft: 46,
     borderTopWidth: 1,
   },
+  aboutSection: {
+    marginTop: 8,
+    paddingTop: 16,
+    borderTopWidth: 1,
+  },
+  aboutRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 12,
+  },
+  socialRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  socialBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
 });
 
 const faqThemedStyles = createThemedStyles((colors) => ({
@@ -335,6 +422,23 @@ const faqThemedStyles = createThemedStyles((colors) => ({
     fontSize: 13,
     lineHeight: 20,
     color: colors.textSecondary,
+  },
+  aboutSection: {
+    borderTopColor: colors.border,
+  },
+  aboutLabel: {
+    fontSize: 13,
+    color: colors.textMuted,
+  },
+  aboutValue: {
+    fontSize: 13,
+    fontWeight: "500",
+    color: colors.text,
+  },
+  socialText: {
+    fontSize: 13,
+    fontWeight: "500",
+    color: colors.primary,
   },
 }));
 
