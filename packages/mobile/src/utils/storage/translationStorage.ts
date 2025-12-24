@@ -35,6 +35,8 @@ export const saveTranslation = async (
     batchSettings?: BatchSettings;
     totalBatches?: number;
     batchStatuses?: Array<"pending" | "completed" | "error">;
+    rangeStart?: number; // Time range start for partial video translation
+    rangeEnd?: number; // Time range end for partial video translation
   }
 ): Promise<SavedTranslation> => {
   const videoId = getVideoIdFromUrl(videoUrl);
@@ -84,6 +86,11 @@ export const saveTranslation = async (
         batchStatuses:
           metadata?.batchStatuses ??
           data.translations[existingIndex].batchStatuses,
+        // Preserve or update time range
+        rangeStart:
+          metadata?.rangeStart ?? data.translations[existingIndex].rangeStart,
+        rangeEnd:
+          metadata?.rangeEnd ?? data.translations[existingIndex].rangeEnd,
       };
       data.activeTranslationId = existingTranslationId;
       await storageService.setTranslation(videoId, data);
@@ -104,6 +111,9 @@ export const saveTranslation = async (
     totalBatches: metadata?.totalBatches,
     completedBatches: metadata?.totalBatches, // All batches completed
     batchStatuses: metadata?.batchStatuses,
+    // Time range for partial video translation
+    rangeStart: metadata?.rangeStart,
+    rangeEnd: metadata?.rangeEnd,
   };
 
   data.translations.push(newTranslation);

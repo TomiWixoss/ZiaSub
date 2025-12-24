@@ -311,10 +311,11 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
       const currentVideoId = videoUrl ? extractVideoId(videoUrl) : null;
 
       if (jobVideoId && currentVideoId && jobVideoId === currentVideoId) {
-        // Check if this is a batch retranslation (has rangeStart and rangeEnd)
+        // Check if this is a batch retranslation (has isBatchRetranslation flag or retranslateBatchIndex)
+        // Time range translation (rangeStart/rangeEnd without isBatchRetranslation) is NOT a batch retranslation
         // Batch retranslation should NOT affect main isTranslating state
         const isBatchRetranslation =
-          job.rangeStart !== undefined && job.rangeEnd !== undefined;
+          job.isBatchRetranslation || job.retranslateBatchIndex !== undefined;
 
         if (!isBatchRetranslation) {
           setIsTranslating(job.status === "processing");
@@ -408,10 +409,11 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
   useEffect(() => {
     if (videoUrl) {
       const existingJob = translationManager.getJobForUrl(videoUrl);
-      // Check if this is a batch retranslation (has rangeStart and rangeEnd)
+      // Check if this is a batch retranslation (has isBatchRetranslation flag or retranslateBatchIndex)
+      // Time range translation (rangeStart/rangeEnd without isBatchRetranslation) is NOT a batch retranslation
       const isBatchRetranslation =
-        existingJob?.rangeStart !== undefined &&
-        existingJob?.rangeEnd !== undefined;
+        existingJob?.isBatchRetranslation ||
+        existingJob?.retranslateBatchIndex !== undefined;
 
       if (
         existingJob &&

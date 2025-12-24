@@ -117,6 +117,11 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
   const [retranslatingTranslationId, setRetranslatingTranslationId] = useState<
     string | null
   >(null);
+  // Track current time range translation (for display in TranslationProgress)
+  const [currentTimeRange, setCurrentTimeRange] = useState<{
+    rangeStart?: number;
+    rangeEnd?: number;
+  } | null>(null);
 
   // Detect current preset from selected config
   useEffect(() => {
@@ -291,11 +296,11 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
     const currentJob = translationManager.getCurrentJob();
     if (currentJob) {
       const jobVideoId = extractVideoId(currentJob.videoUrl);
-      // Check if this is a batch retranslation (has isBatchRetranslation flag or rangeStart/rangeEnd)
+      // Check if this is a batch retranslation (has isBatchRetranslation flag or retranslateBatchIndex)
+      // Time range translation (rangeStart/rangeEnd without isBatchRetranslation) is NOT a batch job
       const isBatchJob =
         currentJob.isBatchRetranslation ||
-        (currentJob.rangeStart !== undefined &&
-          currentJob.rangeEnd !== undefined);
+        currentJob.retranslateBatchIndex !== undefined;
       if (
         jobVideoId === currentVideoId &&
         currentJob.status === "processing" &&
@@ -308,9 +313,9 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
     const unsubscribe = translationManager.subscribe((job) => {
       const jobVideoId = extractVideoId(job.videoUrl);
       // Check if this is a batch retranslation for current video
+      // Time range translation (rangeStart/rangeEnd without isBatchRetranslation) is NOT a batch job
       const isBatchJob =
-        job.isBatchRetranslation ||
-        (job.rangeStart !== undefined && job.rangeEnd !== undefined);
+        job.isBatchRetranslation || job.retranslateBatchIndex !== undefined;
       if (jobVideoId === currentVideoId && isBatchJob) {
         if (job.status === "processing") {
           setBatchRetranslateJob(job);
@@ -322,6 +327,23 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
           if (job.status === "completed") {
             loadTranslations();
           }
+        }
+      }
+
+      // Track time range for full translation (not batch retranslation)
+      if (jobVideoId === currentVideoId && !isBatchJob) {
+        if (job.status === "processing") {
+          // Check if this is a time range translation
+          if (job.rangeStart !== undefined || job.rangeEnd !== undefined) {
+            setCurrentTimeRange({
+              rangeStart: job.rangeStart,
+              rangeEnd: job.rangeEnd,
+            });
+          } else {
+            setCurrentTimeRange(null);
+          }
+        } else if (job.status === "completed" || job.status === "error") {
+          setCurrentTimeRange(null);
         }
       }
     });
@@ -420,6 +442,19 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
       // Always sync to queue when another video is translating
       // forceRetranslate = true to allow re-translating completed videos
       // Pass all config info to preserve translation settings
+
+      // Calculate rangeStart/rangeEnd for custom range mode
+      let queueRangeStart: number | undefined;
+      let queueRangeEnd: number | undefined;
+      if (useCustomRange) {
+        const start = rangeStartStr.trim() ? parseTime(rangeStartStr) : 0;
+        const end = rangeEndStr.trim() ? parseTime(rangeEndStr) : videoDuration;
+        if (start !== null && end !== null && end !== undefined) {
+          queueRangeStart = Math.max(0, start);
+          queueRangeEnd = videoDuration ? Math.min(end, videoDuration) : end;
+        }
+      }
+
       await queueManager.syncDirectTranslation(
         videoUrl,
         videoTitle,
@@ -431,7 +466,9 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
         batchSettings,
         retranslateBatchIndex,
         retranslateMode,
-        resumeTranslation?.id // savedTranslationId for batch retranslation
+        resumeTranslation?.id, // savedTranslationId for batch retranslation
+        queueRangeStart, // rangeStart for time range translation
+        queueRangeEnd // rangeEnd for time range translation
       );
 
       // Track which translation is being retranslated (for fromHere mode)
@@ -562,7 +599,9 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
         effectiveBatchSettings,
         retranslateBatchIndex,
         retranslateMode,
-        resumeTranslation?.id // savedTranslationId - track which translation is being retranslated
+        resumeTranslation?.id, // savedTranslationId - track which translation is being retranslated
+        rangeStart, // rangeStart for time range translation
+        rangeEnd // rangeEnd for time range translation
       );
 
       // Track which translation is being retranslated (for fromHere mode)
@@ -1074,6 +1113,9 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
           keyStatus={keyStatus}
           batchProgress={batchProgress}
           presubMode={presubMode}
+          rangeStart={currentTimeRange?.rangeStart}
+          rangeEnd={currentTimeRange?.rangeEnd}
+          batchDuration={batchSettings?.maxVideoDuration || 600}
         />
       </ScrollView>
       <View style={styles.translateButtonContainer}>

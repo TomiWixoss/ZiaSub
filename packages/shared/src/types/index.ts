@@ -228,6 +228,10 @@ export interface QueueItem {
   // Batch retranslation mode
   retranslateBatchIndex?: number; // Index of batch being retranslated
   retranslateMode?: "single" | "fromHere"; // single = only this batch, fromHere = this batch and all after
+  // Time range translation mode (translate only specific time range x-y)
+  // This is different from batch retranslation - it's a fresh translation of a specific time range
+  rangeStart?: number; // Start time in seconds
+  rangeEnd?: number; // End time in seconds
 }
 
 // ============================================

@@ -520,6 +520,11 @@ export default {
       retranslatingFrom: "Retranslating from part {{batch}}...",
       waitingBatchSingle: "Waiting to retranslate part {{batch}}",
       waitingBatchFrom: "Waiting to retranslate from part {{batch}}",
+      // Time range translation statuses
+      translatingRange: "Translating {{start}} - {{end}}",
+      waitingRange: "Waiting {{start}} - {{end}}",
+      pausedRange: "Paused {{start}} - {{end}} ({{completed}}/{{total}})",
+      completedRange: "Done {{start}} - {{end}} {{date}}",
     },
 
     addedToQueue: "Added",
@@ -612,6 +617,7 @@ export default {
       progress: {
         translatingPart: "Translating part {{current}}/{{total}}...",
         translatingVideo: "Translating video...",
+        translatingRange: "Translating range {{range}}",
         completed: "Done!",
       },
 

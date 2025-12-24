@@ -242,6 +242,9 @@ class TranslationManager {
           totalBatches: this.currentJob?.progress?.totalBatches,
           batchStatuses:
             currentBatchStatuses.length > 0 ? currentBatchStatuses : undefined,
+          // Pass time range if this was a time range translation
+          rangeStart: this.currentJob?.rangeStart,
+          rangeEnd: this.currentJob?.rangeEnd,
         }
       );
 

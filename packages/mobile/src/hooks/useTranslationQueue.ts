@@ -204,9 +204,10 @@ export const useTranslationQueue = ({
       const isCurrentVideo =
         jobVideoId && currentVideoId && jobVideoId === currentVideoId;
 
-      // Check if this is a batch retranslation (has rangeStart and rangeEnd)
+      // Check if this is a batch retranslation (has isBatchRetranslation flag or retranslateBatchIndex)
+      // Time range translation (rangeStart/rangeEnd without isBatchRetranslation) is NOT a batch retranslation
       const isBatchRetranslation =
-        job.rangeStart !== undefined && job.rangeEnd !== undefined;
+        job.isBatchRetranslation || job.retranslateBatchIndex !== undefined;
 
       if (isCurrentVideo) {
         // Batch retranslation should NOT affect main isTranslating state
@@ -293,9 +294,10 @@ export const useTranslationQueue = ({
 
     if (job) {
       const jobVideoId = extractVideoId(job.videoUrl);
-      // Check if this is a batch retranslation
+      // Check if this is a batch retranslation (has isBatchRetranslation flag or retranslateBatchIndex)
+      // Time range translation (rangeStart/rangeEnd without isBatchRetranslation) is NOT a batch retranslation
       const isBatchRetranslation =
-        job.rangeStart !== undefined && job.rangeEnd !== undefined;
+        job.isBatchRetranslation || job.retranslateBatchIndex !== undefined;
 
       if (
         jobVideoId === currentVideoId &&

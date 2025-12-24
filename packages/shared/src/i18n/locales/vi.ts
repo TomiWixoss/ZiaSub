@@ -518,6 +518,11 @@ export default {
       retranslatingFrom: "Đang dịch lại từ phần {{batch}}...",
       waitingBatchSingle: "Chờ dịch lại phần {{batch}}",
       waitingBatchFrom: "Chờ dịch lại từ phần {{batch}}",
+      // Time range translation statuses
+      translatingRange: "Đang dịch {{start}} - {{end}}",
+      waitingRange: "Chờ dịch {{start}} - {{end}}",
+      pausedRange: "Tạm dừng {{start}} - {{end}} ({{completed}}/{{total}})",
+      completedRange: "Xong {{start}} - {{end}} {{date}}",
     },
 
     addedToQueue: "Đã thêm",
@@ -612,6 +617,7 @@ export default {
       progress: {
         translatingPart: "Đang dịch phần {{current}}/{{total}}...",
         translatingVideo: "Đang dịch video...",
+        translatingRange: "Đang dịch khoảng {{range}}",
         completed: "Xong rồi!",
       },
 

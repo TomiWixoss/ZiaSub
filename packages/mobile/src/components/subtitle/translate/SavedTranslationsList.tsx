@@ -106,30 +106,48 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
       const isPresubTranslation = item.batchSettings?.presubMode ?? false;
       const presubDuration = item.batchSettings?.presubDuration ?? 120; // Default 2 minutes
 
+      // Time range translation: use rangeStart/rangeEnd if available
+      const rangeStart = item.rangeStart ?? 0;
+      const rangeEnd = item.rangeEnd ?? duration;
+      const isTimeRangeTranslation =
+        item.rangeStart !== undefined || item.rangeEnd !== undefined;
+      const effectiveRangeLength = rangeEnd - rangeStart;
+
       // If we have saved totalBatches and batchStatuses, use them directly
       // This handles cases where videoDuration might not be available
       if (item.totalBatches && item.totalBatches > 0 && item.batchStatuses) {
         const parsed = parseSRT(item.srtContent);
         const batches: BatchInfo[] = [];
 
-        // Helper to calculate batch start time considering presub mode
+        // Helper to calculate batch start time considering presub mode and time range
         const getBatchStart = (batchIndex: number) => {
-          if (batchIndex === 0) return 0;
-          if (isPresubTranslation) {
+          // For time range translation, start from rangeStart
+          const baseStart = isTimeRangeTranslation ? rangeStart : 0;
+
+          if (batchIndex === 0) return baseStart;
+          if (isPresubTranslation && !isTimeRangeTranslation) {
             // First batch is presubDuration, rest are batchDuration
             return presubDuration + (batchIndex - 1) * batchDuration;
           }
-          return batchIndex * batchDuration;
+          return baseStart + batchIndex * batchDuration;
         };
 
-        // Helper to calculate batch end time considering presub mode
+        // Helper to calculate batch end time considering presub mode and time range
         const getBatchEnd = (batchIndex: number) => {
-          if (isPresubTranslation && batchIndex === 0) {
-            return duration > 0 ? Math.min(presubDuration, duration) : presubDuration;
+          const effectiveEnd = isTimeRangeTranslation ? rangeEnd : duration;
+
+          if (
+            isPresubTranslation &&
+            batchIndex === 0 &&
+            !isTimeRangeTranslation
+          ) {
+            return duration > 0
+              ? Math.min(presubDuration, duration)
+              : presubDuration;
           }
           const startTime = getBatchStart(batchIndex);
           const endTime = startTime + batchDuration;
-          return duration > 0 ? Math.min(endTime, duration) : endTime;
+          return effectiveEnd > 0 ? Math.min(endTime, effectiveEnd) : endTime;
         };
 
         for (let i = 0; i < item.totalBatches; i++) {
@@ -154,13 +172,17 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
         return batches;
       }
 
-      if (duration <= 0) return [];
+      // Use effective range length for calculations
+      const effectiveDuration = isTimeRangeTranslation
+        ? effectiveRangeLength
+        : duration;
+      if (effectiveDuration <= 0) return [];
 
       // Apply tolerance: if duration <= batchDuration + batchOffset, it's a single batch
       // This matches the logic in geminiService.ts
       const effectiveMaxDuration = batchDuration + batchOffset;
-      if (duration <= effectiveMaxDuration) {
-        // Single batch - video fits within tolerance
+      if (effectiveDuration <= effectiveMaxDuration) {
+        // Single batch - fits within tolerance
         const parsed = parseSRT(item.srtContent);
         const savedStatus = item.batchStatuses?.[0];
         const hasContent = parsed.length > 0;
@@ -168,8 +190,8 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
         return [
           {
             index: 0,
-            startTime: 0,
-            endTime: duration,
+            startTime: rangeStart,
+            endTime: rangeEnd,
             subtitleCount: parsed.length,
             hasContent,
             status: savedStatus || (hasContent ? "completed" : "pending"),
@@ -177,13 +199,17 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
         ];
       }
 
-      const totalBatches = Math.ceil(duration / batchDuration);
+      const totalBatches = Math.ceil(effectiveDuration / batchDuration);
       const parsed = parseSRT(item.srtContent);
       const batches: BatchInfo[] = [];
 
       for (let i = 0; i < totalBatches; i++) {
-        const startTime = i * batchDuration;
-        const endTime = Math.min((i + 1) * batchDuration, duration);
+        // For time range translation, start from rangeStart
+        const startTime = rangeStart + i * batchDuration;
+        const endTime = Math.min(
+          rangeStart + (i + 1) * batchDuration,
+          rangeEnd
+        );
 
         // Count subtitles in this batch
         const subtitlesInBatch = parsed.filter(
@@ -385,6 +411,33 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
                       <Text style={styles.translationConfig}>
                         {item.configName}
                       </Text>
+                      {/* Time range badge - show if translation has specific time range */}
+                      {(item.rangeStart !== undefined ||
+                        item.rangeEnd !== undefined) && (
+                        <View
+                          style={[
+                            styles.presetBadge,
+                            { backgroundColor: colors.primary + "20" },
+                          ]}
+                        >
+                          <MaterialCommunityIcons
+                            name="clock-time-four-outline"
+                            size={10}
+                            color={colors.primary}
+                          />
+                          <Text
+                            style={[
+                              styles.presetBadgeText,
+                              { color: colors.primary },
+                            ]}
+                          >
+                            {formatTime(item.rangeStart || 0)} -{" "}
+                            {formatTime(
+                              item.rangeEnd || item.videoDuration || 0
+                            )}
+                          </Text>
+                        </View>
+                      )}
                       {getPresetName(item.presetId) && (
                         <View style={styles.presetBadge}>
                           <MaterialCommunityIcons
@@ -413,6 +466,13 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
                     <Text style={styles.translationDate}>
                       {formatDate(item.createdAt)}
                       {item.isPartial && ` • ${progressPercent}%`}
+                      {/* Show time range in date line if has range */}
+                      {(item.rangeStart !== undefined ||
+                        item.rangeEnd !== undefined) &&
+                        !item.isPartial &&
+                        ` • ${formatTime(item.rangeStart || 0)}-${formatTime(
+                          item.rangeEnd || item.videoDuration || 0
+                        )}`}
                     </Text>
                   </View>
                 </View>
@@ -843,8 +903,10 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
 
                           // First batch in presub mode should be yellow (even when completed)
                           // Check item.batchSettings?.presubMode for saved translation's presub state
-                          const isPresubTranslation = item.batchSettings?.presubMode ?? false;
-                          const isPresubBatch = isPresubTranslation && batch.index === 0;
+                          const isPresubTranslation =
+                            item.batchSettings?.presubMode ?? false;
+                          const isPresubBatch =
+                            isPresubTranslation && batch.index === 0;
 
                           return (
                             <View
@@ -871,12 +933,20 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
                               <View
                                 style={[
                                   styles.batchChip,
-                                  isCompleted && !isPresubBatch && styles.batchChipCompleted,
+                                  isCompleted &&
+                                    !isPresubBatch &&
+                                    styles.batchChipCompleted,
                                   isPresubBatch && styles.batchChipPresub,
                                   isError && styles.batchChipError,
-                                  isProcessing && !isPresubBatch && styles.batchChipProcessing,
-                                  isPaused && !isPresubBatch && styles.batchChipPaused,
-                                  isWaiting && !isPresubBatch && styles.batchChipWaiting,
+                                  isProcessing &&
+                                    !isPresubBatch &&
+                                    styles.batchChipProcessing,
+                                  isPaused &&
+                                    !isPresubBatch &&
+                                    styles.batchChipPaused,
+                                  isWaiting &&
+                                    !isPresubBatch &&
+                                    styles.batchChipWaiting,
                                   !isCompleted &&
                                     !isError &&
                                     !isProcessing &&
@@ -911,7 +981,8 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
                                         !isPresubBatch &&
                                         styles.batchChipTextCompleted,
                                       isError && styles.batchChipTextError,
-                                      isPresubBatch && styles.batchChipTextPresub,
+                                      isPresubBatch &&
+                                        styles.batchChipTextPresub,
                                     ]}
                                   >
                                     {batch.index + 1}
@@ -925,9 +996,11 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
                                       styles.batchChipTimeCompleted,
                                     isError && styles.batchChipTimeError,
                                     isPresubBatch && styles.batchChipTimePresub,
-                                    isProcessing && !isPresubBatch && { color: "#fff" },
+                                    isProcessing &&
+                                      !isPresubBatch && { color: "#fff" },
                                     isPaused && { color: "#fff" },
-                                    isWaiting && !isPresubBatch && { color: "#fff" },
+                                    isWaiting &&
+                                      !isPresubBatch && { color: "#fff" },
                                   ]}
                                 >
                                   {formatTime(batch.startTime)} -{" "}

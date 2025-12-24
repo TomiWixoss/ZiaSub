@@ -29,6 +29,19 @@ const formatDuration = (seconds?: number) => {
   return `${m}:${s.toString().padStart(2, "0")}`;
 };
 
+// Format time for time range display (supports hours)
+const formatTimeRange = (seconds: number) => {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.floor(seconds % 60);
+  if (h > 0) {
+    return `${h}:${m.toString().padStart(2, "0")}:${s
+      .toString()
+      .padStart(2, "0")}`;
+  }
+  return `${m}:${s.toString().padStart(2, "0")}`;
+};
+
 const formatDate = (timestamp?: number) => {
   if (!timestamp) return "";
   const d = new Date(timestamp);
@@ -63,16 +76,28 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
   const isBatchRetranslationActive = isBatchRetranslation && hasRealProgress;
   const isBatchRetranslationWaiting = isBatchRetranslation && !hasRealProgress;
 
+  // Time range translation info (translate only specific time range x-y)
+  // This is different from batch retranslation - it's a fresh translation of a specific time range
+  const isTimeRangeTranslation =
+    item.rangeStart !== undefined || item.rangeEnd !== undefined;
+  const isTimeRangeTranslationActive =
+    isTimeRangeTranslation && hasRealProgress;
+  const isTimeRangeTranslationWaiting =
+    isTimeRangeTranslation && !hasRealProgress;
+
   const isActivelyTranslating =
     item.status === "translating" &&
-    (hasRealProgress || isBatchRetranslationActive);
+    (hasRealProgress ||
+      isBatchRetranslationActive ||
+      isTimeRangeTranslationActive);
   // Paused is now a separate status
   const isPaused = item.status === "paused";
-  // Waiting in queue: either full translation waiting OR batch retranslation waiting
+  // Waiting in queue: either full translation waiting OR batch retranslation waiting OR time range waiting
   const isWaitingInQueue =
     item.status === "translating" &&
     !hasRealProgress &&
-    !isBatchRetranslationActive;
+    !isBatchRetranslationActive &&
+    !isTimeRangeTranslationActive;
 
   // Calculate progress percentage (only for full translation with progress, not batch retranslation)
   const progressPercent =
@@ -199,7 +224,11 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
             {item.title}
           </Text>
 
-          {(item.configName || presetName || batchSettingsInfo) && (
+          {(item.configName ||
+            presetName ||
+            batchSettingsInfo ||
+            isTimeRangeTranslation ||
+            isBatchRetranslation) && (
             <View style={styles.configRow}>
               {item.configName && (
                 <Text style={styles.configText} numberOfLines={1}>
@@ -264,6 +293,31 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
                   </Text>
                 </View>
               )}
+              {/* Time range translation mode badge */}
+              {isTimeRangeTranslation && !isBatchRetranslation && (
+                <View
+                  style={[
+                    styles.settingsBadge,
+                    { backgroundColor: colors.primary + "30" },
+                  ]}
+                >
+                  <MaterialCommunityIcons
+                    name="clock-time-four-outline"
+                    size={10}
+                    color={colors.primary}
+                  />
+                  <Text
+                    style={[
+                      styles.settingsBadgeText,
+                      { color: colors.primary },
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {formatTimeRange(item.rangeStart || 0)} -{" "}
+                    {formatTimeRange(item.rangeEnd || item.duration || 0)}
+                  </Text>
+                </View>
+              )}
             </View>
           )}
 
@@ -273,12 +327,25 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
                 {t("queue.status.added", { date: formatDate(item.addedAt) })}
               </Text>
             )}
-            {isActivelyTranslating && !isBatchRetranslation && (
-              <Text style={[styles.statusText, { color: colors.primary }]}>
-                {t("queue.status.translating")} ({item.progress!.completed}/
-                {item.progress!.total})
-              </Text>
-            )}
+            {isActivelyTranslating &&
+              !isBatchRetranslation &&
+              !isTimeRangeTranslation && (
+                <Text style={[styles.statusText, { color: colors.primary }]}>
+                  {t("queue.status.translating")} ({item.progress!.completed}/
+                  {item.progress!.total})
+                </Text>
+              )}
+            {isActivelyTranslating &&
+              isTimeRangeTranslation &&
+              !isBatchRetranslation && (
+                <Text style={[styles.statusText, { color: colors.primary }]}>
+                  {t("queue.status.translatingRange", {
+                    start: formatTimeRange(item.rangeStart || 0),
+                    end: formatTimeRange(item.rangeEnd || item.duration || 0),
+                  })}{" "}
+                  ({item.progress!.completed}/{item.progress!.total})
+                </Text>
+              )}
             {isActivelyTranslating && isBatchRetranslation && (
               <Text style={[styles.statusText, { color: colors.primary }]}>
                 {item.retranslateMode === "single"
@@ -290,10 +357,20 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
                     })}
               </Text>
             )}
-            {isPaused && !isBatchRetranslation && (
+            {isPaused && !isBatchRetranslation && !isTimeRangeTranslation && (
               <Text style={[styles.statusText, { color: colors.warning }]}>
                 {t("queue.status.paused", {
                   completed: item.completedBatches,
+                  total: item.totalBatches || "?",
+                })}
+              </Text>
+            )}
+            {isPaused && isTimeRangeTranslation && !isBatchRetranslation && (
+              <Text style={[styles.statusText, { color: colors.warning }]}>
+                {t("queue.status.pausedRange", {
+                  start: formatTimeRange(item.rangeStart || 0),
+                  end: formatTimeRange(item.rangeEnd || item.duration || 0),
+                  completed: item.completedBatches || 0,
                   total: item.totalBatches || "?",
                 })}
               </Text>
@@ -309,15 +386,30 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
                     })}
               </Text>
             )}
-            {isWaitingInQueue && !isBatchRetranslationWaiting && (
-              <Text style={[styles.statusText, { color: colors.primary }]}>
-                {queuePosition && totalInQueue
-                  ? `${t(
-                      "queue.status.waiting"
-                    )} (${queuePosition}/${totalInQueue})`
-                  : t("queue.status.waiting")}
-              </Text>
-            )}
+            {isWaitingInQueue &&
+              !isBatchRetranslationWaiting &&
+              !isTimeRangeTranslationWaiting && (
+                <Text style={[styles.statusText, { color: colors.primary }]}>
+                  {queuePosition && totalInQueue
+                    ? `${t(
+                        "queue.status.waiting"
+                      )} (${queuePosition}/${totalInQueue})`
+                    : t("queue.status.waiting")}
+                </Text>
+              )}
+            {isWaitingInQueue &&
+              isTimeRangeTranslationWaiting &&
+              !isBatchRetranslationWaiting && (
+                <Text style={[styles.statusText, { color: colors.primary }]}>
+                  {t("queue.status.waitingRange", {
+                    start: formatTimeRange(item.rangeStart || 0),
+                    end: formatTimeRange(item.rangeEnd || item.duration || 0),
+                  })}
+                  {queuePosition && totalInQueue
+                    ? ` (${queuePosition}/${totalInQueue})`
+                    : ""}
+                </Text>
+              )}
             {isWaitingInQueue && isBatchRetranslationWaiting && (
               <Text style={[styles.statusText, { color: colors.primary }]}>
                 {item.retranslateMode === "single"
@@ -332,9 +424,18 @@ const QueueItemCard: React.FC<QueueItemCardProps> = ({
                   : ""}
               </Text>
             )}
-            {item.status === "completed" && (
+            {item.status === "completed" && !isTimeRangeTranslation && (
               <Text style={[styles.statusText, { color: colors.success }]}>
                 {t("queue.status.completed", {
+                  date: formatDate(item.completedAt),
+                })}
+              </Text>
+            )}
+            {item.status === "completed" && isTimeRangeTranslation && (
+              <Text style={[styles.statusText, { color: colors.success }]}>
+                {t("queue.status.completedRange", {
+                  start: formatTimeRange(item.rangeStart || 0),
+                  end: formatTimeRange(item.rangeEnd || item.duration || 0),
                   date: formatDate(item.completedAt),
                 })}
               </Text>

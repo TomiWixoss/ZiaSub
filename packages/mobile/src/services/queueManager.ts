@@ -537,6 +537,8 @@ class QueueManager {
             // Clear batch retranslation mode
             retranslateBatchIndex: undefined,
             retranslateMode: undefined,
+            // Clear time range mode (keep rangeStart/rangeEnd for display in completed items)
+            // Note: We keep rangeStart/rangeEnd so completed items show what range was translated
           });
           this.isProcessing = false;
           this.currentProcessingItemId = null;
@@ -714,14 +716,15 @@ class QueueManager {
 
         // Note: Progress is updated via subscription when translateSingleBatch notifies
       } else {
-        // Full translation
+        // Full translation or time range translation
+        // Pass rangeStart/rangeEnd if item has time range configured
         await translationManager.startTranslation(
           item.videoUrl,
           effectiveConfig,
           item.duration,
           queueBatchSettings,
-          undefined,
-          undefined,
+          item.rangeStart, // Pass time range start if configured
+          item.rangeEnd, // Pass time range end if configured
           resumeData,
           undefined,
           { skipBackgroundControl: true, skipNotification: true } // Queue tự quản lý background và notification
@@ -1624,6 +1627,7 @@ class QueueManager {
   // forceRetranslate: if true, will change completed status to translating
   // retranslateBatchIndex & retranslateMode: for batch retranslation (single batch or fromHere)
   // savedTranslationId: ID of translation being retranslated (for UI tracking)
+  // rangeStart & rangeEnd: for time range translation (translate only specific time range x-y)
   async syncDirectTranslation(
     videoUrl: string,
     title?: string,
@@ -1635,7 +1639,9 @@ class QueueManager {
     batchSettings?: any,
     retranslateBatchIndex?: number,
     retranslateMode?: "single" | "fromHere",
-    savedTranslationId?: string
+    savedTranslationId?: string,
+    rangeStart?: number,
+    rangeEnd?: number
   ): Promise<QueueItem> {
     const videoId = this.extractVideoId(videoUrl);
     let item = this.items.find((i) => i.videoId === videoId);
@@ -1649,6 +1655,14 @@ class QueueManager {
             retranslateMode: undefined,
             savedTranslationId: undefined,
           };
+
+    // Time range fields to include in updates
+    // Only set if rangeStart or rangeEnd is provided (not undefined)
+    // This distinguishes time range translation from full video translation
+    const timeRangeFields =
+      rangeStart !== undefined || rangeEnd !== undefined
+        ? { rangeStart, rangeEnd }
+        : { rangeStart: undefined, rangeEnd: undefined };
 
     if (item) {
       // Video exists in queue - update status based on current state
@@ -1672,6 +1686,8 @@ class QueueManager {
             completedBatchRanges: undefined,
             // Batch retranslation mode
             ...batchRetranslateFields,
+            // Time range translation mode
+            ...timeRangeFields,
           });
           return this.items.find((i) => i.id === item!.id)!;
         }
@@ -1697,10 +1713,15 @@ class QueueManager {
             error: undefined,
             // Batch retranslation mode
             ...batchRetranslateFields,
+            // Time range translation mode
+            ...timeRangeFields,
           });
         } else {
           // Only update config if not already set (preserve original config)
-          const updates: Partial<QueueItem> = { ...batchRetranslateFields };
+          const updates: Partial<QueueItem> = {
+            ...batchRetranslateFields,
+            ...timeRangeFields,
+          };
           if (!item.configName && configName) updates.configName = configName;
           if (!item.configId && configId) updates.configId = configId;
           if (item.presetId === undefined && presetId !== undefined)
@@ -1737,6 +1758,8 @@ class QueueManager {
             : {}),
           // Batch retranslation mode
           ...batchRetranslateFields,
+          // Time range translation mode
+          ...timeRangeFields,
         });
         return this.items.find((i) => i.id === item!.id)!;
       }
@@ -1751,6 +1774,8 @@ class QueueManager {
         error: undefined,
         // Batch retranslation mode
         ...batchRetranslateFields,
+        // Time range translation mode
+        ...timeRangeFields,
       });
       return this.items.find((i) => i.id === item!.id)!;
     } else {
@@ -1773,6 +1798,9 @@ class QueueManager {
         retranslateBatchIndex,
         retranslateMode,
         savedTranslationId,
+        // Time range translation mode
+        rangeStart,
+        rangeEnd,
       };
 
       this.items.unshift(newItem);
@@ -1783,6 +1811,7 @@ class QueueManager {
   }
 
   // Clear batch retranslation mode from queue item (called when batch retranslation completes)
+  // Also clears time range translation mode
   async clearBatchRetranslateMode(videoUrl: string): Promise<void> {
     const videoId = this.extractVideoId(videoUrl);
     const item = this.items.find((i) => i.videoId === videoId);
@@ -1791,9 +1820,51 @@ class QueueManager {
         status: "completed",
         retranslateBatchIndex: undefined,
         retranslateMode: undefined,
+        // Also clear time range fields
+        rangeStart: undefined,
+        rangeEnd: undefined,
         completedAt: Date.now(),
       });
     }
+  }
+
+  // Clear time range translation mode from queue item (called when time range translation completes)
+  async clearTimeRangeMode(videoUrl: string): Promise<void> {
+    const videoId = this.extractVideoId(videoUrl);
+    const item = this.items.find((i) => i.videoId === videoId);
+    if (item) {
+      await this.updateItem(item.id, {
+        status: "completed",
+        rangeStart: undefined,
+        rangeEnd: undefined,
+        completedAt: Date.now(),
+      });
+    }
+  }
+
+  // Check if a queue item is a time range translation (not full video)
+  isTimeRangeTranslation(videoUrl: string): boolean {
+    const videoId = this.extractVideoId(videoUrl);
+    const item = this.items.find((i) => i.videoId === videoId);
+    return !!(
+      item &&
+      (item.rangeStart !== undefined || item.rangeEnd !== undefined)
+    );
+  }
+
+  // Get time range info for a video in queue
+  getTimeRangeInfo(
+    videoUrl: string
+  ): { rangeStart?: number; rangeEnd?: number } | null {
+    const videoId = this.extractVideoId(videoUrl);
+    const item = this.items.find((i) => i.videoId === videoId);
+    if (
+      !item ||
+      (item.rangeStart === undefined && item.rangeEnd === undefined)
+    ) {
+      return null;
+    }
+    return { rangeStart: item.rangeStart, rangeEnd: item.rangeEnd };
   }
 
   // Get queue status for a video (for UI display)
