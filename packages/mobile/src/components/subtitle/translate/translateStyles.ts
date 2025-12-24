@@ -166,6 +166,10 @@ export const createTranslateStyles = (colors: ThemeColors) =>
       backgroundColor: colors.primary + "80",
       borderColor: colors.primary,
     },
+    batchChipPresub: {
+      backgroundColor: colors.warning,
+      borderColor: colors.warning,
+    },
     batchChipText: {
       color: colors.textMuted,
       fontSize: 12,

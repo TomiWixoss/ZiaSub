@@ -980,6 +980,7 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
           batchRetranslateJob={batchRetranslateJob}
           pausedBatchRetranslation={pausedBatchRetranslation}
           retranslatingTranslationId={retranslatingTranslationId}
+          presubMode={presubMode}
         />
         {!hasApiKey && (
           <View style={themedStyles.warningContainer}>
@@ -1066,6 +1067,7 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
           translateStatus={translateStatus}
           keyStatus={keyStatus}
           batchProgress={batchProgress}
+          presubMode={presubMode}
         />
       </ScrollView>
       <View style={styles.translateButtonContainer}>

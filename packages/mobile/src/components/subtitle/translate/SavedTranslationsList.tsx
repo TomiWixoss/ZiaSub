@@ -38,6 +38,8 @@ interface SavedTranslationsListProps {
   } | null;
   // ID of translation currently being retranslated
   retranslatingTranslationId?: string | null;
+  // Presub mode for first batch yellow highlighting
+  presubMode?: boolean;
 }
 
 const formatDate = (timestamp: number) => {
@@ -85,6 +87,7 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
   batchRetranslateJob,
   pausedBatchRetranslation,
   retranslatingTranslationId,
+  presubMode = false,
 }) => {
   const { t } = useTranslation();
   const { colors } = useTheme();
@@ -818,6 +821,9 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
                             !isProcessing &&
                             !isPaused;
 
+                          // First batch in presub mode should be yellow when processing/waiting
+                          const isPresubBatch = presubMode && batch.index === 0 && (isProcessing || isWaiting);
+
                           return (
                             <View
                               key={batch.index}
@@ -845,9 +851,10 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
                                   styles.batchChip,
                                   isCompleted && styles.batchChipCompleted,
                                   isError && styles.batchChipError,
-                                  isProcessing && styles.batchChipProcessing,
+                                  isProcessing && !isPresubBatch && styles.batchChipProcessing,
+                                  isPresubBatch && styles.batchChipPresub,
                                   isPaused && styles.batchChipPaused,
-                                  isWaiting && styles.batchChipWaiting,
+                                  isWaiting && !isPresubBatch && styles.batchChipWaiting,
                                   !isCompleted &&
                                     !isError &&
                                     !isProcessing &&

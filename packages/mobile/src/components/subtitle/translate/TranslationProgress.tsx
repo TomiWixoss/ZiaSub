@@ -12,6 +12,7 @@ interface TranslationProgressProps {
   translateStatus: string;
   keyStatus: string | null;
   batchProgress: BatchProgress | null;
+  presubMode?: boolean;
 }
 
 const TranslationProgress: React.FC<TranslationProgressProps> = ({
@@ -19,6 +20,7 @@ const TranslationProgress: React.FC<TranslationProgressProps> = ({
   translateStatus,
   keyStatus,
   batchProgress,
+  presubMode = false,
 }) => {
   const { t } = useTranslation();
   const { colors } = useTheme();
@@ -80,6 +82,8 @@ const TranslationProgress: React.FC<TranslationProgressProps> = ({
             const isCompleted = status === "completed";
             const isProcessing = status === "processing";
             const isError = status === "error";
+            // First batch in presub mode should be yellow
+            const isPresubBatch = presubMode && index === 0;
 
             return (
               <View
@@ -87,7 +91,7 @@ const TranslationProgress: React.FC<TranslationProgressProps> = ({
                 style={[
                   styles.batchIndicator,
                   isCompleted && styles.batchCompleted,
-                  isProcessing && styles.batchProcessing,
+                  isProcessing && (isPresubBatch ? styles.batchPresub : styles.batchProcessing),
                   isError && styles.batchError,
                 ]}
               >
@@ -206,6 +210,10 @@ const themedStyles = createThemedStyles((colors) => ({
   batchProcessing: {
     backgroundColor: colors.primary,
     borderColor: colors.primary,
+  },
+  batchPresub: {
+    backgroundColor: colors.warning,
+    borderColor: colors.warning,
   },
   batchError: {
     backgroundColor: colors.error,
