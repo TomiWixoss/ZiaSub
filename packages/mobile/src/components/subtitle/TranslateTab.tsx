@@ -291,10 +291,13 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
     const currentJob = translationManager.getCurrentJob();
     if (currentJob) {
       const jobVideoId = extractVideoId(currentJob.videoUrl);
-      // Check if this is a batch retranslation (has isBatchRetranslation flag or rangeStart/rangeEnd)
+      // Check if this is a batch retranslation (has isBatchRetranslation flag or existingTranslationId)
+      // NOTE: rangeStart/rangeEnd alone is NOT enough - it could be a new translation with custom range
+      // Only consider it batch retranslation if it has existingTranslationId (retranslating existing translation)
       const isBatchJob =
         currentJob.isBatchRetranslation ||
-        (currentJob.rangeStart !== undefined &&
+        (currentJob.existingTranslationId !== undefined &&
+          currentJob.rangeStart !== undefined &&
           currentJob.rangeEnd !== undefined);
       if (
         jobVideoId === currentVideoId &&
@@ -308,9 +311,13 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
     const unsubscribe = translationManager.subscribe((job) => {
       const jobVideoId = extractVideoId(job.videoUrl);
       // Check if this is a batch retranslation for current video
+      // NOTE: rangeStart/rangeEnd alone is NOT enough - it could be a new translation with custom range
+      // Only consider it batch retranslation if it has existingTranslationId (retranslating existing translation)
       const isBatchJob =
         job.isBatchRetranslation ||
-        (job.rangeStart !== undefined && job.rangeEnd !== undefined);
+        (job.existingTranslationId !== undefined &&
+          job.rangeStart !== undefined &&
+          job.rangeEnd !== undefined);
       if (jobVideoId === currentVideoId && isBatchJob) {
         if (job.status === "processing") {
           setBatchRetranslateJob(job);
