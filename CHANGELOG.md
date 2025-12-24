@@ -1,5 +1,76 @@
 # Changelog
 
+## [0.0.7] - 2024-12-24
+
+### ✨ Tính năng mới
+
+- **FAQ Modal với thông tin tác giả**
+
+  - Thêm FAQModal component với bottom sheet animation và expand/collapse
+  - FAQ items bao gồm: video errors, translation process, API keys, queue management, subtitle positioning
+  - Thêm author section với links đến GitHub, Facebook, Zalo
+  - Tích hợp FAQ modal vào HomeScreen với floating button trigger
+  - Hỗ trợ i18n đầy đủ cho tiếng Anh và tiếng Việt
+
+- **Xuất file SRT**
+
+  - Thay thế clipboard paste bằng tính năng export file SRT sử dụng expo-sharing
+  - Tên file động từ videoTitle, configName, và presetName
+  - Sanitize tên file để loại bỏ ký tự không hợp lệ
+  - Validation ngăn export nội dung SRT trống
+
+- **Hỗ trợ Time Range Translation**
+
+  - Thêm time range translation detection và display trong QueueItemCard
+  - Hiển thị time range badges với format HH:MM:SS
+  - Cập nhật queue status messages phân biệt full, batch, và time range translations
+  - Persist time range metadata vào storage
+  - Hỗ trợ retranslation với time range offset calculations
+
+- **Responsive CSS cho Desktop YouTube trên Mobile WebView**
+
+  - Inject responsive CSS để force responsive layout trên desktop YouTube
+  - Fix guide menu positioning, video player sizing, homepage layout
+  - Đảm bảo tất cả components respect 100vw max-width
+
+- **Auto-skip Ads**
+  - Thêm isAdPlaying() function để detect ads qua player class names và overlay elements
+  - Thêm trySkipAd() function để tự động click skip button
+  - Expand skip button selectors cho nhiều YouTube ad UI variations
+  - Implement dual click methods: standard .click() và MouseEvent dispatching
+
+### 🐛 Sửa lỗi
+
+- **Error Handling cải tiến**
+
+  - Thêm catch handler cho startTranslation trong TranslateTab
+  - Đổi partial translation status từ "translating" sang "paused" để ngăn auto-retry
+  - Gửi paused notification với error details và completed batch count
+  - Clear progress indicator khi translation bị paused
+
+- **Batch Retranslation Detection**
+  - Revert logic batch retranslation detection không chính xác
+  - Cải thiện detection logic yêu cầu existingTranslationId
+
+### 🔧 Cải tiến
+
+- **Subtitle Positioning thống nhất**
+
+  - Loại bỏ desktop-specific subtitle settings (desktopBottom, desktopShowBackground)
+  - Thống nhất subtitle positioning sử dụng portrait/landscape logic
+  - Đổi subtitle positioning từ absolute sang fixed trong portrait mode
+  - Thêm performance optimizations (transform, backface-visibility, contain)
+
+- **Presub Mode & Time Range Support**
+
+  - Thêm presub mode detection trong batch retranslation initialization
+  - Calculate rangeStart/rangeEnd considering presub mode offset
+  - Hỗ trợ retranslation của partial video segments với proper batch boundaries
+
+- **UI Components**
+  - Thêm TranslationProgress và SavedTranslationsList UI components
+  - Cập nhật i18n translations cho export và time range features
+
 ## [0.0.6] - 2024-12-23
 
 ### ✨ Tính năng mới
