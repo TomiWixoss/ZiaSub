@@ -28,13 +28,24 @@ namespace 'com.tomisakae.ziasub'
     Write-Host "  -> Already configured" -ForegroundColor Gray
 }
 
-# 2. Fix gradle.properties - thêm buildCacheDir
+# 2. Fix gradle.properties - enable Gradle build cache (modern approach)
+# Note: android.buildCacheDir is deprecated in AGP 7.0+, use org.gradle.caching instead
 Write-Host "`n[2/3] Checking gradle.properties..." -ForegroundColor Yellow
 $propsContent = Get-Content $gradleProps -Raw
 
-if ($propsContent -notmatch "android\.buildCacheDir") {
-    Add-Content $gradleProps "`n# Fix Windows long path issue - use shorter build directory`nandroid.buildCacheDir=C:/tmp/gradle-cache"
-    Write-Host "  -> Added buildCacheDir config" -ForegroundColor Green
+# Remove deprecated android.buildCacheDir if exists
+if ($propsContent -match "android\.buildCacheDir") {
+    $propsContent = $propsContent -replace "(?m)^# Fix Windows long path issue.*`r?`n", ""
+    $propsContent = $propsContent -replace "(?m)^android\.buildCacheDir=.*`r?`n?", ""
+    Set-Content $gradleProps $propsContent.TrimEnd()
+    Write-Host "  -> Removed deprecated android.buildCacheDir" -ForegroundColor Yellow
+}
+
+# Add org.gradle.caching if not exists
+$propsContent = Get-Content $gradleProps -Raw
+if ($propsContent -notmatch "org\.gradle\.caching=true") {
+    Add-Content $gradleProps "`n# Enable Gradle build cache for better performance`norg.gradle.caching=true"
+    Write-Host "  -> Added org.gradle.caching=true" -ForegroundColor Green
 } else {
     Write-Host "  -> Already configured" -ForegroundColor Gray
 }

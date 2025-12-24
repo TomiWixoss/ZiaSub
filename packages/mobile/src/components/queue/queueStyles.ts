@@ -7,7 +7,8 @@ export const createQueueStyles = (colors: ThemeColors) =>
     tabBarContainer: {
       marginHorizontal: 16,
       marginBottom: 12,
-      maxHeight: 48,
+      flexGrow: 0,
+      flexShrink: 0,
     },
     tabBarScroll: {
       flexDirection: "row",
@@ -15,6 +16,7 @@ export const createQueueStyles = (colors: ThemeColors) =>
       borderRadius: 12,
       padding: 4,
       gap: 4,
+      flexGrow: 0,
     },
     tabBar: {
       flexDirection: "row",
@@ -134,7 +136,7 @@ export const createQueueStyles = (colors: ThemeColors) =>
     configOptionTextActive: { color: colors.primary, fontWeight: "600" },
 
     // Action section styles
-    actionSection: { paddingHorizontal: 16, marginBottom: 12 },
+    actionSection: { paddingHorizontal: 16, marginBottom: 12, flexShrink: 0 },
     actionButtons: { flexDirection: "row", alignItems: "center", gap: 8 },
     actionButtonPrimary: { flex: 1 },
     clearAllBtn: {

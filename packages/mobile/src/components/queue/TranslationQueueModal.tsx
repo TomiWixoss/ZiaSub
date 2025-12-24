@@ -497,6 +497,7 @@ const TranslationQueueModal: React.FC<TranslationQueueModalProps> = ({
             </View>
           )}
           <FlatList
+            style={{ flex: 1 }}
             data={items}
             keyExtractor={(item) => item.id}
             renderItem={({ item, index }) => {
