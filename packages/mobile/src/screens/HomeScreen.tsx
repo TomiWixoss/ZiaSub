@@ -26,7 +26,7 @@ import { useTranslationQueue } from "@hooks/useTranslationQueue";
 import { YouTubePlayer } from "@components/video";
 import { SubtitleInputModal } from "@components/subtitle";
 import { SettingsModal } from "@components/settings";
-import { FloatingButton } from "@components/common";
+import { FloatingButton, FAQModal } from "@components/common";
 import { TranslationQueueModal } from "@components/queue";
 import { ChatModal } from "@components/chat";
 
@@ -41,6 +41,7 @@ const HomeScreen = () => {
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [queueModalVisible, setQueueModalVisible] = useState(false);
   const [chatModalVisible, setChatModalVisible] = useState(false);
+  const [faqModalVisible, setFaqModalVisible] = useState(false);
   const [isChatLoading, setIsChatLoading] = useState(false);
 
   // Desktop mode state
@@ -541,6 +542,7 @@ const HomeScreen = () => {
         onSettingsPress={() => setSettingsVisible(true)}
         onQueuePress={() => setQueueModalVisible(true)}
         onChatPress={() => setChatModalVisible(true)}
+        onFAQPress={() => setFaqModalVisible(true)}
         onAddToQueuePress={currentUrl ? handleAddToQueue : undefined}
         hasSubtitles={hasSubtitles}
         isTranslating={isTranslating}
@@ -611,6 +613,11 @@ const HomeScreen = () => {
         videoTitle={videoTitle}
         videoDuration={videoDuration}
         onLoadingChange={setIsChatLoading}
+      />
+
+      <FAQModal
+        visible={faqModalVisible}
+        onClose={() => setFaqModalVisible(false)}
       />
     </View>
   );

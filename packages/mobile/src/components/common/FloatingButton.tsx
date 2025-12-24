@@ -9,6 +9,7 @@ interface FloatingButtonProps {
   onSettingsPress: () => void;
   onQueuePress: () => void;
   onChatPress: () => void;
+  onFAQPress?: () => void;
   onAddToQueuePress?: () => void;
   isVideoPage: boolean;
   isDesktopMode?: boolean;
@@ -420,6 +421,7 @@ const FloatingButton: React.FC<FloatingButtonProps> = (props) => {
     onSettingsPress,
     onQueuePress,
     onChatPress,
+    onFAQPress,
     onAddToQueuePress,
     isVideoPage,
     isDesktopMode = false,
@@ -508,7 +510,7 @@ const FloatingButton: React.FC<FloatingButtonProps> = (props) => {
         </View>
       </View>
 
-      {/* Primary buttons (Chat, Subtitle) */}
+      {/* Primary buttons (Chat, Subtitle, FAQ) */}
       <View
         style={[
           styles.fabColumn,
@@ -520,6 +522,14 @@ const FloatingButton: React.FC<FloatingButtonProps> = (props) => {
         ]}
       >
         <ChatFab onPress={onChatPress} isLoading={isChatLoading} />
+        {!isVideoPage && onFAQPress && (
+          <Fab3D
+            onPress={onFAQPress}
+            icon="help-circle-outline"
+            size={40}
+            iconSize={20}
+          />
+        )}
         {isVideoPage &&
           (isPausedInQueue ? (
             <PausedFab onPress={onPress} progress={pausedProgress} />

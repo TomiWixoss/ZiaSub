@@ -704,4 +704,34 @@ export default {
     later: "Later",
     autoCheck: "Auto-check for updates",
   },
+
+  // FAQ
+  faq: {
+    title: "Frequently Asked Questions",
+    videoError: {
+      question: "Video shows playback error?",
+      answer:
+        'If video shows "Can\'t play this content" or "Please try again later", you can try:\n\n1. Tap the reload button in the navigation bar\n\n2. Tap the Desktop mode button (phone/monitor icon) to switch to YouTube desktop interface\n\nUsually one of these methods will fix the issue.',
+    },
+    howTranslate: {
+      question: "How to translate video subtitles?",
+      answer:
+        '1. Open the YouTube video you want to translate\n\n2. Tap the subtitle button on the screen corner\n\n3. Select "Translate" tab and tap "Start translation"\n\n4. Wait for AI to process and subtitles will appear automatically',
+    },
+    apiKey: {
+      question: "What is Gemini API Key and where to get it?",
+      answer:
+        "API Key is the key to use Google's Gemini AI. You can get it for free at:\n\naistudio.google.com\n\nGo to Settings > API Keys to add your key.",
+    },
+    queue: {
+      question: "How does translation queue work?",
+      answer:
+        "You can add multiple videos to queue by tapping the + button on video thumbnails on homepage.\n\nVideos will be translated automatically in order. Tap the playlist button to view and manage the queue.",
+    },
+    subtitlePosition: {
+      question: "How to adjust subtitle position?",
+      answer:
+        "Go to Settings > Subtitles to adjust:\n\n• Font size\n• Font style (bold/italic)\n• Subtitle position in portrait/landscape mode",
+    },
+  },
 };

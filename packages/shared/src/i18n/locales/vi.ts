@@ -703,4 +703,34 @@ export default {
     later: "Để sau",
     autoCheck: "Tự động kiểm tra cập nhật",
   },
+
+  // FAQ
+  faq: {
+    title: "Câu hỏi thường gặp",
+    videoError: {
+      question: "Video báo lỗi không xem được?",
+      answer:
+        'Nếu video báo "Không xem được nội dung này" hoặc "Vui lòng thử lại sau", bạn có thể thử:\n\n1. Nhấn nút tải lại trang ở thanh điều hướng\n\n2. Nhấn nút đổi sang chế độ Desktop (biểu tượng điện thoại/màn hình) để xem bằng giao diện YouTube desktop\n\nThường một trong hai cách này sẽ giải quyết được vấn đề.',
+    },
+    howTranslate: {
+      question: "Làm sao để dịch phụ đề video?",
+      answer:
+        '1. Mở video YouTube bạn muốn dịch\n\n2. Nhấn nút phụ đề ở góc màn hình\n\n3. Chọn tab "Dịch" và nhấn "Bắt đầu dịch"\n\n4. Đợi AI xử lý và phụ đề sẽ tự động hiển thị',
+    },
+    apiKey: {
+      question: "API Key Gemini là gì và lấy ở đâu?",
+      answer:
+        "API Key là chìa khóa để sử dụng AI Gemini của Google. Bạn có thể lấy miễn phí tại:\n\naistudio.google.com\n\nVào Settings > API Keys để thêm key của bạn.",
+    },
+    queue: {
+      question: "Hàng đợi dịch hoạt động như thế nào?",
+      answer:
+        "Bạn có thể thêm nhiều video vào hàng đợi bằng cách nhấn nút + trên thumbnail video ở trang chủ.\n\nCác video sẽ được dịch tự động theo thứ tự. Nhấn nút playlist để xem và quản lý hàng đợi.",
+    },
+    subtitlePosition: {
+      question: "Làm sao chỉnh vị trí phụ đề?",
+      answer:
+        "Vào Settings > Phụ đề để điều chỉnh:\n\n• Cỡ chữ\n• Kiểu chữ (đậm/nghiêng)\n• Vị trí phụ đề khi xem dọc/ngang",
+    },
+  },
 };
