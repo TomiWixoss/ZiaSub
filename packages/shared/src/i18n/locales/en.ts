@@ -538,7 +538,8 @@ export default {
     currentlyTranslating: "This video is being translated.",
     addedToWaitingQueue:
       "Added to queue. Video will be translated when current one finishes.",
-    waitingForVideoData: "Loading video info, please try again in a moment.",
+    waitingForVideoData:
+      "Loading video info or ad is playing, please try again later.",
     waitingInQueue: "Waiting in queue...",
     waitingPosition: "Waiting (position #{{position}})",
     cancelWaiting: "Cancel",
@@ -584,7 +585,8 @@ export default {
       alreadyTranslating: "This video is already being translated.",
       anotherTranslating:
         "Another video is being translated. Please wait or stop it first.",
-      waitForDuration: "Wait for video to load, then try again.",
+      waitForDuration:
+        "Wait for video to load or ad to finish, then try again.",
 
       savedTranslations: "Translated",
       deleteTitle: "Delete translation",

@@ -537,7 +537,7 @@ export default {
     addedToWaitingQueue:
       "Đã thêm vào hàng đợi. Video sẽ được dịch khi video hiện tại hoàn thành.",
     waitingForVideoData:
-      "Đang tải thông tin video, vui lòng thử lại sau giây lát.",
+      "Đang tải thông tin video hoặc đang có quảng cáo, vui lòng thử lại sau.",
     waitingInQueue: "Đang chờ trong hàng đợi...",
     waitingPosition: "Đang chờ (vị trí #{{position}})",
     cancelWaiting: "Hủy chờ",
@@ -582,7 +582,8 @@ export default {
       notSelectedMessage: "Chọn kiểu dịch trước nhé.",
       alreadyTranslating: "Video này đang dịch rồi.",
       anotherTranslating: "Đang dịch video khác, vui lòng đợi hoặc dừng trước.",
-      waitForDuration: "Đợi video load xong rồi bấm lại nhé.",
+      waitForDuration:
+        "Đợi video load xong hoặc hết quảng cáo rồi bấm lại nhé.",
 
       savedTranslations: "Đã dịch",
       deleteTitle: "Xóa bản dịch",
