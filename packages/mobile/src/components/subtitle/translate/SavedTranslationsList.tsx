@@ -125,9 +125,7 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
         // Helper to calculate batch end time considering presub mode
         const getBatchEnd = (batchIndex: number) => {
           if (isPresubTranslation && batchIndex === 0) {
-            return duration > 0
-              ? Math.min(presubDuration, duration)
-              : presubDuration;
+            return duration > 0 ? Math.min(presubDuration, duration) : presubDuration;
           }
           const startTime = getBatchStart(batchIndex);
           const endTime = startTime + batchDuration;
@@ -321,8 +319,10 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
           const isExpanded = expandedId === item.id;
           const batches = isExpanded ? getBatchesInfo(item) : [];
           // Show batch retranslation status only for the translation being retranslated
-          // IMPORTANT: Only show status when we have a specific translation ID
-          // Do NOT fallback to first translation - this causes issues when translating new with custom range
+          // If no specific translation ID is tracked, fallback to first translation (index 0)
+          const hasBatchRetranslation = !!(
+            batchRetranslateJob || pausedBatchRetranslation
+          );
           const hasSpecificTranslationId = !!(
             retranslatingTranslationId ||
             batchRetranslateJob?.existingTranslationId ||
@@ -332,7 +332,7 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
             ? retranslatingTranslationId === item.id ||
               batchRetranslateJob?.existingTranslationId === item.id ||
               pausedBatchRetranslation?.translationId === item.id
-            : false; // No fallback - only show status for specific translation
+            : hasBatchRetranslation && index === 0; // Fallback to first translation
 
           return (
             <View
@@ -843,10 +843,8 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
 
                           // First batch in presub mode should be yellow (even when completed)
                           // Check item.batchSettings?.presubMode for saved translation's presub state
-                          const isPresubTranslation =
-                            item.batchSettings?.presubMode ?? false;
-                          const isPresubBatch =
-                            isPresubTranslation && batch.index === 0;
+                          const isPresubTranslation = item.batchSettings?.presubMode ?? false;
+                          const isPresubBatch = isPresubTranslation && batch.index === 0;
 
                           return (
                             <View
@@ -873,20 +871,12 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
                               <View
                                 style={[
                                   styles.batchChip,
-                                  isCompleted &&
-                                    !isPresubBatch &&
-                                    styles.batchChipCompleted,
+                                  isCompleted && !isPresubBatch && styles.batchChipCompleted,
                                   isPresubBatch && styles.batchChipPresub,
                                   isError && styles.batchChipError,
-                                  isProcessing &&
-                                    !isPresubBatch &&
-                                    styles.batchChipProcessing,
-                                  isPaused &&
-                                    !isPresubBatch &&
-                                    styles.batchChipPaused,
-                                  isWaiting &&
-                                    !isPresubBatch &&
-                                    styles.batchChipWaiting,
+                                  isProcessing && !isPresubBatch && styles.batchChipProcessing,
+                                  isPaused && !isPresubBatch && styles.batchChipPaused,
+                                  isWaiting && !isPresubBatch && styles.batchChipWaiting,
                                   !isCompleted &&
                                     !isError &&
                                     !isProcessing &&
@@ -921,8 +911,7 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
                                         !isPresubBatch &&
                                         styles.batchChipTextCompleted,
                                       isError && styles.batchChipTextError,
-                                      isPresubBatch &&
-                                        styles.batchChipTextPresub,
+                                      isPresubBatch && styles.batchChipTextPresub,
                                     ]}
                                   >
                                     {batch.index + 1}
@@ -936,11 +925,9 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
                                       styles.batchChipTimeCompleted,
                                     isError && styles.batchChipTimeError,
                                     isPresubBatch && styles.batchChipTimePresub,
-                                    isProcessing &&
-                                      !isPresubBatch && { color: "#fff" },
+                                    isProcessing && !isPresubBatch && { color: "#fff" },
                                     isPaused && { color: "#fff" },
-                                    isWaiting &&
-                                      !isPresubBatch && { color: "#fff" },
+                                    isWaiting && !isPresubBatch && { color: "#fff" },
                                   ]}
                                 >
                                   {formatTime(batch.startTime)} -{" "}
