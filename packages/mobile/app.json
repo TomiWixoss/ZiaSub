@@ -1,8 +1,8 @@
 {
   "expo": {
     "name": "ZiaSub",
-    "slug": "ziasub",
-    "version": "0.0.7",
+    "slug": "tomisakae",
+    "version": "1.0.0",
     "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -36,14 +36,19 @@
     },
     "extra": {
       "eas": {
-        "projectId": "92f23d21-a478-44c2-a761-7cebb834a071"
+        "projectId": "82adbfd9-e34b-408d-9f0f-d48acd92e386"
       }
     },
-    "owner": "tomisakae",
+    "owner": "ziasub",
     "plugins": [
       "expo-font",
       "./plugins/withInstallApkPermission",
-      ["./plugins/withAsyncStorageSize", { "size": 200 }],
+      [
+        "./plugins/withAsyncStorageSize",
+        {
+          "size": 200
+        }
+      ],
       [
         "expo-notifications",
         {
