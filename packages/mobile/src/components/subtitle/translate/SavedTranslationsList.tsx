@@ -863,12 +863,24 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
 
                           // Check if this batch has been completed during retranslation
                           // Use progress.completedBatches to determine which batches are done
+                          // IMPORTANT: completedBatches from geminiService includes skipped batches,
+                          // so we need to subtract the number of skipped batches (retranslateStartBatchIndex)
+                          // to get the actual number of batches completed in this retranslation
+                          const actualCompletedInRetranslation =
+                            batchRetranslateJob?.progress?.completedBatches !==
+                            undefined
+                              ? Math.max(
+                                  0,
+                                  batchRetranslateJob.progress
+                                    .completedBatches -
+                                    retranslateStartBatchIndex
+                                )
+                              : 0;
                           const completedInRetranslation =
                             batchRetranslateJob?.progress?.completedBatches !==
                               undefined &&
                             relativeBatchIndex >= 0 &&
-                            relativeBatchIndex <
-                              batchRetranslateJob.progress.completedBatches;
+                            relativeBatchIndex < actualCompletedInRetranslation;
 
                           // Check if this batch is the one currently being processed
                           const isCurrentlyProcessingBatch =
@@ -876,7 +888,7 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
                             batchRetranslateJob?.progress?.completedBatches !==
                               undefined &&
                             relativeBatchIndex ===
-                              batchRetranslateJob.progress.completedBatches;
+                              actualCompletedInRetranslation;
 
                           // Check if this batch is being retranslated (actively processing)
                           // Only the current batch being processed should show as "processing"
@@ -895,14 +907,13 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
 
                           // Check if this batch is paused (user explicitly paused)
                           // For paused state, only show paused for batches that haven't been completed yet
-                          const pausedCompletedBatches =
-                            pausedBatchRetranslation
-                              ? batchRetranslateJob?.progress
-                                  ?.completedBatches ?? 0
-                              : 0;
+                          // Use actualCompletedInRetranslation which already accounts for skipped batches
+                          const pausedActualCompleted = pausedBatchRetranslation
+                            ? actualCompletedInRetranslation
+                            : 0;
                           const isPausedAndNotCompleted =
                             pausedBatchRetranslation &&
-                            relativeBatchIndex >= pausedCompletedBatches;
+                            relativeBatchIndex >= pausedActualCompleted;
                           const isBatchPaused =
                             isPausedAndNotCompleted &&
                             ((pausedBatchRetranslation?.mode === "single" &&
