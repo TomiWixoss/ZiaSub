@@ -1052,6 +1052,30 @@ export const TranslateTab: React.FC<TranslateTabProps> = ({
       async () => {
         if (!videoUrl) return;
 
+        // Check if this translation is being retranslated
+        const isBeingRetranslated =
+          retranslatingTranslationId === translation.id ||
+          batchRetranslateJob?.existingTranslationId === translation.id ||
+          pausedBatchRetranslation?.translationId === translation.id;
+
+        // If deleting a translation that's being retranslated, cancel the retranslation first
+        if (isBeingRetranslated) {
+          const { queueManager } = await import("@services/queueManager");
+          // If currently processing, abort translation first (skip saving partial since we're deleting)
+          if (batchRetranslateJob?.status === "processing") {
+            await translationManager.abortTranslation(videoUrl, {
+              skipSavePartial: true,
+            });
+          }
+          // Clear batch retranslation mode from queue
+          await queueManager.clearBatchRetranslateMode(videoUrl);
+          // Clear retranslating translation ID
+          setRetranslatingTranslationId(null);
+          // Clear local state
+          setBatchRetranslateJob(null);
+          setPausedBatchRetranslation(null);
+        }
+
         // Calculate new state BEFORE deleting (to avoid race condition with cache)
         const remainingTranslations = savedTranslations.filter(
           (t) => t.id !== translation.id

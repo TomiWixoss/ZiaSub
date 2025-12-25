@@ -137,6 +137,7 @@ export const savePartialTranslation = async (
     batchSettings?: BatchSettings;
     batchStatuses?: Array<"pending" | "completed" | "error">;
     presetId?: string;
+    existingTranslationId?: string; // ID of existing translation to update (for batch retranslation)
   }
 ): Promise<SavedTranslation> => {
   const videoId = getVideoIdFromUrl(videoUrl);
@@ -149,6 +150,26 @@ export const savePartialTranslation = async (
       translations: [],
       activeTranslationId: null,
     };
+  }
+
+  // If existingTranslationId provided, update that translation (for batch retranslation pause)
+  if (metadata.existingTranslationId) {
+    const existingIndex = data.translations.findIndex(
+      (t) => t.id === metadata.existingTranslationId
+    );
+    if (existingIndex >= 0) {
+      // Update existing translation with partial content
+      data.translations[existingIndex] = {
+        ...data.translations[existingIndex],
+        srtContent,
+        updatedAt: Date.now(),
+        // Keep isPartial as false since this is a batch retranslation of existing complete translation
+        // The original translation structure is preserved
+      };
+      data.activeTranslationId = metadata.existingTranslationId;
+      await storageService.setTranslation(videoId, data);
+      return data.translations[existingIndex];
+    }
   }
 
   // Find existing partial translation with same config to update

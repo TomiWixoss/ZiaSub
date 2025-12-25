@@ -828,6 +828,18 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
 
                       <View style={styles.batchesGrid}>
                         {batches.map((batch) => {
+                          // Get batch duration from translation settings
+                          const batchDuration =
+                            item.batchSettings?.maxVideoDuration || 600;
+
+                          // Calculate the starting batch index for retranslation
+                          const retranslateStartBatchIndex =
+                            batchRetranslateJob?.rangeStart !== undefined
+                              ? Math.floor(
+                                  batchRetranslateJob.rangeStart / batchDuration
+                                )
+                              : pausedBatchRetranslation?.batchIndex ?? -1;
+
                           // Check if this batch is in the retranslation range
                           const isInRetranslationRange =
                             (batchRetranslateJob?.rangeStart !== undefined &&
@@ -844,13 +856,33 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
                                   batch.index >=
                                     pausedBatchRetranslation.batchIndex)));
 
-                          // Check if this batch is being retranslated (actively processing)
-                          const isBatchRetranslating =
+                          // Calculate relative batch index within retranslation range
+                          // e.g., if retranslating from batch 2, batch 2 is relative index 0, batch 3 is relative index 1
+                          const relativeBatchIndex =
+                            batch.index - retranslateStartBatchIndex;
+
+                          // Check if this batch has been completed during retranslation
+                          // Use progress.completedBatches to determine which batches are done
+                          const completedInRetranslation =
+                            batchRetranslateJob?.progress?.completedBatches !==
+                              undefined &&
+                            relativeBatchIndex >= 0 &&
+                            relativeBatchIndex <
+                              batchRetranslateJob.progress.completedBatches;
+
+                          // Check if this batch is the one currently being processed
+                          const isCurrentlyProcessingBatch =
                             batchRetranslateJob?.status === "processing" &&
-                            batchRetranslateJob?.rangeStart !== undefined &&
-                            batch.startTime >= batchRetranslateJob.rangeStart &&
-                            (batchRetranslateJob.rangeEnd === undefined ||
-                              batch.startTime < batchRetranslateJob.rangeEnd);
+                            batchRetranslateJob?.progress?.completedBatches !==
+                              undefined &&
+                            relativeBatchIndex ===
+                              batchRetranslateJob.progress.completedBatches;
+
+                          // Check if this batch is being retranslated (actively processing)
+                          // Only the current batch being processed should show as "processing"
+                          const isBatchRetranslating =
+                            isCurrentlyProcessingBatch &&
+                            isInRetranslationRange;
 
                           // Check if this batch retranslation is waiting in queue (not yet started)
                           const isBatchRetranslationWaiting =
@@ -862,12 +894,21 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
                               batch.startTime < batchRetranslateJob.rangeEnd);
 
                           // Check if this batch is paused (user explicitly paused)
-                          const isBatchPaused =
+                          // For paused state, only show paused for batches that haven't been completed yet
+                          const pausedCompletedBatches =
+                            pausedBatchRetranslation
+                              ? batchRetranslateJob?.progress
+                                  ?.completedBatches ?? 0
+                              : 0;
+                          const isPausedAndNotCompleted =
                             pausedBatchRetranslation &&
-                            ((pausedBatchRetranslation.mode === "single" &&
+                            relativeBatchIndex >= pausedCompletedBatches;
+                          const isBatchPaused =
+                            isPausedAndNotCompleted &&
+                            ((pausedBatchRetranslation?.mode === "single" &&
                               batch.index ===
                                 pausedBatchRetranslation.batchIndex) ||
-                              (pausedBatchRetranslation.mode === "fromHere" &&
+                              (pausedBatchRetranslation?.mode === "fromHere" &&
                                 batch.index >=
                                   pausedBatchRetranslation.batchIndex));
 
@@ -876,21 +917,24 @@ const SavedTranslationsList: React.FC<SavedTranslationsListProps> = ({
                             isWaitingInQueue && batch.status !== "completed";
 
                           // Batch is completed if:
-                          // 1. It has completed status AND
-                          // 2. It's NOT in the retranslation range (batches before rangeStart stay green)
+                          // 1. It has completed status AND is NOT in retranslation range, OR
+                          // 2. It's in retranslation range but has been completed during retranslation
                           const isCompleted =
-                            batch.status === "completed" &&
-                            !isInRetranslationRange &&
-                            !isBatchWaitingFullTranslation;
+                            (batch.status === "completed" &&
+                              !isInRetranslationRange &&
+                              !isBatchWaitingFullTranslation) ||
+                            completedInRetranslation;
                           const isError = batch.status === "error";
                           const isProcessing = isBatchRetranslating;
                           const isPaused =
                             isBatchPaused &&
                             !isProcessing &&
-                            !isBatchRetranslationWaiting;
+                            !isBatchRetranslationWaiting &&
+                            !completedInRetranslation;
                           const isWaiting =
                             (isBatchWaitingFullTranslation ||
-                              isBatchRetranslationWaiting) &&
+                              (isBatchRetranslationWaiting &&
+                                !completedInRetranslation)) &&
                             !isProcessing &&
                             !isPaused;
 

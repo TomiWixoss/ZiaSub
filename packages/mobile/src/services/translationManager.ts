@@ -20,6 +20,7 @@ class TranslationManager {
   private isAborted: boolean = false;
   private skipBackgroundControl: boolean = false; // true khi gọi từ queue
   private skipNotification: boolean = false; // true khi gọi từ queue
+  private skipSavePartial: boolean = false; // true khi xoá bản dịch - không lưu partial
 
   private constructor() {}
 
@@ -94,6 +95,7 @@ class TranslationManager {
 
     this.abortController = new AbortController();
     this.isAborted = false;
+    this.skipSavePartial = false; // Reset flag khi bắt đầu translation mới
 
     // Start background service để giữ app chạy khi ở background
     // Skip nếu được gọi từ queue (queue tự quản lý background)
@@ -270,8 +272,8 @@ class TranslationManager {
       return result;
     } catch (error: any) {
       // If aborted, partial was already saved in abortTranslation()
-      // Only save here if it's a real error (not user abort)
-      if (!this.isAborted) {
+      // Only save here if it's a real error (not user abort) and not skipping save
+      if (!this.isAborted && !this.skipSavePartial) {
         const hasPartialResult = accumulatedSrt && completedRanges.length > 0;
 
         if (hasPartialResult && this.currentJob) {
@@ -289,6 +291,7 @@ class TranslationManager {
                 batchSettings,
                 batchStatuses: currentBatchStatuses,
                 presetId: config.presetId,
+                existingTranslationId: resumeData?.existingTranslationId, // Pass existing ID for batch retranslation
               }
             );
             console.log(
@@ -353,7 +356,12 @@ class TranslationManager {
     }
   }
 
-  async abortTranslation(videoUrl?: string): Promise<{
+  async abortTranslation(
+    videoUrl?: string,
+    options?: {
+      skipSavePartial?: boolean; // true khi xoá bản dịch - không cần lưu partial
+    }
+  ): Promise<{
     aborted: boolean;
     partialResult?: string;
     completedRanges?: Array<{ start: number; end: number }>;
@@ -367,15 +375,18 @@ class TranslationManager {
     }
 
     this.isAborted = true;
+    this.skipSavePartial = options?.skipSavePartial ?? false;
 
     const partialResult = this.currentJob.partialResult || undefined;
     const completedRanges = this.currentJob.completedBatchRanges || [];
     const batchStatuses = this.currentJob.batchStatuses || [];
     const presetId = this.currentJob.presetId;
+    const existingTranslationId = this.currentJob.existingTranslationId;
     const hasPartial = partialResult && completedRanges.length > 0;
 
     // Save partial translation IMMEDIATELY (don't wait for catch block)
-    if (hasPartial) {
+    // Skip if explicitly requested (e.g., when deleting translation)
+    if (hasPartial && !options?.skipSavePartial) {
       try {
         await savePartialTranslation(
           this.currentJob.videoUrl,
@@ -390,6 +401,7 @@ class TranslationManager {
             batchSettings: this.currentJob.batchSettings as any,
             batchStatuses,
             presetId,
+            existingTranslationId, // Pass existing ID for batch retranslation
           }
         );
       } catch (saveError) {
