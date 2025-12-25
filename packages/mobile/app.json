@@ -2,7 +2,7 @@
   "expo": {
     "name": "ZiaSub",
     "slug": "tomisakae",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
